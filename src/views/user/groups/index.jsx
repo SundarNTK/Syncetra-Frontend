@@ -142,18 +142,6 @@ function GroupViewModal({ group, trip, onClose }) {
             </div>
           )}
 
-          {/* Notification setup */}
-          <div className="bg-amber-950/30 border border-amber-700/40 rounded-xl p-4">
-            <p className="font-medium text-amber-300 text-sm mb-1.5">📢 To hear alarms on this phone</p>
-            <ol className="list-decimal list-inside space-y-1 text-slate-300 text-xs">
-              <li>Allow notifications when prompted</li>
-              <li>Stay signed in as User (not Admin)</li>
-              <li>Ask admin to confirm your row shows <strong>Ready</strong> under View members</li>
-            </ol>
-            <p className="mt-2 text-[11px] text-slate-500">
-              Your mobile number is not used for SMS — alarms use this app on your phone.
-            </p>
-          </div>
         </div>
 
         <div className="px-5 pb-5">
@@ -247,19 +235,6 @@ export default function UserGroups() {
 
   return (
     <MasterPageShell title="My Groups" description="Groups you are assigned to">
-      {/* Notification setup banner */}
-      <div className="text-sm text-amber-200/90 bg-amber-950/40 border border-amber-700/50 rounded-xl p-4">
-        <p className="font-medium text-amber-300 mb-1">To hear alarms on this phone</p>
-        <ol className="list-decimal list-inside space-y-1 text-slate-300 text-xs sm:text-sm">
-          <li>Allow notifications when prompted</li>
-          <li>Stay signed in as User (not Admin)</li>
-          <li>Ask admin to confirm your row shows <strong>Ready</strong> under View members</li>
-        </ol>
-        <p className="mt-2 text-xs text-slate-500">
-          Your mobile number is not used for SMS — alarms use this app on your phone.
-        </p>
-      </div>
-
       {groups.length === 0 ? (
         <MasterListEmpty
           icon="👥"

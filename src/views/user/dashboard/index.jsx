@@ -2,47 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { getUserDashboard } from "../../../services/dashboard";
-import PhoneAlarmSetup from "../../../components/phone-alarm-setup/PhoneAlarmSetup";
+import { getUserGroups } from "../../../services/groups";
 import { useTrip } from "../../../context/TripContext";
-
-/* ── helpers ─────────────────────────────────────────────────────────────── */
-function tripPhase(trip) {
-  const now   = Date.now();
-  const start = trip.startDate ? new Date(trip.startDate).getTime() : null;
-  const end   = trip.endDate   ? new Date(trip.endDate).getTime()   : null;
-  if (!start)         return "upcoming";
-  if (now < start)    return "upcoming";
-  if (!end || now <= end) return "active";
-  return "completed";
-}
-
-function phaseBadge(phase) {
-  if (phase === "active")   return "bg-emerald-600/30 text-emerald-300 border-emerald-500/50";
-  if (phase === "upcoming") return "bg-sky-600/30 text-sky-300 border-sky-500/50";
-  return "bg-yellow-900/40 text-yellow-300 border-yellow-600/50";
-}
-
-function BudgetBar({ spent, total }) {
-  const pct   = total > 0 ? Math.min(100, Math.round((spent / total) * 100)) : 0;
-  const color = pct > 85 ? "from-red-500 to-rose-600" : pct > 60 ? "from-amber-500 to-orange-500" : "from-emerald-500 to-teal-500";
-  return (
-    <div className="w-full">
-      <div className="flex justify-between text-[11px] mb-1.5">
-        <span className="text-slate-300">₹{(spent || 0).toLocaleString()} collected</span>
-        <span className={pct > 85 ? "text-red-400 font-bold" : "text-slate-400"}>{pct}%</span>
-      </div>
-      <div className="h-2 rounded-full bg-slate-700/80 overflow-hidden">
-        <div
-          className={`h-full rounded-full bg-gradient-to-r ${color} shimmer-parent transition-all duration-700`}
-          style={{ width: `${pct}%` }}
-        >
-          <div className="shimmer-child" />
-        </div>
-      </div>
-      <p className="text-[11px] text-slate-500 mt-1.5">Budget ₹{(total || 0).toLocaleString()}</p>
-    </div>
-  );
-}
+import TripsMapSection from "../../../components/trip/TripsMapSection";
+import SelectedTripCard from "../../../components/trip/SelectedTripCard";
+import { tripPhase, phaseBadge } from "../../../components/trip/tripUtils";
 
 /* ── Trip stat card ───────────────────────────────────────────────────────── */
 function TripStatCard({ label, value, icon, delay, variant }) {
@@ -136,41 +100,52 @@ function TripStatCard({ label, value, icon, delay, variant }) {
   );
 }
 
-const MODULE_COLORS = {
-  Expenses:   "hover:border-yellow-500/60 hover:shadow-yellow-500/20",
-  Tasks:      "hover:border-violet-500/60 hover:shadow-violet-500/20",
-  Vehicles:   "hover:border-sky-500/60 hover:shadow-sky-500/20",
-  Attendance: "hover:border-emerald-500/60 hover:shadow-emerald-500/20",
-  Gallery:    "hover:border-pink-500/60 hover:shadow-pink-500/20",
-  Checklist:  "hover:border-orange-500/60 hover:shadow-orange-500/20",
-  Polls:      "hover:border-red-500/60 hover:shadow-red-500/20",
-  History:    "hover:border-cyan-500/60 hover:shadow-cyan-500/20",
-};
-
-const TRIP_MODULES = [
-  { label: "Expenses",   icon: "💰", path: "/user/expenses"   },
-  { label: "Tasks",      icon: "📋", path: "/user/tasks"      },
-  { label: "Vehicles",   icon: "🚌", path: "/user/vehicles"   },
-  { label: "Attendance", icon: "✅", path: "/user/attendance" },
-  { label: "Gallery",    icon: "📷", path: "/user/gallery"    },
-  { label: "Checklist",  icon: "🎒", path: "/user/checklist"  },
-  { label: "Polls",      icon: "🗳️", path: "/user/polls"      },
-  { label: "History",    icon: "⏰", path: "/user/history"    },
-];
-
 /* ── Main component ───────────────────────────────────────────────────────── */
 export default function UserDashboard() {
   const { trips, selectedTrip, selectedTripId, setSelectedTripId } = useTrip();
   const [data, setData] = useState(null);
+  const [memberCount, setMemberCount] = useState(null);
 
   useEffect(() => {
     getUserDashboard().then((r) => setData(r?.data)).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    setMemberCount(null);
+    if (!selectedTripId) return;
+    getUserGroups()
+      .then((r) => {
+        const linked = (r?.data || []).find((g) => String(g.tripId) === String(selectedTripId));
+        setMemberCount(linked?.members?.length ?? null);
+      })
+      .catch(() => {});
+  }, [selectedTripId]);
+
   const tripStats = trips.reduce(
     (acc, t) => { const p = tripPhase(t); acc.total++; acc[p] = (acc[p] || 0) + 1; return acc; },
     { total: 0, active: 0, upcoming: 0, completed: 0 }
   );
+
+  const selectedTripStats = [
+    {
+      label: "Members",
+      value: memberCount != null ? memberCount : "—",
+      icon: "👥",
+      accent: "indigo",
+    },
+    {
+      label: "Budget",
+      value: `₹${(selectedTrip?.budget || 0).toLocaleString()}`,
+      icon: "💰",
+      accent: "amber",
+    },
+    {
+      label: "Collected",
+      value: `₹${(selectedTrip?.collectedAmount || 0).toLocaleString()}`,
+      icon: "💳",
+      accent: "emerald",
+    },
+  ];
 
   return (
     <div className="space-y-7">
@@ -182,8 +157,6 @@ export default function UserDashboard() {
         </h1>
         <p className="text-slate-500 text-sm mt-1">Your trips &amp; alarm overview</p>
       </div>
-
-      <PhoneAlarmSetup />
 
       {/* active alarm banner */}
       {data?.activeAlarm && (
@@ -204,91 +177,21 @@ export default function UserDashboard() {
         <TripStatCard label="Completed"    value={tripStats.completed} icon="🏆"  delay={180} variant="gold"     />
       </div>
 
-      {/* selected trip card */}
-      {trips.length > 0 && (
-        <div
-          className="rounded-2xl border overflow-hidden animate-fade-in"
-          style={{
-            background: "linear-gradient(135deg,rgba(15,23,42,0.95) 0%,rgba(30,41,59,0.9) 100%)",
-            border: "1px solid rgba(99,102,241,0.25)",
-            boxShadow: "0 0 0 1px rgba(99,102,241,0.1), 0 8px 32px rgba(0,0,0,0.4)",
-          }}
-        >
-          <div
-            className="flex items-center gap-3 px-5 py-3 border-b border-slate-800/80"
-            style={{ background: "linear-gradient(90deg,rgba(99,102,241,0.08) 0%,transparent 100%)" }}
-          >
-            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-live-dot" />
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Selected Trip</span>
-            <select
-              value={selectedTripId || ""}
-              onChange={(e) => setSelectedTripId(e.target.value)}
-              className="flex-1 max-w-xs px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-600/60 text-sm text-white focus:border-indigo-500 focus:outline-none transition-colors"
-            >
-              <option value="">— choose a trip —</option>
-              {trips.map((t) => <option key={t._id} value={t._id}>{t.tripName}</option>)}
-            </select>
-            <Link to="/user/trips" className="text-xs text-indigo-400 hover:text-indigo-300 shrink-0 transition-colors ml-auto">
-              My trips →
-            </Link>
-          </div>
+      {/* world map */}
+      <div className="animate-fade-in">
+        <TripsMapSection
+          trips={trips}
+          selectedTripId={selectedTripId}
+          tripsLink="/user/trips"
+          canEdit={false}
+        />
+      </div>
 
-          {selectedTrip ? (
-            <div className="flex flex-col sm:flex-row">
-              <div className="sm:w-44 shrink-0 relative overflow-hidden">
-                {selectedTrip.coverImage ? (
-                  <img src={selectedTrip.coverImage} alt={selectedTrip.tripName} className="w-full h-36 sm:h-full object-cover" />
-                ) : (
-                  <div className="w-full h-36 sm:h-full bg-gradient-to-br from-indigo-900/60 to-slate-900 flex items-center justify-center">
-                    <span className="text-5xl opacity-20">✈️</span>
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 p-5 space-y-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-xl font-black text-white">{selectedTrip.tripName}</h2>
-                    {(selectedTrip.startDate || selectedTrip.endDate) && (
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {selectedTrip.startDate ? new Date(selectedTrip.startDate).toLocaleDateString() : "?"}{" "}→{" "}
-                        {selectedTrip.endDate ? new Date(selectedTrip.endDate).toLocaleDateString() : "ongoing"}
-                      </p>
-                    )}
-                  </div>
-                  <span className={`text-[11px] px-3 py-1 rounded-full border capitalize font-semibold ${phaseBadge(tripPhase(selectedTrip))}`}>
-                    {tripPhase(selectedTrip)}
-                  </span>
-                </div>
-                {selectedTrip.budget > 0 && (
-                  <BudgetBar spent={selectedTrip.collectedAmount || 0} total={selectedTrip.budget} />
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="px-5 py-10 text-slate-500 text-sm text-center">Select a trip above to see its details.</p>
-          )}
-        </div>
-      )}
-
-      {/* trip modules */}
-      {selectedTrip && (
-        <div className="animate-slide-up">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Trip Modules</p>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-            {TRIP_MODULES.map((m, i) => (
-              <Link
-                key={m.label}
-                to={m.path}
-                className={`flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-slate-900/80 border border-slate-700/50 hover:bg-slate-800/90 hover:shadow-lg transition-all duration-200 group ${MODULE_COLORS[m.label] || ""}`}
-                style={{ animationDelay: `${i * 40}ms` }}
-              >
-                <span className="text-2xl group-hover:scale-125 group-hover:-translate-y-0.5 transition-transform duration-200">{m.icon}</span>
-                <span className="text-[10px] text-slate-400 group-hover:text-white transition-colors text-center leading-tight font-medium">{m.label}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      <SelectedTripCard
+        tripsLink="/user/trips"
+        tripsLinkLabel="My trips →"
+        stats={selectedTripStats}
+      />
 
       {/* all trips list */}
       {trips.length > 0 && (
