@@ -597,7 +597,7 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
 
   const isEdit = !!initialTrip;
   const inputCls =
-    "w-full px-4 py-2.5 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:border-emerald-600/60 focus:outline-none transition-colors";
+    "w-full h-11 px-4 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:border-emerald-600/60 focus:outline-none transition-colors";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -612,25 +612,23 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
         placeholder="Description"
         value={form.description}
         onChange={f("description")}
-        className={`${inputCls} resize-none`}
+        className={`${inputCls} h-auto py-2.5 resize-none`}
         rows={2}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-slate-400 block mb-1">Trip Type</label>
-          <select
-            value={form.tripType}
-            onChange={f("tripType")}
-            className={inputCls}
-          >
-            {TRIP_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.icon} {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+        <select
+          value={form.tripType}
+          onChange={f("tripType")}
+          className={inputCls}
+          aria-label="Trip type"
+        >
+          {TRIP_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.icon} {t.label}
+            </option>
+          ))}
+        </select>
         <input
           type="number"
           placeholder="Budget"
