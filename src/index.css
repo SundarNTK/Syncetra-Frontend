@@ -288,6 +288,23 @@ input, select, textarea, button {
   border-radius: 0.5rem;
   overflow: hidden;
 }
+.trip-card .trip-cover-glow-wrap--card {
+  border-radius: 0;
+}
+@media (min-width: 640px) {
+  .trip-card .trip-cover-glow-wrap--card {
+    border-radius: 0.5rem;
+    min-height: 6.5rem;
+  }
+}
+@media (max-width: 639px) {
+  .trip-card .trip-cover-glow-wrap--card {
+    min-height: 0;
+  }
+  .trip-card .trip-cover-glow-shimmer {
+    border-radius: 0;
+  }
+}
 .trip-cover-glow-shimmer {
   position: absolute;
   inset: 0;

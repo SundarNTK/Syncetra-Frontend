@@ -826,11 +826,11 @@ function TripCountdownStrip({ trip }) {
   if (!time) return null;
 
   return (
-    <div className="mt-2.5">
-      <p className={`text-[10px] uppercase tracking-widest font-medium mb-1.5 ${theme.textCls}`}>
+    <div className="mt-2 sm:mt-2.5">
+      <p className={`text-[10px] uppercase tracking-widest font-medium mb-1 sm:mb-1.5 ${theme.textCls}`}>
         {theme.label}
       </p>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
         <CountdownTile value={time.days}    label="D" glow={theme.glow} size="sm" />
         <CountdownTile value={time.hours}   label="H" glow={theme.glow} size="sm" />
         <CountdownTile value={time.minutes} label="M" glow={theme.glow} size="sm" />
@@ -1347,17 +1347,20 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
   const tripType = tripTypeMap[trip.tripType] || tripTypeMap.group;
   const coverGlowClass = STATUS_COVER_GLOW[trip.status] || STATUS_COVER_GLOW.planned;
 
+  const actionBtn =
+    "flex items-center justify-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium transition-colors w-full sm:w-auto";
+
   return (
-    <MasterListItem className="master-list-item">
-      {/* Cover image */}
-      <div className="relative group shrink-0 w-32 sm:w-40 self-stretch min-h-[7.5rem] bg-slate-950 border-r border-slate-800/60 flex items-center justify-center p-2">
-        <div className={`trip-cover-glow-wrap ${coverGlowClass}`}>
+    <MasterListItem className="master-list-item trip-card flex-col sm:flex-row">
+      {/* Cover — full-width banner on mobile, side column on sm+ */}
+      <div className="relative group shrink-0 w-full h-40 sm:h-auto sm:w-36 md:w-40 sm:min-h-[7.5rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60 overflow-hidden rounded-t-xl sm:rounded-none">
+        <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full ${coverGlowClass}`}>
           <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip.coverImage ? (
           <img
             src={trip.coverImage}
             alt={trip.tripName}
-            className="absolute inset-0 w-full h-full object-contain p-1"
+            className="absolute inset-0 w-full h-full object-cover sm:object-contain sm:p-1"
           />
         ) : (
           <div
@@ -1369,10 +1372,9 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
             <span className="text-3xl opacity-50">{tripType.icon}</span>
           </div>
         )}
-        {/* Hover overlay to change photo */}
         <label
           title={trip.coverImage ? "Change photo" : "Add cover photo"}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 active:opacity-100 transition-opacity cursor-pointer z-10"
         >
           <span className="text-white text-lg">📷</span>
           <span className="text-[10px] text-white/80">
@@ -1385,9 +1387,8 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
             onChange={(e) => onCoverChange(trip._id, e)}
           />
         </label>
-        {/* Trip name badge */}
         {trip.coverImage && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 z-[5]">
+          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 z-[5] hidden sm:block">
             <p className="text-[10px] text-white/90 truncate">
               {trip.tripName}
             </p>
@@ -1396,11 +1397,11 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
         </div>
       </div>
 
-      {/* Info */}
-      <div className="flex-1 p-4 flex flex-col sm:flex-row justify-between items-start gap-3 min-w-0">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3 className="font-semibold text-base sm:text-lg truncate">
+      {/* Info + actions */}
+      <div className="flex-1 p-3 sm:p-4 flex flex-col gap-3 min-w-0 w-full">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+            <h3 className="font-semibold text-base sm:text-lg leading-snug break-words w-full sm:w-auto sm:truncate sm:flex-1 min-w-0">
               {trip.tripName}
             </h3>
             <span
@@ -1412,42 +1413,40 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
               {tripType.icon} {tripType.label}
             </span>
           </div>
-          <p className="text-sm text-slate-400 mb-1">
+          <p className="text-sm text-slate-400 mb-1.5 line-clamp-2 sm:line-clamp-none leading-relaxed">
             {trip.description || "No description"}
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 leading-relaxed">
             Budget ₹{(trip.budget || 0).toLocaleString()}
             {trip.startDate && <> · {fmtDate(trip.startDate)}</>}
             {trip.endDate && <> → {fmtDate(trip.endDate)}</>}
           </p>
 
-          {/* Compact countdown */}
           <TripCountdownStrip trip={trip} />
         </div>
 
-        {/* Actions stacked right */}
-        <div className="flex flex-col gap-1.5 shrink-0 self-start">
+        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-1.5 w-full sm:w-auto sm:shrink-0 sm:self-start border-t border-slate-700/40 pt-3 sm:border-t-0 sm:pt-0">
           <button
             onClick={() => onView(trip)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors"
+            className={`${actionBtn} bg-slate-700 hover:bg-slate-600 text-slate-300`}
           >
             <IconEye /> View
           </button>
           <button
             onClick={() => onEdit(trip)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors"
+            className={`${actionBtn} bg-slate-700 hover:bg-slate-600 text-slate-300`}
           >
             <IconEdit /> Edit
           </button>
           <button
             onClick={() => onTasks(trip)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-900/30 hover:bg-violet-900/50 text-violet-400 text-xs font-medium transition-colors"
+            className={`${actionBtn} bg-violet-900/30 hover:bg-violet-900/50 text-violet-400`}
           >
             <IconClipboard /> Tasks
           </button>
           <button
             onClick={() => onDelete(trip._id)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-400 text-xs font-medium transition-colors"
+            className={`${actionBtn} bg-red-900/30 hover:bg-red-900/50 text-red-400`}
           >
             <IconTrash /> Delete
           </button>
@@ -1540,7 +1539,7 @@ export default function AdminTrips() {
         !showCreate ? (
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-sm font-medium transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-sm font-medium transition-colors w-full sm:w-auto"
           >
             <IconPlus /> Add New Trip
           </button>

@@ -10,7 +10,7 @@ export default function MasterPageShell({ title, description, action, children, 
             {title && <h1 className="text-xl sm:text-2xl font-bold text-white">{title}</h1>}
             {description && <p className="text-slate-400 text-sm mt-0.5">{description}</p>}
           </div>
-          {action && <div className="shrink-0">{action}</div>}
+          {action && <div className="shrink-0 w-full sm:w-auto [&>button]:w-full sm:[&>button]:w-auto [&>a]:w-full sm:[&>a]:w-auto">{action}</div>}
         </div>
       )}
       {children}
