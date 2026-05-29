@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+
+# Logs & debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Vite / PWA
+*.local
+
+# Optional: uncomment if you use these locally
+# .vscode/

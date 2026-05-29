@@ -1,0 +1,302 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-900 text-slate-100 min-h-screen;
+}
+
+input, select, textarea, button {
+  @apply outline-none;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.5s ease-out; }
+.animate-slide-up { animation: slide-up 0.35s ease-out; }
+.animate-bounce-slow { animation: bounce 2.5s infinite; }
+
+@keyframes lightbox-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-lightbox-in { animation: lightbox-in 0.18s ease-out; }
+
+/* ── Master list pages: full-width content area ── */
+.master-page,
+.master-page > ul,
+.master-page .master-list-item {
+  width: 100%;
+  max-width: none;
+}
+
+/* ── Rich text editor (dark theme) ── */
+.rich-text-editor .ql-toolbar.ql-snow {
+  @apply bg-slate-900 border-slate-700 rounded-t-xl;
+}
+.rich-text-editor .ql-container.ql-snow {
+  @apply bg-slate-950 border-slate-700 rounded-b-xl text-slate-100 text-sm;
+  min-height: 8rem;
+}
+.rich-text-editor .ql-editor {
+  min-height: 8rem;
+}
+.rich-text-editor .ql-editor.ql-blank::before {
+  @apply text-slate-500 not-italic;
+}
+.rich-text-editor .ql-snow .ql-stroke {
+  stroke: #94a3b8;
+}
+.rich-text-editor .ql-snow .ql-fill {
+  fill: #94a3b8;
+}
+.rich-text-editor .ql-snow .ql-picker {
+  color: #cbd5e1;
+}
+.rich-text-editor .ql-snow .ql-picker-options {
+  @apply bg-slate-900 border-slate-700;
+}
+.rich-text-editor .ql-snow .ql-picker-item:hover {
+  @apply text-emerald-400;
+}
+.rich-text-editor .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+/* Poll option HTML shown to members */
+.poll-option-desc {
+  @apply text-xs text-slate-400 leading-relaxed;
+}
+.poll-option-desc p {
+  margin: 0.25rem 0;
+}
+.poll-option-desc ul,
+.poll-option-desc ol {
+  margin: 0.25rem 0 0.25rem 1rem;
+  padding: 0;
+}
+.poll-option-desc img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+  margin-top: 0.25rem;
+}
+.poll-option-desc strong {
+  @apply text-slate-300 font-semibold;
+}
+
+/* ── Leaflet: hide default attribution, style popups ─────────────────────── */
+.leaflet-container { font-family: inherit; }
+.leaflet-attribution-flag { display: none !important; }
+.leaflet-control-attribution { display: none !important; }
+.leaflet-popup-content-wrapper {
+  background: rgba(4, 8, 16, 0.96) !important;
+  border: 1px solid rgba(249,115,22,0.3) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 0 0 1px rgba(249,115,22,0.08), 0 8px 40px rgba(0,0,0,0.7), 0 0 30px rgba(249,115,22,0.08) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+.leaflet-popup-content { margin: 10px 10px 12px !important; color: #e2e8f0 !important; }
+.leaflet-popup-tip-container { display: none !important; }
+.leaflet-popup-close-button { display: none !important; }
+.leaflet-control-zoom {
+  border: 1px solid rgba(249,115,22,0.25) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 20px rgba(249,115,22,0.08) !important;
+}
+.leaflet-control-zoom a {
+  background: rgba(4,8,16,0.92) !important;
+  color: #fb923c !important;
+  border-color: rgba(249,115,22,0.18) !important;
+  font-weight: 700 !important;
+}
+.leaflet-control-zoom a:hover {
+  background: rgba(249,115,22,0.15) !important;
+  color: #fff !important;
+}
+/* Dashboard map: dark/warm tint. LocationPicker gets full color (override below). */
+.dash-map .leaflet-tile-pane { filter: brightness(0.82) contrast(1.18) saturate(0.85); }
+.dash-map--colorful .leaflet-tile-pane {
+  filter: saturate(1.18) contrast(1.06) brightness(1.03);
+}
+.dash-map--colorful .leaflet-control-zoom a {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.15) !important;
+}
+.dash-map--colorful .leaflet-control-zoom a:hover {
+  background: #fff !important;
+}
+.dash-map--colorful .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: #475569 !important;
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+  border-radius: 6px 0 0 0;
+}
+.location-picker-map .leaflet-tile-pane { filter: saturate(1.15) contrast(1.05); }
+
+/* ── Route line animation (Leaflet polyline SVG path) ────────────────────── */
+@keyframes dashFlow {
+  to { stroke-dashoffset: -26; }
+}
+.animated-route-line {
+  animation: dashFlow 2s linear infinite !important;
+}
+
+/* ── Glassmorphism utility ───────────────────────────────────────────────── */
+.glass-card {
+  backdrop-filter: blur(14px) saturate(1.4);
+  background: rgba(8, 12, 28, 0.72);
+  border: 1px solid rgba(249,115,22,0.1);
+}
+
+/* ── Animated gradient border (rotating conic) ───────────────────────────── */
+@keyframes borderSpin {
+  to { --angle: 360deg; }
+}
+
+/* ── Premium number glow ─────────────────────────────────────────────────── */
+.num-glow-orange { text-shadow: 0 0 18px rgba(249,115,22,0.9), 0 0 40px rgba(249,115,22,0.5), 0 2px 4px rgba(0,0,0,0.6); }
+.num-glow-emerald { text-shadow: 0 0 18px rgba(52,211,153,0.8), 0 2px 4px rgba(0,0,0,0.5); }
+.num-glow-violet  { text-shadow: 0 0 18px rgba(167,139,250,0.7), 0 2px 4px rgba(0,0,0,0.5); }
+.num-glow-sky     { text-shadow: 0 0 18px rgba(125,211,252,0.7), 0 2px 4px rgba(0,0,0,0.5); }
+
+/* ── Command center header gradient ─────────────────────────────────────── */
+.cmd-header-grad {
+  background: linear-gradient(90deg,
+    rgba(249,115,22,0.18) 0%,
+    rgba(249,115,22,0.06) 40%,
+    rgba(6,10,20,0.9) 100%
+  );
+  border-bottom: 1px solid rgba(249,115,22,0.18);
+}
+
+/* ── Animated scan line (reused for dashboard map) ───────────────────────── */
+@keyframes scanLine {
+  0%   { top: -2px;  opacity: 0;   }
+  3%   { opacity: 1; }
+  97%  { opacity: 0.55; }
+  100% { top: 100%;  opacity: 0;   }
+}
+.map-scan-line {
+  position: absolute;
+  left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(249,115,22,0.3) 15%,
+    rgba(249,115,22,0.75) 50%,
+    rgba(249,115,22,0.3) 85%,
+    transparent 100%
+  );
+  animation: scanLine 9s linear infinite;
+  pointer-events: none;
+  filter: blur(0.5px);
+  box-shadow: 0 0 8px rgba(249,115,22,0.4);
+}
+
+/* ── Animated trip marker pulse ──────────────────────────────────────────── */
+@keyframes markerPulse {
+  0%   { transform: translate(-50%,-50%) scale(1);   opacity: 0.85; }
+  70%  { transform: translate(-50%,-50%) scale(1.9); opacity: 0;    }
+  100% { transform: translate(-50%,-50%) scale(1.9); opacity: 0;    }
+}
+
+/* ── Ambient dashboard orb float ─────────────────────────────────────────── */
+@keyframes orb-float {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33%       { transform: translate(20px, -30px) scale(1.05); }
+  66%       { transform: translate(-15px, 15px) scale(0.97); }
+}
+
+/* ── Dashboard animations ─────────────────────────────────────────────────── */
+@keyframes gold-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+@keyframes float-icon {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-5px) rotate(3deg); }
+}
+@keyframes glow-pulse-gold {
+  0%, 100% { box-shadow: 0 0 15px rgba(251,191,36,0.4), 0 0 40px rgba(245,158,11,0.2); }
+  50%       { box-shadow: 0 0 30px rgba(251,191,36,0.7), 0 0 60px rgba(245,158,11,0.4); }
+}
+@keyframes glow-pulse-emerald {
+  0%, 100% { box-shadow: 0 0 10px rgba(16,185,129,0.3), 0 0 30px rgba(16,185,129,0.1); }
+  50%       { box-shadow: 0 0 25px rgba(16,185,129,0.6), 0 0 50px rgba(16,185,129,0.3); }
+}
+@keyframes glow-pulse-red {
+  0%, 100% { box-shadow: 0 0 10px rgba(239,68,68,0.3), 0 0 30px rgba(239,68,68,0.1); }
+  50%       { box-shadow: 0 0 25px rgba(239,68,68,0.6), 0 0 50px rgba(239,68,68,0.3); }
+}
+@keyframes counter-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  65%  { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes live-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+@keyframes gradient-x {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gold-shift    { background-size: 250% 250%; animation: gold-shift 3s ease-in-out infinite; }
+.animate-float-icon    { animation: float-icon 3.5s ease-in-out infinite; }
+.animate-counter-pop   { animation: counter-pop 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+.animate-glow-gold     { animation: glow-pulse-gold 2.5s ease-in-out infinite; }
+.animate-glow-emerald  { animation: glow-pulse-emerald 2.5s ease-in-out infinite; }
+.animate-glow-red      { animation: glow-pulse-red 2.5s ease-in-out infinite; }
+.animate-live-dot      { animation: live-dot 1.2s ease-in-out infinite; }
+.animate-gradient-x    { background-size: 200% 200%; animation: gradient-x 4s ease-in-out infinite; }
+
+.shimmer-parent { overflow: hidden; position: relative; }
+.shimmer-child {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%);
+  width: 55%;
+  animation: shimmer-sweep 2.8s ease-in-out infinite;
+}
+
+/* Animated gold gradient for poll winner text (completed) */
+@keyframes poll-winner-gradient-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.poll-winner-gradient {
+  display: inline;
+  background-image: linear-gradient(
+    90deg,
+    #78350f 0%,
+    #fbbf24 20%,
+    #fde047 40%,
+    #f59e0b 55%,
+    #fcd34d 70%,
+    #b45309 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: poll-winner-gradient-shift 2.8s linear infinite;
+}
