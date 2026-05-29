@@ -186,7 +186,7 @@ function CreateMemberForm({ onCreated, onCancel }) {
   const [form, setForm] = useState({ username: "", name: "", email: "", mobileNumber: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
-  const [result, setResult] = useState(null);
+  const [created, setCreated] = useState(false);
 
   const set = (key) => (e) => {
     const val = key === "mobileNumber"
@@ -204,10 +204,7 @@ function CreateMemberForm({ onCreated, onCancel }) {
     setLoading(true);
     try {
       const res = await createMember(form);
-      setResult({
-        emailSent: res?.data?.emailSent === true,
-        setupUrl: res?.data?.setupUrl || "",
-      });
+      setCreated(true);
       onCreated(res?.data?.user);
     } catch (err) {
       setError(err.message);
@@ -216,39 +213,13 @@ function CreateMemberForm({ onCreated, onCancel }) {
     }
   };
 
-  if (result) {
+  if (created) {
     return (
       <div className="animate-slide-up text-center py-4 space-y-4">
-        <div className="text-4xl">{result.emailSent ? "📧" : "⚠️"}</div>
-        <p className={`font-semibold text-sm ${result.emailSent ? "text-green-400" : "text-amber-400"}`}>
-          {result.emailSent
-            ? "Member created! Password setup email sent."
-            : "Member created, but email could not be sent."}
+        <div className="text-4xl">✅</div>
+        <p className="font-semibold text-sm text-green-400">
+          Member created successfully!
         </p>
-        {result.setupUrl && (
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 text-left space-y-2">
-            <p className="text-xs text-slate-400">
-              {result.emailSent
-                ? "Setup link (also sent by email):"
-                : "Share this setup link with the member (WhatsApp, SMS, etc.):"}
-            </p>
-            <a
-              href={result.setupUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-cyan-400 break-all hover:underline block"
-            >
-              {result.setupUrl}
-            </a>
-            <button
-              type="button"
-              onClick={() => navigator.clipboard?.writeText(result.setupUrl)}
-              className="text-xs text-orange-400 hover:underline"
-            >
-              Copy link
-            </button>
-          </div>
-        )}
         <button type="button" onClick={onCancel}
           className="text-orange-400 text-sm font-semibold hover:underline">Close</button>
       </div>
