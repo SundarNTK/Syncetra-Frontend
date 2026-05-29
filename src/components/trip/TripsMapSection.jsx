@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { tripPhase, fmtTripDateShort } from "./tripUtils";
@@ -273,27 +273,6 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
           <TileLayer url={DASH_MAP_TILES.url} attribution={DASH_MAP_TILES.attribution} />
           <MapInit />
           {flyTarget && <FlyToSelected center={flyTarget} zoom={flyZoom} />}
-          {tripsWithLoc.length > 1 &&
-            tripsWithLoc.map((t, i) => {
-              if (i === tripsWithLoc.length - 1) return null;
-              const next = tripsWithLoc[i + 1];
-              return (
-                <Polyline
-                  key={`route-${t._id}`}
-                  positions={[
-                    [t.location.lat, t.location.lng],
-                    [next.location.lat, next.location.lng],
-                  ]}
-                  pathOptions={{
-                    color: "#ea580c",
-                    weight: 2.5,
-                    opacity: 0.75,
-                    dashArray: "10 6",
-                    className: "animated-route-line",
-                  }}
-                />
-              );
-            })}
           {tripsWithLoc.map((t) => {
             const phase = tripPhase(t);
             const isSelected = String(t._id) === String(selectedTripId);

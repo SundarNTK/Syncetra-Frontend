@@ -122,7 +122,13 @@ export default function UserDashboard() {
   }, [selectedTripId]);
 
   const tripStats = trips.reduce(
-    (acc, t) => { const p = tripPhase(t); acc.total++; acc[p] = (acc[p] || 0) + 1; return acc; },
+    (acc, t) => {
+      acc.total++;
+      const p = tripPhase(t);
+      if (p === "cancelled") return acc;
+      acc[p] = (acc[p] || 0) + 1;
+      return acc;
+    },
     { total: 0, active: 0, upcoming: 0, completed: 0 }
   );
 

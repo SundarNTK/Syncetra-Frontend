@@ -147,14 +147,6 @@ input, select, textarea, button {
 }
 .location-picker-map .leaflet-tile-pane { filter: saturate(1.15) contrast(1.05); }
 
-/* ── Route line animation (Leaflet polyline SVG path) ────────────────────── */
-@keyframes dashFlow {
-  to { stroke-dashoffset: -26; }
-}
-.animated-route-line {
-  animation: dashFlow 2s linear infinite !important;
-}
-
 /* ── Glassmorphism utility ───────────────────────────────────────────────── */
 .glass-card {
   backdrop-filter: blur(14px) saturate(1.4);

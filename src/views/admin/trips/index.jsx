@@ -52,6 +52,10 @@ const COUNTDOWN_THEME = {
   cancelled: { glow: "239,68,68", label: "Cancelled", textCls: "text-red-400" },
 };
 
+function getCountdownTheme(trip) {
+  return COUNTDOWN_THEME[trip?.status] || COUNTDOWN_THEME.planned;
+}
+
 const CONFETTI_COLORS = [
   "#10b981",
   "#f59e0b",
@@ -807,6 +811,7 @@ function CountdownTile({ value, label, glow, size = "sm" }) {
 function TripCountdownStrip({ trip }) {
   const { phase, targetDate } = getTripPhase(trip);
   const time = useCountdown(phase === "upcoming" ? targetDate : null);
+  const theme = getCountdownTheme(trip);
 
   if (phase === "cancelled" || phase === "no-dates") return null;
   if (phase === "completed") return <TripStatusText type="completed" compact />;
@@ -815,14 +820,14 @@ function TripCountdownStrip({ trip }) {
 
   return (
     <div className="mt-2.5">
-      <p className="text-[10px] uppercase tracking-widest font-medium mb-1.5 text-blue-300">
-        Starts in
+      <p className={`text-[10px] uppercase tracking-widest font-medium mb-1.5 ${theme.textCls}`}>
+        {theme.label}
       </p>
       <div className="flex items-center gap-1.5">
-        <CountdownTile value={time.days}    label="D" glow="59,130,246" size="sm" />
-        <CountdownTile value={time.hours}   label="H" glow="59,130,246" size="sm" />
-        <CountdownTile value={time.minutes} label="M" glow="59,130,246" size="sm" />
-        <CountdownTile value={time.seconds} label="S" glow="59,130,246" size="sm" />
+        <CountdownTile value={time.days}    label="D" glow={theme.glow} size="sm" />
+        <CountdownTile value={time.hours}   label="H" glow={theme.glow} size="sm" />
+        <CountdownTile value={time.minutes} label="M" glow={theme.glow} size="sm" />
+        <CountdownTile value={time.seconds} label="S" glow={theme.glow} size="sm" />
       </div>
     </div>
   );
@@ -832,13 +837,14 @@ function TripCountdownStrip({ trip }) {
 function TripCountdownFull({ trip }) {
   const { phase, targetDate } = getTripPhase(trip);
   const time = useCountdown(phase === "upcoming" ? targetDate : null);
+  const theme = getCountdownTheme(trip);
 
   if (phase === "cancelled" || phase === "no-dates") return null;
   if (phase === "completed") return <TripStatusText type="completed" compact={false} />;
   if (phase === "begun")     return <TripStatusText type="begun"     compact={false} />;
   if (!time) return null;
 
-  const glow = "59,130,246";
+  const glow = theme.glow;
   return (
     <div
       className="rounded-2xl p-5 relative overflow-hidden"
@@ -856,9 +862,9 @@ function TripCountdownFull({ trip }) {
           background: `radial-gradient(ellipse at 30% 50%, rgba(${glow}, 0.1) 0%, transparent 70%)`,
         }}
       />
-      <p className="text-xs uppercase tracking-widest font-semibold mb-4 flex items-center gap-2 text-blue-300">
+      <p className={`text-xs uppercase tracking-widest font-semibold mb-4 flex items-center gap-2 ${theme.textCls}`}>
         <span className="animate-pulse">⏱</span>
-        Starts in
+        {theme.label}
       </p>
       <div className="flex items-center gap-3 flex-wrap">
         {[

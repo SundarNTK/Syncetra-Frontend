@@ -107,9 +107,19 @@ export default function AdminDashboard() {
   }, [selectedTripId]);
 
   const tripStats = trips.reduce(
-    (acc, t) => { const p = tripPhase(t); acc.total++; acc[p] = (acc[p] || 0) + 1; return acc; },
+    (acc, t) => {
+      acc.total++;
+      const p = tripPhase(t);
+      if (p === "cancelled") return acc;
+      acc[p] = (acc[p] || 0) + 1;
+      return acc;
+    },
     { total: 0, active: 0, upcoming: 0, completed: 0 }
   );
+
+  const tripBudget = Number(hub?.totalBudget ?? selectedTrip?.budget ?? 0);
+  const tripSpent = Number(hub?.totalSpent ?? 0);
+  const tripBalance = tripBudget - tripSpent;
 
   const selectedTripStats = [
     {
@@ -120,19 +130,19 @@ export default function AdminDashboard() {
     },
     {
       label: "Budget",
-      value: `₹${(hub?.totalBudget || selectedTrip?.budget || 0).toLocaleString()}`,
+      value: `₹${tripBudget.toLocaleString()}`,
       icon: "💰",
       accent: "amber",
     },
     {
-      label: "Collected",
-      value: hub ? `₹${(hub.totalCollected || 0).toLocaleString()}` : "—",
+      label: "Balance",
+      value: `₹${tripBalance.toLocaleString()}`,
       icon: "💳",
       accent: "emerald",
     },
     {
       label: "Spent",
-      value: hub ? `₹${(hub.totalSpent || 0).toLocaleString()}` : "—",
+      value: hub ? `₹${tripSpent.toLocaleString()}` : "—",
       icon: "💸",
       accent: "slate",
     },

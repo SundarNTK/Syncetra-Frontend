@@ -1,4 +1,11 @@
+/** Dashboard/map phase — follows trip.status; falls back to dates if status is missing. */
 export function tripPhase(trip) {
+  const status = (trip?.status || "").toLowerCase();
+  if (status === "cancelled") return "cancelled";
+  if (status === "completed") return "completed";
+  if (status === "active") return "active";
+  if (status === "planned") return "upcoming";
+
   const now = Date.now();
   const start = trip?.startDate ? new Date(trip.startDate).getTime() : null;
   const end = trip?.endDate ? new Date(trip.endDate).getTime() : null;
@@ -11,6 +18,8 @@ export function tripPhase(trip) {
 export function phaseBadge(phase) {
   if (phase === "active") return "bg-emerald-600/30 text-emerald-300 border-emerald-500/50";
   if (phase === "upcoming") return "bg-sky-600/30 text-sky-300 border-sky-500/50";
+  if (phase === "cancelled") return "bg-red-600/30 text-red-300 border-red-500/50";
+  if (phase === "completed") return "bg-slate-600/30 text-slate-300 border-slate-500/50";
   return "bg-yellow-900/40 text-yellow-300 border-yellow-600/50";
 }
 
