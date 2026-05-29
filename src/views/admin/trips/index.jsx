@@ -1300,14 +1300,14 @@ function TripEditModal({ trip, onClose, onSaved, saving }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8"
       onClick={onClose}
     >
       <div
-        className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl shadow-2xl"
+        className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800 shrink-0">
           <h2 className="font-semibold text-emerald-400">Edit Trip</h2>
           <button
             onClick={onClose}
@@ -1316,7 +1316,7 @@ function TripEditModal({ trip, onClose, onSaved, saving }) {
             <IconClose />
           </button>
         </div>
-        <div className="p-5">
+        <div className="p-5 overflow-y-auto min-h-0 flex-1">
           <TripForm
             initialTrip={trip}
             onSubmit={onSaved}
