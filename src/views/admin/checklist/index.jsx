@@ -354,6 +354,7 @@ export default function AdminChecklist() {
   const [imgError, setImgError] = useState("");
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
   const [viewItem, setViewItem] = useState(null);
   const [editItem, setEditItem] = useState(null);
@@ -379,6 +380,7 @@ export default function AdminChecklist() {
     }
     let ignore = false;
     setLoadError("");
+    setLoading(true);
     getChecklists(selectedTripId)
       .then((r) => {
         if (!ignore) setItems(r?.data || []);
@@ -388,6 +390,9 @@ export default function AdminChecklist() {
           setItems([]);
           setLoadError(err.message || "Could not load checklist");
         }
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
       });
     return () => {
       ignore = true;
@@ -468,7 +473,7 @@ export default function AdminChecklist() {
   };
 
   return (
-    <TripModuleShell title="Checklist" description="Packing items with image, notes, and optional assignee">
+    <TripModuleShell title="Checklist" description="Packing items with image, notes, and optional assignee" loading={loading && !!selectedTripId}>
       {selectedTripId && (
         <>
           {isAdminUser && (

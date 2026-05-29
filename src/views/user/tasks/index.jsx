@@ -117,7 +117,7 @@ export default function UserTasks() {
   const refusedCount  = items.filter((t) => myAck(t)?.status === "refused").length;
 
   return (
-    <TripModuleShell title="My Tasks" description="Responsibilities assigned to you">
+    <TripModuleShell title="My Tasks" description="Responsibilities assigned to you" loading={loading && !!selectedTripId}>
 
       {/* ── Summary ── */}
       {items.length > 0 && (
@@ -139,10 +139,6 @@ export default function UserTasks() {
             <p className="text-[10px] text-red-600/70 uppercase tracking-wider mt-0.5">Refused</p>
           </div>
         </div>
-      )}
-
-      {loading && (
-        <p className="text-slate-500 text-sm text-center py-6">Loading tasks…</p>
       )}
 
       {!loading && items.length === 0 && (

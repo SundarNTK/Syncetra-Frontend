@@ -37,6 +37,13 @@ const STATUS_BADGE = {
   cancelled: "bg-red-600/20 text-red-400 border border-red-700/40",
 };
 
+const STATUS_COVER_GLOW = {
+  planned: "trip-cover-glow--planned",
+  active: "trip-cover-glow--active",
+  completed: "trip-cover-glow--completed",
+  cancelled: "trip-cover-glow--cancelled",
+};
+
 const COUNTDOWN_THEME = {
   planned: { glow: "59,130,246", label: "Starts in", textCls: "text-blue-300" },
   active: {
@@ -1338,20 +1345,23 @@ function TripEditModal({ trip, onClose, onSaved, saving }) {
 // ─── TripCard ─────────────────────────────────────────────────────────────────
 function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
   const tripType = tripTypeMap[trip.tripType] || tripTypeMap.group;
+  const coverGlowClass = STATUS_COVER_GLOW[trip.status] || STATUS_COVER_GLOW.planned;
 
   return (
     <MasterListItem className="master-list-item">
       {/* Cover image */}
-      <div className="relative group shrink-0 w-28 sm:w-36">
+      <div className="relative group shrink-0 w-32 sm:w-40 self-stretch min-h-[7.5rem] bg-slate-950 border-r border-slate-800/60 flex items-center justify-center p-2">
+        <div className={`trip-cover-glow-wrap ${coverGlowClass}`}>
+          <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip.coverImage ? (
           <img
             src={trip.coverImage}
             alt={trip.tripName}
-            className="w-full h-full min-h-[6rem] object-cover"
+            className="absolute inset-0 w-full h-full object-contain p-1"
           />
         ) : (
           <div
-            className="w-full h-full min-h-[6rem] flex flex-col items-center justify-center gap-1"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-1"
             style={{
               background: `linear-gradient(135deg, rgba(${tripType.glow},0.15) 0%, #1e293b 100%)`,
             }}
@@ -1362,7 +1372,7 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
         {/* Hover overlay to change photo */}
         <label
           title={trip.coverImage ? "Change photo" : "Add cover photo"}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
         >
           <span className="text-white text-lg">📷</span>
           <span className="text-[10px] text-white/80">
@@ -1377,12 +1387,13 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
         </label>
         {/* Trip name badge */}
         {trip.coverImage && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1">
+          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 z-[5]">
             <p className="text-[10px] text-white/90 truncate">
               {trip.tripName}
             </p>
           </div>
         )}
+        </div>
       </div>
 
       {/* Info */}

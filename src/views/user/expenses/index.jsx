@@ -50,13 +50,29 @@ function ImagePreviewModal({ src, onClose }) {
 export default function UserExpenses() {
   const { selectedTripId, selectedTrip } = useTrip();
   const [items,      setItems]      = useState([]);
+  const [loading,    setLoading]    = useState(false);
   const [previewImg, setPreviewImg] = useState(null);
 
   useEffect(() => {
-    if (selectedTripId)
-      getExpenses(selectedTripId, false).then((r) => setItems(r?.data || []));
-    else
+    if (!selectedTripId) {
       setItems([]);
+      return undefined;
+    }
+    let ignore = false;
+    setLoading(true);
+    getExpenses(selectedTripId, false)
+      .then((r) => {
+        if (!ignore) setItems(r?.data || []);
+      })
+      .catch(() => {
+        if (!ignore) setItems([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, [selectedTripId]);
 
   const totalBudget    = Number(selectedTrip?.budget || 0);
@@ -66,7 +82,7 @@ export default function UserExpenses() {
   const pct            = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
 
   return (
-    <TripModuleShell title="Expenses" description="Trip expense summary">
+    <TripModuleShell title="Expenses" description="Trip expense summary" loading={loading && !!selectedTripId}>
       {previewImg && (
         <ImagePreviewModal src={previewImg} onClose={() => setPreviewImg(null)} />
       )}

@@ -7,9 +7,16 @@ import { tripPhase, fmtTripDateShort } from "./tripUtils";
 
 const DEFAULT_MAP_CENTER = [20.5937, 78.9629];
 const DEFAULT_MAP_ZOOM = 5;
+/** Esri World Imagery — free satellite tiles (no API key) */
 const DASH_MAP_TILES = {
-  url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      '&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, USDA FSA, USGS, AeroGRID, IGN, IGP, and the GIS User Community',
+  },
+  labels: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+  },
 };
 
 function MapInit() {
@@ -72,23 +79,16 @@ function TripPopup({ trip, phase }) {
   const mc = phase === "active" ? "#f97316" : phase === "upcoming" ? "#38bdf8" : "#94a3b8";
   const rgb = phase === "active" ? "249,115,22" : phase === "upcoming" ? "56,189,248" : "148,163,184";
   return (
-    <div style={{ minWidth: 210, fontFamily: "system-ui,sans-serif" }}>
+    <div className="trip-map-popup" style={{ width: 260, fontFamily: "system-ui,sans-serif" }}>
       {trip.coverImage && (
-        <img
-          src={trip.coverImage}
-          alt={trip.tripName}
-          style={{
-            width: "calc(100% + 20px)",
-            height: 80,
-            objectFit: "cover",
-            borderRadius: "8px 8px 0 0",
-            display: "block",
-            margin: "-10px -10px 12px",
-            borderBottom: `2px solid rgba(${rgb},0.4)`,
-          }}
-        />
+        <div
+          className="trip-map-popup__cover"
+          style={{ borderBottom: `2px solid rgba(${rgb},0.4)` }}
+        >
+          <img src={trip.coverImage} alt={trip.tripName} />
+        </div>
       )}
-      <div>
+      <div className="trip-map-popup__body">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <p style={{ fontWeight: 800, fontSize: 13, color: "#f1f5f9", margin: 0, flex: 1 }}>{trip.tripName}</p>
           <span
@@ -213,7 +213,7 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
         </div>
       </div>
 
-      <div style={{ height: 440, position: "relative", background: "#dce6f0" }}>
+      <div style={{ height: 440, position: "relative", background: "#0c1220" }}>
         {tripsWithLoc.length === 0 && (
           <div
             style={{
@@ -265,12 +265,13 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
           zoom={DEFAULT_MAP_ZOOM}
           minZoom={3}
           maxZoom={18}
-          style={{ height: "100%", width: "100%", background: "#dce6f0", zIndex: 1 }}
-          className="dash-map dash-map--colorful"
+          style={{ height: "100%", width: "100%", background: "#0c1220", zIndex: 1 }}
+          className="dash-map dash-map--satellite"
           zoomControl
           attributionControl
         >
-          <TileLayer url={DASH_MAP_TILES.url} attribution={DASH_MAP_TILES.attribution} />
+          <TileLayer url={DASH_MAP_TILES.satellite.url} attribution={DASH_MAP_TILES.satellite.attribution} />
+          <TileLayer url={DASH_MAP_TILES.labels.url} attribution="" opacity={0.78} />
           <MapInit />
           {flyTarget && <FlyToSelected center={flyTarget} zoom={flyZoom} />}
           {tripsWithLoc.map((t) => {
@@ -283,7 +284,7 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
                 icon={createTripMarker(t, phase, isSelected)}
                 zIndexOffset={isSelected ? 1000 : 0}
               >
-                <Popup maxWidth={240} closeButton={false}>
+                <Popup maxWidth={280} closeButton={false}>
                   <TripPopup trip={t} phase={phase} />
                 </Popup>
               </Marker>

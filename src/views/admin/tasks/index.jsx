@@ -292,6 +292,7 @@ export default function AdminTasks() {
   const { selectedTripId } = useTrip();
   const [items,   setItems]   = useState([]);
   const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", assignedTo: [] });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
@@ -328,10 +329,22 @@ export default function AdminTasks() {
   }, [selectedTripId]);
 
   useEffect(() => {
-    if (!selectedTripId) { setItems([]); setMembers([]); return; }
-    load();
-    loadMembers();
-  }, [selectedTripId, load, loadMembers]);
+    if (!selectedTripId) { setItems([]); setMembers([]); return undefined; }
+    let ignore = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const tasksRes = await getTasks(selectedTripId);
+        if (!ignore) setItems(tasksRes?.data || []);
+        await loadMembers();
+      } catch {
+        if (!ignore) setItems([]);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [selectedTripId, loadMembers]);
 
   // Real-time ack updates from members
   useEffect(() => {
@@ -364,7 +377,7 @@ export default function AdminTasks() {
   };
 
   return (
-    <TripModuleShell title="Tasks" description="Assign food, tent, medical, navigation duties">
+    <TripModuleShell title="Tasks" description="Assign food, tent, medical, navigation duties" loading={loading && !!selectedTripId}>
       {selectedTripId && (
         <>
           {/* ── Create form ── */}

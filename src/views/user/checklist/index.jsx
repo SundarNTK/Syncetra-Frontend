@@ -77,6 +77,7 @@ export default function UserChecklist() {
   const myId = useMemo(() => userInfo?.user?._id || userInfo?.user?.id || "", [userInfo]);
 
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [togglingIds, setTogglingIds] = useState(() => new Set());
 
@@ -87,6 +88,7 @@ export default function UserChecklist() {
     }
     let ignore = false;
     setLoadError("");
+    setLoading(true);
     getChecklists(selectedTripId, false)
       .then((r) => {
         if (!ignore) setItems(r?.data || []);
@@ -96,6 +98,9 @@ export default function UserChecklist() {
           setItems([]);
           setLoadError(err.message || "Could not load checklist");
         }
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
       });
     return () => {
       ignore = true;
@@ -138,7 +143,7 @@ export default function UserChecklist() {
   const pendingCount = totalCount - checkedCount;
 
   return (
-    <TripModuleShell title="Checklist" description="Mark items you have packed">
+    <TripModuleShell title="Checklist" description="Mark items you have packed" loading={loading && !!selectedTripId}>
       {loadError ? <p className="text-sm text-red-400 mb-3">{loadError}</p> : null}
 
       {/* ── Summary box ── */}

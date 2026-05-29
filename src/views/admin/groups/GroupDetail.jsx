@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import {
   getGroupById,
   getAdminGroups,
@@ -211,7 +212,7 @@ export default function GroupDetail() {
     });
   };
 
-  if (!group) return <p className="text-slate-400">Loading…</p>;
+  if (!group) return <SyncetraLoader className="py-16 min-h-[240px]" />;
 
   const members = group.memberDetails || [];
   const trip = group.tripId

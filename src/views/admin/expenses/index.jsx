@@ -238,6 +238,7 @@ export default function AdminExpenses() {
   const { selectedTripId } = useTrip();
   const [hub,              setHub]              = useState(null);
   const [items,            setItems]            = useState([]);
+  const [loading,          setLoading]          = useState(false);
   const [groupMemberCount, setGroupMemberCount] = useState(null);
   const [form,    setForm]    = useState({
     category: "Food", amount: "", description: "", imageUrl: "",
@@ -247,17 +248,22 @@ export default function AdminExpenses() {
 
   const load = useCallback(async () => {
     if (!selectedTripId) return;
-    const [h, e, g] = await Promise.all([
-      getTripHub(selectedTripId),
-      getExpenses(selectedTripId),
-      getAdminGroups(),
-    ]);
-    setHub(h?.data);
-    setItems(e?.data || []);
-    const linkedGroup = (g?.data || []).find(
-      (grp) => String(grp.tripId) === String(selectedTripId)
-    );
-    setGroupMemberCount(linkedGroup?.members?.length ?? null);
+    setLoading(true);
+    try {
+      const [h, e, g] = await Promise.all([
+        getTripHub(selectedTripId),
+        getExpenses(selectedTripId),
+        getAdminGroups(),
+      ]);
+      setHub(h?.data);
+      setItems(e?.data || []);
+      const linkedGroup = (g?.data || []).find(
+        (grp) => String(grp.tripId) === String(selectedTripId)
+      );
+      setGroupMemberCount(linkedGroup?.members?.length ?? null);
+    } finally {
+      setLoading(false);
+    }
   }, [selectedTripId]);
 
   useEffect(() => { load(); }, [load]);
@@ -278,7 +284,7 @@ export default function AdminExpenses() {
   const remaining = (s?.totalBudget || 0) - (s?.totalSpent || 0);
 
   return (
-    <TripModuleShell title="Expenses" description="Auto-calculated trip budget & splits">
+    <TripModuleShell title="Expenses" description="Auto-calculated trip budget & splits" loading={loading && !!selectedTripId}>
       {editExp && (
         <EditModal
           expense={editExp}

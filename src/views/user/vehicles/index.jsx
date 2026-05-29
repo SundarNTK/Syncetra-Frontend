@@ -474,17 +474,33 @@ function VehicleCard({ vehicle, onView }) {
 export default function UserVehicles() {
   const { selectedTripId } = useTrip();
   const [items,   setItems]   = useState([]);
+  const [loading, setLoading] = useState(false);
   const [viewVeh, setViewVeh] = useState(null);
 
   useEffect(() => {
-    if (selectedTripId)
-      getUserVehicles(selectedTripId).then((r) => setItems(r?.data || []));
-    else
+    if (!selectedTripId) {
       setItems([]);
+      return undefined;
+    }
+    let ignore = false;
+    setLoading(true);
+    getUserVehicles(selectedTripId)
+      .then((r) => {
+        if (!ignore) setItems(r?.data || []);
+      })
+      .catch(() => {
+        if (!ignore) setItems([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
   }, [selectedTripId]);
 
   return (
-    <TripModuleShell title="Vehicles" description="Trip vehicle & booking details">
+    <TripModuleShell title="Vehicles" description="Trip vehicle & booking details" loading={loading && !!selectedTripId}>
       {viewVeh && (
         <VehicleDetailModal vehicle={viewVeh} onClose={() => setViewVeh(null)} />
       )}

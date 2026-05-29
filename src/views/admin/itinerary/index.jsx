@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getSchedules, addSchedule } from "../../../services/trips";
@@ -8,6 +8,7 @@ import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
 export default function AdminItinerary() {
   const { selectedTripId } = useTrip();
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
     checkpoint: "",
@@ -15,12 +16,26 @@ export default function AdminItinerary() {
     notes: "",
   });
 
-  const load = () =>
-    selectedTripId && getSchedules(selectedTripId).then((r) => setItems(r?.data || []));
+  const load = useCallback(async () => {
+    if (!selectedTripId) return;
+    setLoading(true);
+    try {
+      const r = await getSchedules(selectedTripId);
+      setItems(r?.data || []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedTripId]);
 
   useEffect(() => {
+    if (!selectedTripId) {
+      setItems([]);
+      return;
+    }
     load();
-  }, [selectedTripId]);
+  }, [selectedTripId, load]);
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -31,7 +46,7 @@ export default function AdminItinerary() {
   };
 
   return (
-    <TripModuleShell title="Itinerary" description="Trip checkpoints with date & 12-hour time">
+    <TripModuleShell title="Itinerary" description="Trip checkpoints with date & 12-hour time" loading={loading && !!selectedTripId}>
       {selectedTripId && (
         <>
           <form onSubmit={handleAdd} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 mb-4">

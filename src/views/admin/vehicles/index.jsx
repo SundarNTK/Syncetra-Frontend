@@ -802,7 +802,8 @@ function VehicleCard({ vehicle, onView, onEdit }) {
 /* ─── AdminVehicles ──────────────────────────────────────────────────────────── */
 export default function AdminVehicles() {
   const { selectedTripId } = useTrip();
-  const [items,    setItems]    = useState([]);
+  const [items,   setItems]   = useState([]);
+  const [loading, setLoading] = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState("");
   const [toast,    setToast]    = useState(null);
@@ -815,9 +816,15 @@ export default function AdminVehicles() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     if (!selectedTripId) return;
-    getVehicles(selectedTripId).then((r) => setItems(r?.data || []));
+    setLoading(true);
+    try {
+      const r = await getVehicles(selectedTripId);
+      setItems(r?.data || []);
+    } finally {
+      setLoading(false);
+    }
   }, [selectedTripId]);
 
   useEffect(() => { load(); setShowForm(false); }, [load]);
@@ -847,7 +854,7 @@ export default function AdminVehicles() {
   };
 
   return (
-    <TripModuleShell title="Vehicles" description="Bus, van, car & booking details">
+    <TripModuleShell title="Vehicles" description="Bus, van, car & booking details" loading={loading && !!selectedTripId}>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-medium ${

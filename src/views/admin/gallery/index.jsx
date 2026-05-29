@@ -3,11 +3,13 @@ import { useAppSelector } from "../../../hooks";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { getMedia, getMediaItem, addMedia, deleteMedia as deleteMediaApi } from "../../../services/trips";
 import { fileToDataUrl } from "../../../utils/fileToDataUrl";
 
 const CATEGORY_TABS = ["all", "mine", "food", "travel", "moments", "other"];
 const CATEGORIES = ["food", "travel", "moments", "other"];
+const MAX_BATCH_FILES = 20;
 const TYPE_FILTERS = [
   { value: "all", label: "All Media" },
   { value: "image", label: "Images" },
@@ -129,7 +131,7 @@ function MediaTile({ item, onView, isAdmin, onDelete }) {
 }
 
 // ─── MediaViewer (fullscreen slider) ─────────────────────────────────────────
-function MediaViewer({ items, startIndex, isAdmin, onClose, onRequestDelete }) {
+function MediaViewer({ items, startIndex, tripId, isAdmin, onClose, onRequestDelete }) {
   const [index, setIndex] = useState(startIndex);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timerSec, setTimerSec] = useState(5);
@@ -157,7 +159,7 @@ function MediaViewer({ items, startIndex, isAdmin, onClose, onRequestDelete }) {
         setCurrentUrl(url);
       })
       .catch(() => setCurrentUrl(""));
-  }, [item?._id]);
+  }, [item?._id, tripId, isAdmin]);
 
   // Keep index in bounds when items shrink after delete
   useEffect(() => {
@@ -259,10 +261,7 @@ function MediaViewer({ items, startIndex, isAdmin, onClose, onRequestDelete }) {
           className="w-full h-full flex items-center justify-center px-14 sm:px-20 py-16"
         >
           {!currentUrl ? (
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 rounded-full border-4 border-slate-700 border-t-white animate-spin" />
-              <p className="text-slate-500 text-xs">Loading…</p>
-            </div>
+            <SyncetraLoader size="sm" />
           ) : isVideo ? (
             <video
               ref={videoRef}
@@ -373,50 +372,82 @@ function Row({ label, value, capitalize, muted }) {
   );
 }
 
-function ConfirmUploadPopup({ tripName, category, caption, previewUrl, mediaType, fileName, onConfirm, onCancel }) {
-  const isVideo = mediaType === "video";
+function ConfirmUploadPopup({ tripName, category, caption, items, prepErrors, onConfirm, onCancel }) {
+  const count = items.length;
   return (
     <Backdrop>
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="px-5 pt-5 pb-3 border-b border-slate-800">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="px-5 pt-5 pb-3 border-b border-slate-800 shrink-0">
           <h2 className="text-base font-semibold text-white">Confirm Upload</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Review details before uploading</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {count} file{count !== 1 ? "s" : ""} ready — review before uploading
+          </p>
         </div>
-        <div className="p-5 space-y-4">
-          {isVideo
-            ? <video src={previewUrl} controls className="w-full h-44 object-cover rounded-xl bg-black" />
-            : <img src={previewUrl} alt="preview" className="w-full h-44 object-cover rounded-xl" />}
+        <div className="p-5 space-y-4 overflow-y-auto">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-52 overflow-y-auto">
+            {items.map((item, i) => (
+              <div key={`${item.fileName}-${i}`} className="rounded-lg overflow-hidden border border-slate-700 bg-slate-950">
+                {item.mediaType === "video" ? (
+                  <video src={item.dataUrl} className="w-full h-16 object-cover bg-black" muted />
+                ) : (
+                  <img src={item.thumbUrl || item.dataUrl} alt="" className="w-full h-16 object-cover" />
+                )}
+                <p className="text-[10px] text-slate-500 truncate px-1.5 py-1">{item.fileName}</p>
+              </div>
+            ))}
+          </div>
           <div className="space-y-2">
             <Row label="Trip" value={tripName} />
             <Row label="Category" value={category} capitalize />
             {caption && <Row label="Caption" value={caption} />}
-            <Row label="File" value={fileName} muted />
+            <Row label="Files" value={`${count} selected`} />
           </div>
+          {prepErrors?.length > 0 && (
+            <div className="rounded-xl border border-amber-700/40 bg-amber-950/30 px-3 py-2 space-y-1">
+              <p className="text-xs font-medium text-amber-400">Some files were skipped:</p>
+              {prepErrors.map((msg) => (
+                <p key={msg} className="text-[11px] text-amber-200/80">{msg}</p>
+              ))}
+            </div>
+          )}
         </div>
-        <div className="px-5 pb-5 flex gap-3">
+        <div className="px-5 pb-5 flex gap-3 shrink-0">
           <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-sm hover:bg-slate-800 transition-colors">Cancel</button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">Upload</button>
+          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">
+            Upload {count} file{count !== 1 ? "s" : ""}
+          </button>
         </div>
       </div>
     </Backdrop>
   );
 }
 
-function ProcessingPopup() {
+function ProcessingPopup({ current = 0, total = 0, message }) {
+  const showProgress = total > 0;
   return (
     <Backdrop>
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-xs shadow-2xl p-8 flex flex-col items-center gap-4">
-        <div className="w-14 h-14 rounded-full border-4 border-slate-700 border-t-emerald-500 animate-spin" />
+        <SyncetraLoader size="md" />
         <div className="text-center">
-          <p className="text-white font-medium">Uploading…</p>
+          <p className="text-white font-medium">
+            {showProgress ? `Uploading ${current} of ${total}…` : (message || "Processing…")}
+          </p>
           <p className="text-xs text-slate-400 mt-1">Please wait, do not close this page</p>
+          {showProgress && total > 1 && (
+            <div className="mt-3 h-1.5 w-48 rounded-full bg-slate-800 overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 transition-all duration-300"
+                style={{ width: `${Math.round((current / total) * 100)}%` }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </Backdrop>
   );
 }
 
-function SuccessPopup({ tripName, category, caption, onClose }) {
+function SuccessPopup({ tripName, category, caption, count, failed, onClose }) {
   return (
     <Backdrop>
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
@@ -428,13 +459,24 @@ function SuccessPopup({ tripName, category, caption, onClose }) {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-white">Uploaded Successfully!</h2>
-            <p className="text-sm text-slate-400 mt-1">Your media has been added to the gallery</p>
+            <p className="text-sm text-slate-400 mt-1">
+              {count} file{count !== 1 ? "s" : ""} added to the gallery
+            </p>
           </div>
           <div className="w-full bg-slate-800 rounded-xl p-4 text-left space-y-2 mt-1">
             <Row label="Trip" value={tripName} />
             <Row label="Category" value={category} capitalize />
             {caption && <Row label="Caption" value={caption} />}
+            <Row label="Uploaded" value={`${count} file${count !== 1 ? "s" : ""}`} />
           </div>
+          {failed?.length > 0 && (
+            <div className="w-full rounded-xl border border-amber-700/40 bg-amber-950/30 px-3 py-2 text-left space-y-1">
+              <p className="text-xs font-medium text-amber-400">{failed.length} file(s) failed:</p>
+              {failed.map((msg) => (
+                <p key={msg} className="text-[11px] text-amber-200/80">{msg}</p>
+              ))}
+            </div>
+          )}
         </div>
         <div className="px-6 pb-6">
           <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">Done</button>
@@ -451,6 +493,7 @@ export default function TripGallery() {
   const fileInputRef = useRef(null);
 
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [typeFilter, setTypeFilter] = useState("all");
   const [categoryTab, setCategoryTab] = useState("all");
   const [category, setCategory] = useState("moments");
@@ -464,9 +507,11 @@ export default function TripGallery() {
 
   const reloadMedia = useCallback(() => {
     if (!selectedTripId) return;
+    setLoading(true);
     getMedia(selectedTripId, {}, isAdmin)
       .then((r) => setItems(r?.data || []))
-      .catch(() => setItems([]));
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
   }, [selectedTripId, isAdmin]);
 
   useEffect(() => {
@@ -475,12 +520,16 @@ export default function TripGallery() {
       return undefined;
     }
     let ignore = false;
+    setLoading(true);
     getMedia(selectedTripId, {}, isAdmin)
       .then((r) => {
         if (!ignore) setItems(r?.data || []);
       })
       .catch(() => {
         if (!ignore) setItems([]);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
       });
     return () => {
       ignore = true;
@@ -496,33 +545,88 @@ export default function TripGallery() {
   });
 
   const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedTripId) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length || !selectedTripId) return;
     if (fileInputRef.current) fileInputRef.current.value = "";
     setError("");
-    try {
-      const { dataUrl, thumbUrl, mediaType, fileName } = await fileToDataUrl(file);
-      setPopup({ stage: "confirm", dataUrl, thumbUrl, mediaType, fileName });
-    } catch (err) {
-      setError(err.message || "Invalid file");
+
+    if (files.length > MAX_BATCH_FILES) {
+      setError(`You can upload up to ${MAX_BATCH_FILES} files at once.`);
+      return;
     }
+
+    setPopup({ stage: "preparing", message: "Preparing files…" });
+    const prepared = [];
+    const prepErrors = [];
+
+    for (const file of files) {
+      try {
+        prepared.push(await fileToDataUrl(file));
+      } catch (err) {
+        prepErrors.push(`${file.name}: ${err.message || "Invalid file"}`);
+      }
+    }
+
+    if (!prepared.length) {
+      setPopup(null);
+      setError(prepErrors[0] || "No valid files selected");
+      return;
+    }
+
+    setPopup({
+      stage: "confirm",
+      items: prepared,
+      prepErrors: prepErrors.length ? prepErrors : undefined,
+    });
   };
 
   const handleConfirmUpload = async () => {
-    if (!popup || popup.stage !== "confirm") return;
-    const { dataUrl, thumbUrl, mediaType, fileName } = popup;
+    if (!popup || popup.stage !== "confirm" || !popup.items?.length) return;
+    const { items } = popup;
     const uploadCategory = category;
     const uploadCaption = caption;
-    setPopup({ stage: "uploading" });
-    try {
-      await addMedia(selectedTripId, { url: dataUrl, thumbUrl: thumbUrl || "", mediaType, category: uploadCategory, caption: uploadCaption, fileName }, isAdmin);
-      setCaption("");
-      reloadMedia();
-      setPopup({ stage: "success", category: uploadCategory, caption: uploadCaption });
-    } catch (err) {
-      setPopup(null);
-      setError(err.message || "Upload failed");
+
+    let successCount = 0;
+    const failures = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const { dataUrl, thumbUrl, mediaType, fileName } = items[i];
+      setPopup({ stage: "uploading", current: i + 1, total: items.length });
+      try {
+        await addMedia(
+          selectedTripId,
+          {
+            url: dataUrl,
+            thumbUrl: thumbUrl || "",
+            mediaType,
+            category: uploadCategory,
+            caption: uploadCaption,
+            fileName,
+          },
+          isAdmin
+        );
+        successCount++;
+      } catch (err) {
+        failures.push(`${fileName}: ${err.message || "Upload failed"}`);
+      }
     }
+
+    setCaption("");
+
+    if (successCount === 0) {
+      setPopup(null);
+      setError(failures[0] || "Upload failed");
+      return;
+    }
+
+    reloadMedia();
+    setPopup({
+      stage: "success",
+      category: uploadCategory,
+      caption: uploadCaption,
+      count: successCount,
+      failed: failures.length ? failures : undefined,
+    });
   };
 
   const handleView = (item) => {
@@ -551,7 +655,7 @@ export default function TripGallery() {
   };
 
   return (
-    <TripModuleShell title="Gallery" description="Upload and browse trip photos & videos">
+    <TripModuleShell title="Gallery" description="Upload and browse trip photos & videos" loading={loading && !!selectedTripId}>
       {selectedTripId && (
         <>
           {/* type filter */}
@@ -589,7 +693,10 @@ export default function TripGallery() {
 
           {/* upload section */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 mb-4">
-            <p className="text-sm text-slate-400">Choose image (max 4 MB) or video (max 10 MB). Set category and caption first.</p>
+            <p className="text-sm text-slate-400">
+              Select one or more images (max 4 MB each) or videos (max 10 MB each). Up to {MAX_BATCH_FILES} files per upload.
+              Set category and caption first — they apply to all selected files.
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select value={category} onChange={(e) => setCategory(e.target.value)}
                 className="px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-slate-200">
@@ -600,9 +707,9 @@ export default function TripGallery() {
             </div>
             <label className="flex flex-col items-center justify-center w-full py-8 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-emerald-600 hover:bg-slate-950/50 transition-colors">
               <span className="text-3xl mb-2">📤</span>
-              <span className="text-sm font-medium text-emerald-400">Tap to upload image or video</span>
-              <span className="text-xs text-slate-500 mt-1">JPG, PNG, GIF, WebP, MP4, WebM</span>
-              <input ref={fileInputRef} type="file"
+              <span className="text-sm font-medium text-emerald-400">Tap to upload images or videos</span>
+              <span className="text-xs text-slate-500 mt-1">JPG, PNG, GIF, WebP, MP4, WebM — select multiple files</span>
+              <input ref={fileInputRef} type="file" multiple
                 accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime"
                 className="hidden" onChange={handleFileSelect} />
             </label>
@@ -633,6 +740,7 @@ export default function TripGallery() {
         <MediaViewer
           items={filtered}
           startIndex={viewerState.startIndex}
+          tripId={selectedTripId}
           isAdmin={isAdmin}
           onClose={() => setViewerState(null)}
           onRequestDelete={requestDeleteMedia}
@@ -645,19 +753,26 @@ export default function TripGallery() {
           tripName={selectedTrip?.tripName || "Selected Trip"}
           category={category}
           caption={caption}
-          previewUrl={popup.dataUrl}
-          mediaType={popup.mediaType}
-          fileName={popup.fileName}
+          items={popup.items}
+          prepErrors={popup.prepErrors}
           onConfirm={handleConfirmUpload}
           onCancel={() => setPopup(null)}
         />
       )}
-      {popup?.stage === "uploading" && <ProcessingPopup />}
+      {(popup?.stage === "preparing" || popup?.stage === "uploading") && (
+        <ProcessingPopup
+          current={popup.current || 0}
+          total={popup.total || 0}
+          message={popup.message}
+        />
+      )}
       {popup?.stage === "success" && (
         <SuccessPopup
           tripName={selectedTrip?.tripName || "Selected Trip"}
           category={popup.category}
           caption={popup.caption}
+          count={popup.count}
+          failed={popup.failed}
           onClose={() => setPopup(null)}
         />
       )}

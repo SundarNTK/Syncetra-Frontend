@@ -126,16 +126,12 @@ export default function UserAttendance() {
   const absentCount  = latestPerCp.filter((r) => r.status === "absent").length;
 
   return (
-    <TripModuleShell title="Attendance" description="Your checkpoint-wise attendance history">
+    <TripModuleShell title="Attendance" description="Your checkpoint-wise attendance history" loading={loading && !!selectedTripId}>
       {selectedTripId ? (
         <div className="space-y-4">
           <TripBanner trip={selectedTrip} />
 
-          {loading ? (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6 text-center">
-              <p className="text-slate-500 text-sm animate-pulse">Loading…</p>
-            </div>
-          ) : (
+          {!loading && (
             <>
               {checkpointCount > 0 && (
                 <div className="flex gap-2 flex-wrap">

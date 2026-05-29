@@ -275,15 +275,15 @@ function TripCard({ trip, onView }) {
   return (
     <MasterListItem>
       {/* Cover image */}
-      <div className="w-28 sm:w-36 shrink-0 relative">
+      <div className="w-32 sm:w-40 shrink-0 relative self-stretch min-h-[7.5rem] bg-slate-950 border-r border-slate-800/60 overflow-hidden">
         {trip.coverImage ? (
           <img
             src={trip.coverImage}
             alt={trip.tripName}
-            className="w-full h-full min-h-[6rem] object-cover"
+            className="absolute inset-0 w-full h-full object-contain p-1.5"
           />
         ) : (
-          <div className="w-full h-full min-h-[6rem] bg-gradient-to-br from-slate-700 to-slate-900 flex flex-col items-center justify-center gap-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900 flex flex-col items-center justify-center gap-1">
             <span className="text-3xl opacity-40">{tripType.icon}</span>
           </div>
         )}

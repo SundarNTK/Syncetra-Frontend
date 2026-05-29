@@ -3,6 +3,7 @@ import { useAppSelector } from "../../../hooks";
 import { getMembers, createMember, updateUser } from "../../../services/users";
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell from "../../../components/layout/MasterPageShell";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 
 const INPUT_CLS =
   "w-full mt-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-600 " +
@@ -367,7 +368,7 @@ export default function AdminMembers() {
       />
 
       {loading ? (
-        <p className="text-slate-400 text-sm">Loading…</p>
+        <SyncetraLoader className="py-16" />
       ) : filtered.length === 0 ? (
         <p className="text-slate-500 text-sm">
           {search ? "No members match your search." : "No members yet."}

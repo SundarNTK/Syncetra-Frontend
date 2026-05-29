@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import {
   getAttendance,
   getAttendanceCheckpoints,
@@ -262,7 +263,7 @@ export default function AdminAttendance() {
 
   /* ══════════════════════ RENDER ══════════════════════ */
   return (
-    <TripModuleShell title="Attendance" description="Checkpoint-wise member attendance">
+    <TripModuleShell title="Attendance" description="Checkpoint-wise member attendance" loading={loading && !!selectedTripId && view === "list"}>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-medium ${
@@ -330,9 +331,7 @@ export default function AdminAttendance() {
                 </button>
               </div>
 
-              {loading ? (
-                <div className="text-center py-10 text-slate-500 text-sm animate-pulse">Loading…</div>
-              ) : checkpoints.length === 0 ? (
+              {checkpoints.length === 0 ? (
                 <div className="text-center py-12 space-y-3">
                   <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-800/60 border border-slate-700/40 flex items-center justify-center">
                     <svg className="w-7 h-7 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -418,9 +417,7 @@ export default function AdminAttendance() {
               )}
 
               {cpLoading ? (
-                <div className="text-center py-10 text-slate-500 text-sm animate-pulse">
-                  Loading attendance…
-                </div>
+                <SyncetraLoader className="py-10" />
               ) : members.length === 0 ? (
                 <div className="text-center py-10 text-slate-500">
                   <p className="text-2xl mb-2">👥</p>

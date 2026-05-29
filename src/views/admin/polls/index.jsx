@@ -7,6 +7,7 @@ import {
 } from "../../../services/polls";
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell, { MasterList, MasterListItem, MasterListEmpty } from "../../../components/layout/MasterPageShell";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const IconPlus  = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>;
@@ -201,7 +202,7 @@ function AnalyticsModal({ pollId, onClose }) {
         </div>
 
         {loading ? (
-          <p className="text-slate-400 p-6 text-center">Loading analytics…</p>
+          <SyncetraLoader className="py-16" />
         ) : !data ? (
           <p className="text-red-400 p-6 text-center">Failed to load analytics</p>
         ) : (
@@ -844,7 +845,7 @@ export default function AdminPolls() {
 
       {/* List */}
       {loading ? (
-        <p className="text-slate-400 text-sm">Loading polls…</p>
+        <SyncetraLoader className="py-16" />
       ) : polls.length === 0 ? (
         <MasterListEmpty
           icon="🗳️"

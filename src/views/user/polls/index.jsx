@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import MasterPageShell, { MasterList } from "../../../components/layout/MasterPageShell";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { useAppSelector } from "../../../hooks";
 import { getUserPolls, votePoll } from "../../../services/polls";
 
@@ -416,7 +417,7 @@ export default function UserPolls() {
       <FilterBar value={typeFilter} onChange={setTypeFilter} />
 
       {loading ? (
-        <p className="text-slate-400 text-sm">Loading polls…</p>
+        <SyncetraLoader className="py-16" />
       ) : polls.length === 0 ? (
         <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-10 flex flex-col items-center gap-3">
           <span className="text-5xl opacity-30">🗳️</span>

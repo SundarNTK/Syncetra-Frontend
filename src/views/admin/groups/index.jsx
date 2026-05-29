@@ -4,6 +4,7 @@ import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { getAdminGroups, deleteGroup, updateGroup } from "../../../services/groups";
 import { useTrip } from "../../../context/TripContext";
 import MasterPageShell, { MasterList, MasterListItem } from "../../../components/layout/MasterPageShell";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 
 export default function AdminGroups() {
   const [groups, setGroups] = useState([]);
@@ -55,7 +56,7 @@ export default function AdminGroups() {
       }
     >
       {loading ? (
-        <p className="text-slate-400">Loading...</p>
+        <SyncetraLoader className="py-16" />
       ) : groups.length === 0 ? (
         <p className="text-slate-400">No groups yet.</p>
       ) : (

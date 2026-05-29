@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTrip } from "../../context/TripContext";
+import SyncetraLoader from "../ui/SyncetraLoader";
 import { fmtTripDateShort, tripPhase } from "./tripUtils";
 
 // Small thumbnail or initial-letter avatar for a trip
@@ -40,7 +41,7 @@ export default function TripSelector({ label = "Select trip", className = "" }) 
   }, []);
 
   if (loading && !trips.length) {
-    return <p className="text-sm text-slate-400">Loading trips…</p>;
+    return <SyncetraLoader size="sm" className="py-4" />;
   }
 
   if (!trips.length) {
@@ -145,7 +146,7 @@ export default function TripSelector({ label = "Select trip", className = "" }) 
   );
 }
 
-export function TripModuleShell({ title, description, children }) {
+export function TripModuleShell({ title, description, children, loading = false }) {
   const { selectedTrip } = useTrip();
 
   return (
@@ -164,7 +165,11 @@ export function TripModuleShell({ title, description, children }) {
         </div>
       </div>
       <TripSelector />
-      {children}
+      {loading ? (
+        <SyncetraLoader className="py-16 min-h-[200px]" />
+      ) : (
+        children
+      )}
     </div>
   );
 }

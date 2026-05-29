@@ -24,7 +24,7 @@ import AdminTasks from "../views/admin/tasks";
 import AdminGallery from "../views/admin/gallery";
 import AdminChecklist from "../views/admin/checklist";
 import AdminPolls from "../views/admin/polls";
-import AdminItinerary from "../views/admin/itinerary";
+// import AdminItinerary from "../views/admin/itinerary";
 import AdminMembers from "../views/admin/members";
 import AdminAdmins from "../views/admin/admins";
 import UserDashboard from "../views/user/dashboard";
@@ -52,7 +52,7 @@ const BASE_ADMIN_MENU = [
   { path: "/vehicles",      label: "Vehicles",      icon: "🚌" },
   { path: "/attendance",    label: "Attendance",    icon: "✅" },
   { path: "/tasks",         label: "Tasks",         icon: "📋" },
-  { path: "/itinerary",     label: "Itinerary",     icon: "📅" },
+  // { path: "/itinerary",     label: "Itinerary",     icon: "📅" },
   { path: "/expenses",      label: "Expenses",      icon: "💰" },
   { path: "/gallery",       label: "Gallery",       icon: "📷" },
   { path: "/checklist",     label: "Checklist",     icon: "🎒" },
@@ -65,6 +65,7 @@ const userMenu = [
   { path: "/groups",     label: "Groups",        icon: "👥" },
   { path: "/attendance", label: "Attendance",    icon: "✅" },
   { path: "/tasks",      label: "Tasks",         icon: "📋" },
+  // { path: "/itinerary",  label: "Itinerary",     icon: "📅" },
   { path: "/vehicles",   label: "Vehicles",      icon: "🚌" },
   { path: "/expenses",   label: "Expenses",      icon: "💰" },
   { path: "/gallery",    label: "Gallery",       icon: "📷" },
@@ -128,7 +129,7 @@ export default function AppRoutes() {
         { path: "vehicles",        element: <AdminVehicles /> },
         { path: "attendance",      element: <AdminAttendance /> },
         { path: "tasks",           element: <AdminTasks /> },
-        { path: "itinerary",       element: <AdminItinerary /> },
+        // { path: "itinerary",       element: <AdminItinerary /> },
         { path: "expenses",        element: <AdminExpenses /> },
         { path: "gallery",         element: <AdminGallery /> },
         { path: "checklist",       element: <AdminChecklist /> },
