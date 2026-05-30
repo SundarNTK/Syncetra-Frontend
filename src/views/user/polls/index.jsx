@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import MasterPageShell, { MasterList } from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import { pollOptionGlowClass } from "../../../components/polls/pollOptionStyles";
 import { useAppSelector } from "../../../hooks";
 import { getUserPolls, votePoll } from "../../../services/polls";
 
@@ -176,7 +177,7 @@ function PollDescriptionModal({ poll, onClose }) {
             <p className="text-slate-400 text-sm text-center py-4">No additional description provided for this poll.</p>
           ) : (
             (poll.options || []).map((opt, i) => (
-              <div key={i} className="bg-slate-800/60 rounded-xl p-4">
+              <div key={i} className={`rounded-xl p-4 ${pollOptionGlowClass(i)}`}>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Option {i + 1}</p>
                 <p className="text-sm font-medium text-white mb-2">{opt.label}</p>
                 {opt.description && opt.description.trim() && opt.description !== "<p><br></p>" ? (
@@ -251,10 +252,22 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
   };
 
   return (
-    <li className="bg-slate-800 rounded-xl overflow-hidden">
+    <li className="bg-slate-800 rounded-xl overflow-hidden relative">
+      {hasDescriptions && (
+        <button
+          type="button"
+          onClick={() => onViewDescription(poll)}
+          className="poll-view-desc-btn absolute top-3 right-3 z-10"
+        >
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          View Description
+        </button>
+      )}
       <div className="p-4 sm:p-5">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-1">
+        <div className={`flex items-start justify-between gap-3 mb-1 ${hasDescriptions ? "pr-36 sm:pr-40" : ""}`}>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold text-base">{poll.title}</h3>
@@ -282,20 +295,7 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
           </span>
         </div>
 
-        {/* View Description button — only if any option has a description */}
-        {hasDescriptions && (
-          <button
-            onClick={() => onViewDescription(poll)}
-            className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 mb-3 transition-colors"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            View Description
-          </button>
-        )}
-
-        {!hasDescriptions && <div className="mb-3" />}
+        <div className="mb-3" />
 
         {/* Options */}
         <div className="space-y-2">

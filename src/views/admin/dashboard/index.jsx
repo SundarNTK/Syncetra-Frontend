@@ -12,7 +12,7 @@ import SelectedTripCard from "../../../components/trip/SelectedTripCard";
 import { tripPhase, phaseBadge } from "../../../components/trip/tripUtils";
 
 /* ── Trip stat card ───────────────────────────────────────────────────────── */
-function TripStatCard({ label, value, icon, delay, variant }) {
+function TripStatCard({ label, value, icon, variant }) {
   const base = "rounded-2xl p-5 border shadow-xl relative overflow-hidden cursor-default transition-transform hover:scale-[1.03] shimmer-parent";
 
   if (variant === "gold") {
@@ -223,17 +223,16 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Active Groups", value: alarmData.activeGroups, icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40", glow: "rgba(139,92,246,0.5)" },
-              { label: "Total Users",   value: alarmData.totalUsers,   icon: "📱", from: "from-blue-600/60",   to: "to-indigo-900/60", border: "border-blue-700/40",   glow: "rgba(99,102,241,0.5)"  },
-              { label: "Total Alarms",  value: alarmData.totalAlarms,  icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40",  glow: "rgba(245,158,11,0.5)"  },
-              { label: "Active Alarms", value: alarmData.activeAlarms, icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40",    glow: "rgba(239,68,68,0.5)"   },
+              { label: "Active Groups", value: alarmData.activeGroups, icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40" },
+              { label: "Total Users",   value: alarmData.totalUsers,   icon: "📱", from: "from-blue-600/60",   to: "to-indigo-900/60", border: "border-blue-700/40"   },
+              { label: "Total Alarms",  value: alarmData.totalAlarms,  icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40"  },
+              { label: "Active Alarms", value: alarmData.activeAlarms, icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40"    },
             ].map((s) => (
-              <div key={s.label} className={`rounded-2xl p-4 bg-gradient-to-br ${s.from} ${s.to} border ${s.border} relative overflow-hidden shimmer-parent hover:scale-[1.02] transition-transform`}>
-                <div className="shimmer-child" />
+              <div key={s.label} className={`rounded-2xl p-4 bg-gradient-to-br ${s.from} ${s.to} border ${s.border} relative overflow-hidden hover:scale-[1.02] transition-transform`}>
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-white/60 text-xs">{s.label}</p>
-                    <p className="text-2xl font-black text-white mt-1" style={{ textShadow: `0 0 12px ${s.glow}` }}>{s.value}</p>
+                    <p className="text-2xl font-black text-white mt-1">{s.value}</p>
                   </div>
                   <span className="text-xl opacity-80">{s.icon}</span>
                 </div>
@@ -285,9 +284,9 @@ export default function AdminDashboard() {
             <h3 className="font-bold text-sm mb-4 text-white">Alarm actions</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Link to="/admin/alarms/schedule"
-                className="p-3.5 rounded-xl border border-red-700/60 text-center text-xs font-bold text-white transition-all hover:scale-[1.03] shimmer-parent"
+                className="p-3.5 rounded-xl border border-red-700/60 text-center text-xs font-bold text-white transition-all hover:scale-[1.02]"
                 style={{ background: "linear-gradient(135deg,rgba(220,38,38,0.5),rgba(185,28,28,0.4))" }}>
-                <div className="shimmer-child" />🔔 Schedule Alarm
+                🔔 Schedule Alarm
               </Link>
               {[
                 { to: "/admin/alarms/active", label: "⚡ Active Alarms" },

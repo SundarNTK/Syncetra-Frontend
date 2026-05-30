@@ -76,7 +76,7 @@ export default function UserExpenses() {
   }, [selectedTripId]);
 
   const totalBudget    = Number(selectedTrip?.budget || 0);
-  const totalCollected = Number(selectedTrip?.collectedAmount || 0);
+  const totalCollected = totalBudget;
   const totalSpent     = items.reduce((s, e) => s + (e.amount || 0), 0);
   const remaining      = totalBudget - totalSpent;
   const pct            = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
@@ -132,7 +132,7 @@ export default function UserExpenses() {
           </div>
 
           {/* Collected */}
-          {totalCollected > 0 && (
+          {totalBudget > 0 && (
             <div className="flex items-center justify-between bg-slate-800/40 border border-slate-700/40 rounded-xl px-4 py-2.5">
               <p className="text-xs text-slate-400">Total Collected</p>
               <p className="text-sm font-semibold text-blue-400">{fmt(totalCollected)}</p>

@@ -3,6 +3,7 @@ import { useAppSelector } from "../../../hooks";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { ChecklistThumb } from "../../../components/trip/ChecklistThumb";
+import ChecklistViewModal from "../../../components/checklist/ChecklistViewModal";
 import { getChecklists, toggleChecklist } from "../../../services/trips";
 
 function userIdFromPackedEntry(p) {
@@ -25,25 +26,26 @@ function patchPackedBy(packedBy, myId, shouldBePacked) {
   return list;
 }
 
-function ChecklistRow({ row, packed, toggling, tripId, onTogglePacked }) {
-  const [open, setOpen] = useState(false);
+function ChecklistRow({ row, packed, toggling, tripId, onTogglePacked, onViewDescription }) {
   const hasDescription = Boolean(row.description && String(row.description).trim());
+  const hasImage = Boolean(row.imageUrl || row.hasImage);
+  const showView = hasDescription || hasImage;
 
   return (
     <li className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
       <div className="flex gap-3 items-center p-3">
-        <div className="w-14 h-14 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-800 flex items-center justify-center">
+        <div className="w-14 h-14 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-950 flex items-center justify-center">
           <ChecklistThumb tripId={tripId} item={row} isAdmin={false} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-slate-100 text-sm leading-snug">{row.item}</p>
-          {hasDescription && (
+          {showView && (
             <button
               type="button"
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => onViewDescription(row)}
               className="text-[11px] text-emerald-400 hover:text-emerald-300 mt-1 font-medium"
             >
-              {open ? "Hide description" : "View description"}
+              View description
             </button>
           )}
         </div>
@@ -62,11 +64,6 @@ function ChecklistRow({ row, packed, toggling, tripId, onTogglePacked }) {
           />
         </label>
       </div>
-      {open && hasDescription && (
-        <div className="px-3 pb-3 pt-0 border-t border-slate-800/80">
-          <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed mt-2">{row.description}</p>
-        </div>
-      )}
     </li>
   );
 }
@@ -80,6 +77,7 @@ export default function UserChecklist() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [togglingIds, setTogglingIds] = useState(() => new Set());
+  const [viewItem, setViewItem] = useState(null);
 
   useEffect(() => {
     if (!selectedTripId) {
@@ -176,9 +174,19 @@ export default function UserChecklist() {
               toggling={togglingIds.has(c._id)}
               tripId={selectedTripId}
               onTogglePacked={() => handleTogglePacked(c._id)}
+              onViewDescription={setViewItem}
             />
           ))}
         </ul>
+      )}
+
+      {viewItem && selectedTripId && (
+        <ChecklistViewModal
+          tripId={selectedTripId}
+          item={viewItem}
+          isAdmin={false}
+          onClose={() => setViewItem(null)}
+        />
       )}
     </TripModuleShell>
   );

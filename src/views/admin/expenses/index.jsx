@@ -47,7 +47,7 @@ const compressImage = (dataUrl, maxBytes = 1.2 * 1024 * 1024) =>
   });
 
 /* ─── ImageField — single optional image ─────────────────────────────────────── */
-function ImageField({ value, onChange }) {
+function ImageField({ value, onChange, onPreview }) {
   const inputRef  = useRef(null);
   const [busy, setBusy] = useState(false);
 
@@ -64,15 +64,38 @@ function ImageField({ value, onChange }) {
   return (
     <div className="space-y-2">
       {value ? (
-        <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-700 group">
-          <img src={value} alt="" className="w-full h-full object-cover" />
+        <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
           <button
             type="button"
-            onClick={() => onChange("")}
-            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center hover:bg-red-600/80 transition-colors"
+            onClick={() => onPreview?.(value)}
+            className="w-full flex items-center justify-center p-3 min-h-[120px] max-h-[260px] cursor-zoom-in hover:bg-slate-900/40 transition-colors"
+            title="Click to view full size"
           >
-            ×
+            <img
+              src={value}
+              alt="Receipt preview"
+              className="max-w-full max-h-[240px] w-auto h-auto object-contain rounded-md shadow-lg"
+            />
           </button>
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-800 bg-slate-900/90">
+            <span className="text-[10px] text-slate-500 truncate">Receipt attached</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="text-[10px] px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-colors"
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="text-[10px] px-2 py-1 rounded-md bg-red-950/50 border border-red-800/50 text-red-400 hover:bg-red-900/40 transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         <button
@@ -89,14 +112,17 @@ function ImageField({ value, onChange }) {
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => handleFile(e.target.files[0])}
+        onChange={(e) => {
+          handleFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
       />
     </div>
   );
 }
 
 /* ─── EditModal ──────────────────────────────────────────────────────────────── */
-function EditModal({ expense, tripId, onClose, onSaved }) {
+function EditModal({ expense, tripId, onClose, onSaved, onPreview }) {
   const [form, setForm] = useState({
     category:    expense.category    || "Other",
     amount:      expense.amount      || "",
@@ -173,7 +199,7 @@ function EditModal({ expense, tripId, onClose, onSaved }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Receipt / Photo</label>
-            <ImageField value={form.imageUrl} onChange={(v) => set("imageUrl", v)} />
+            <ImageField value={form.imageUrl} onChange={(v) => set("imageUrl", v)} onPreview={onPreview} />
           </div>
           <div className="flex gap-3 pt-1">
             <button
@@ -291,6 +317,7 @@ export default function AdminExpenses() {
           tripId={selectedTripId}
           onClose={() => setEditExp(null)}
           onSaved={load}
+          onPreview={setPreviewImg}
         />
       )}
       {previewImg && (
@@ -388,6 +415,7 @@ export default function AdminExpenses() {
             <ImageField
               value={form.imageUrl}
               onChange={(v) => setForm({ ...form, imageUrl: v })}
+              onPreview={setPreviewImg}
             />
             <button type="submit"
               className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors">
@@ -422,9 +450,9 @@ export default function AdminExpenses() {
                           type="button"
                           onClick={() => setPreviewImg(x.imageUrl)}
                           title="View receipt"
-                          className="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-700 hover:border-emerald-600/60 transition-colors relative group"
+                          className="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 hover:border-emerald-600/60 transition-colors relative group flex items-center justify-center"
                         >
-                          <img src={x.imageUrl} alt="receipt" className="w-full h-full object-cover" />
+                          <img src={x.imageUrl} alt="receipt" className="max-w-full max-h-full object-contain p-0.5" />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>

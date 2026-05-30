@@ -166,9 +166,8 @@ export default function UserDashboard() {
 
       {/* active alarm banner */}
       {data?.activeAlarm && (
-        <div className="rounded-2xl p-4 sm:p-5 border border-red-500/80 animate-glow-red shimmer-parent"
+        <div className="rounded-2xl p-4 sm:p-5 border border-red-500/80"
           style={{ background: "linear-gradient(135deg,rgba(220,38,38,0.8),rgba(185,28,28,0.7))" }}>
-          <div className="shimmer-child" />
           <p className="font-black text-base sm:text-lg">🚨 Active alarm now</p>
           <p className="text-white/90 text-sm sm:text-base">{data.activeAlarm.title}</p>
           <p className="text-xs sm:text-sm text-white/70 mt-1">Open the app to enter stop code</p>
@@ -251,23 +250,19 @@ export default function UserDashboard() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "My Groups",    value: data.totalGroups,    icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40", glow: "rgba(139,92,246,0.5)" },
-              { label: "Total Alarms", value: data.totalAlarms,    icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40",  glow: "rgba(245,158,11,0.5)"  },
-              { label: "Active",       value: data.activeAlarms,   icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40",    glow: "rgba(239,68,68,0.5)"   },
-              { label: "Completed",    value: data.completedAlarms, icon: "✓", from: "from-slate-600/60", to: "to-slate-800/60",  border: "border-slate-600/40",  glow: "rgba(148,163,184,0.4)" },
-            ].map((s, i) => (
+              { label: "My Groups",    value: data.totalGroups,    icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40" },
+              { label: "Total Alarms", value: data.totalAlarms,    icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40"  },
+              { label: "Active",       value: data.activeAlarms,   icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40"    },
+              { label: "Completed",    value: data.completedAlarms, icon: "✓", from: "from-slate-600/60", to: "to-slate-800/60",  border: "border-slate-600/40"  },
+            ].map((s) => (
               <div
                 key={s.label}
-                className={`rounded-2xl p-4 bg-gradient-to-br ${s.from} ${s.to} border ${s.border} relative overflow-hidden shimmer-parent hover:scale-[1.02] transition-transform`}
-                style={{ animationDelay: `${i * 50}ms` }}
+                className={`rounded-2xl p-4 bg-gradient-to-br ${s.from} ${s.to} border ${s.border} relative overflow-hidden hover:scale-[1.02] transition-transform`}
               >
-                <div className="shimmer-child" />
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-white/60 text-xs">{s.label}</p>
-                    <p className="text-2xl font-black text-white mt-1" style={{ textShadow: `0 0 12px ${s.glow}` }}>
-                      {s.value}
-                    </p>
+                    <p className="text-2xl font-black text-white mt-1">{s.value}</p>
                   </div>
                   <span className="text-xl opacity-80">{s.icon}</span>
                 </div>

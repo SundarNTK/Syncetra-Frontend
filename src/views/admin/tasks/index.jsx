@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useAppSelector } from "../../../hooks";
+import { ROLES } from "../../../constants/enum";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getTasks, addTask } from "../../../services/trips";
 import { getAdminGroups, getGroupById } from "../../../services/groups";
 import { getSocket } from "../../../services/socketService";
 import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
+import TaskEditModal from "../../../components/task-manager/TaskEditModal";
+import AssignedMemberChips from "../../../components/task-manager/AssignedMemberChips";
+
+const IconEdit = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
 
 const fmtDate = (iso) => (iso ? formatDateTimeDisplay(iso) : "—");
 
@@ -216,7 +226,7 @@ function MemberResponseCard({ ack }) {
 }
 
 // ─── TaskRow ──────────────────────────────────────────────────────────────────
-function TaskRow({ task }) {
+function TaskRow({ task, members, isSuperAdmin, onEdit }) {
   const [expanded, setExpanded] = useState(false);
 
   const acks    = task.acknowledgments || [];
@@ -234,6 +244,8 @@ function TaskRow({ task }) {
           {task.description && (
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{task.description}</p>
           )}
+
+          <AssignedMemberChips task={task} members={members} />
 
           {/* Ack summary pills */}
           {total > 0 && (
@@ -259,6 +271,16 @@ function TaskRow({ task }) {
 
         {/* Right controls */}
         <div className="flex items-center gap-2 shrink-0">
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => onEdit(task)}
+              className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 border border-slate-700/60 transition-colors"
+              title="Edit task"
+            >
+              <IconEdit />
+            </button>
+          )}
           {total > 0 && (
             <button
               onClick={() => setExpanded((p) => !p)}
@@ -290,12 +312,15 @@ function TaskRow({ task }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function AdminTasks() {
   const { selectedTripId } = useTrip();
+  const { userInfo } = useAppSelector((s) => s.user);
+  const isSuperAdmin = userInfo?.user?.role === ROLES.SUPER_ADMIN;
   const [items,   setItems]   = useState([]);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", assignedTo: [] });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
+  const [editTask, setEditTask] = useState(null);
 
   const load = useCallback(() => {
     if (!selectedTripId) return;
@@ -419,6 +444,9 @@ export default function AdminTasks() {
               <TaskRow
                 key={t._id}
                 task={t}
+                members={members}
+                isSuperAdmin={isSuperAdmin}
+                onEdit={setEditTask}
               />
             ))}
             {items.length === 0 && (
@@ -428,6 +456,22 @@ export default function AdminTasks() {
               </li>
             )}
           </ul>
+
+          {!isSuperAdmin && items.length > 0 && (
+            <p className="text-[11px] text-slate-500 text-center mt-3">
+              Super Admins can edit existing tasks.
+            </p>
+          )}
+
+          {editTask && selectedTripId && (
+            <TaskEditModal
+              task={editTask}
+              tripId={selectedTripId}
+              members={members}
+              onClose={() => setEditTask(null)}
+              onSaved={load}
+            />
+          )}
         </>
       )}
     </TripModuleShell>

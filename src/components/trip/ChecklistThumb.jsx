@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getChecklistItem } from "../../services/trips";
 
 /** Thumbnail for checklist rows; loads full image when list omits large data URLs. */
-export function ChecklistThumb({ tripId, item, isAdmin = true, className = "w-full h-full object-cover" }) {
+export function ChecklistThumb({ tripId, item, isAdmin = true, className = "max-w-full max-h-full object-contain p-0.5" }) {
   const [src, setSrc] = useState(item?.imageUrl || "");
   const [loading, setLoading] = useState(false);
 

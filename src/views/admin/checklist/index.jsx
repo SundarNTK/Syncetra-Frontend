@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAppSelector } from "../../../hooks";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { ChecklistThumb } from "../../../components/trip/ChecklistThumb";
+import ChecklistViewModal from "../../../components/checklist/ChecklistViewModal";
 import MemberMultiSelect, {
   assigneesForApi,
   assignedIdsFromItem,
@@ -64,98 +66,103 @@ function readImageFileAsDataUrl(file, maxBytes = 2 * 1024 * 1024) {
   });
 }
 
-function ChecklistViewModal({ tripId, item, tripMembers, onClose }) {
-  const [detail, setDetail] = useState(item);
-  const [loading, setLoading] = useState(Boolean(item?.hasImage && !item?.imageUrl));
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!tripId || !item?._id) return;
-    if (item.imageUrl || !item.hasImage) {
-      setDetail(item);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    getChecklistItem(tripId, item._id, true)
-      .then((r) => setDetail(r?.data || item))
-      .catch(() => setDetail(item))
-      .finally(() => setLoading(false));
-  }, [tripId, item]);
-
-  const assigneeLabel = formatChecklistAssignees(detail, tripMembers);
-  const packedNames = (detail?.packedBy || [])
-    .map((p) => (p && typeof p === "object" ? p.name || p.email : null))
-    .filter(Boolean);
-
-  return (
+function ImagePreviewModal({ src, onClose }) {
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8"
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 backdrop-blur-sm px-4"
       onClick={onClose}
     >
-      <div
-        className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
-          <h2 className="font-semibold text-emerald-400">Checklist item</h2>
-          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-slate-800 text-slate-400">
-            <IconClose />
-          </button>
+      <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 flex items-center justify-center max-h-[85vh]">
+          <img src={src} alt="" className="max-w-full max-h-[80vh] w-auto h-auto object-contain rounded-lg shadow-2xl" />
         </div>
-        <div className="p-5 space-y-4">
-          <div className="w-full max-w-xs mx-auto aspect-square rounded-xl overflow-hidden border border-slate-700 bg-slate-800 flex items-center justify-center">
-            {loading ? (
-              <span className="text-slate-500 text-sm">Loading image…</span>
-            ) : detail?.imageUrl ? (
-              <img src={detail.imageUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-4xl text-slate-600">📦</span>
-            )}
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Item</p>
-            <p className="text-lg font-medium text-white">{detail?.item}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Assignee</p>
-              <p className="text-slate-200">{assigneeLabel}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">Packed by</p>
-              <p className="text-slate-200">{packedNames.length ? packedNames.join(", ") : "—"}</p>
-            </div>
-          </div>
-          {detail?.description ? (
-            <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Description</p>
-              <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{detail.description}</p>
-            </div>
-          ) : null}
-        </div>
-        <div className="px-5 pb-5">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600/80 transition-colors"
+        >
+          ×
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function ChecklistImageField({ value, onChange, onPreview, onPickFile }) {
+  const fileRef = useRef(null);
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    if (onPickFile) {
+      await onPickFile(file);
+      return;
+    }
+    const dataUrl = await readImageFileAsDataUrl(file);
+    onChange(dataUrl);
+  };
+
+  return (
+    <div className="space-y-2 w-full">
+      {value ? (
+        <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
           <button
             type="button"
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl border border-slate-700 text-slate-300 text-sm hover:bg-slate-800"
+            onClick={() => onPreview?.(value)}
+            className="w-full flex items-center justify-center p-3 min-h-[120px] max-h-[260px] cursor-zoom-in hover:bg-slate-900/40 transition-colors"
+            title="Click to view full size"
           >
-            Close
+            <img
+              src={value}
+              alt="Item preview"
+              className="max-w-full max-h-[240px] w-auto h-auto object-contain rounded-md shadow-lg"
+            />
           </button>
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-800 bg-slate-900/90">
+            <span className="text-[10px] text-slate-500 truncate">Image attached</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <label className="text-[10px] px-2 py-1 rounded-md bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer">
+                Replace
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFile(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="text-[10px] px-2 py-1 rounded-md bg-red-950/50 border border-red-800/50 text-red-400 hover:bg-red-900/40 transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-slate-600 hover:border-emerald-600/60 text-slate-400 hover:text-emerald-400 text-xs transition-colors cursor-pointer">
+          <span>📷 Choose image (optional)</span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              handleFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
     </div>
   );
 }
 
-function ChecklistEditModal({ tripId, item, tripMembers, memberOptionIds, membersLoading, onClose, onSaved }) {
+function ChecklistEditModal({ tripId, item, tripMembers, memberOptionIds, membersLoading, onClose, onSaved, onPreview }) {
   const [form, setForm] = useState({
     item: item?.item || "",
     description: item?.description || "",
@@ -183,10 +190,7 @@ function ChecklistEditModal({ tripId, item, tripMembers, memberOptionIds, member
       .catch(() => {});
   }, [tripId, item]);
 
-  const handleImage = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const handleImagePick = async (file) => {
     setImgError("");
     try {
       const dataUrl = await readImageFileAsDataUrl(file);
@@ -260,25 +264,14 @@ function ChecklistEditModal({ tripId, item, tripMembers, memberOptionIds, member
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
             />
           </div>
-          <div className="flex flex-wrap gap-3 items-start">
-            <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-300 cursor-pointer hover:bg-slate-700">
-              <span>Change image</span>
-              <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
-            </label>
-            {form.imageUrl && (
-              <>
-                <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700">
-                  <img src={form.imageUrl} alt="" className="w-full h-full object-cover" />
-                </div>
-                <button
-                  type="button"
-                  className="text-xs text-red-400 hover:underline"
-                  onClick={() => setForm((p) => ({ ...p, imageUrl: "" }))}
-                >
-                  Remove image
-                </button>
-              </>
-            )}
+          <div>
+            <label className="block text-[10px] uppercase tracking-wide text-slate-500 mb-1">Image</label>
+            <ChecklistImageField
+              value={form.imageUrl}
+              onChange={(v) => setForm((p) => ({ ...p, imageUrl: v }))}
+              onPreview={onPreview}
+              onPickFile={handleImagePick}
+            />
           </div>
           {imgError && <p className="text-sm text-red-400">{imgError}</p>}
           <div className="flex gap-3 pt-1">
@@ -358,6 +351,7 @@ export default function AdminChecklist() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [viewItem, setViewItem] = useState(null);
   const [editItem, setEditItem] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
 
   const memberOptionIds = tripMembers.map((m) => String(m.id || m._id));
@@ -421,10 +415,7 @@ export default function AdminChecklist() {
     };
   }, [selectedTripId]);
 
-  const handleImage = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  const handleImagePick = async (file) => {
     setImgError("");
     try {
       const dataUrl = await readImageFileAsDataUrl(file);
@@ -514,28 +505,14 @@ export default function AdminChecklist() {
                   placeholder="Optional details (shown when member expands)"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 items-start">
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wide text-slate-500 mb-1">Image</label>
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-sm text-slate-300 cursor-pointer hover:bg-slate-700">
-                    <span>Choose image</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
-                  </label>
-                  {form.imageUrl && (
-                    <button
-                      type="button"
-                      className="ml-2 text-xs text-red-400 hover:underline"
-                      onClick={() => setForm((p) => ({ ...p, imageUrl: "" }))}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-                {form.imageUrl ? (
-                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-black">
-                    <img src={form.imageUrl} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ) : null}
+              <div>
+                <label className="block text-[10px] uppercase tracking-wide text-slate-500 mb-1">Image</label>
+                <ChecklistImageField
+                  value={form.imageUrl}
+                  onChange={(v) => setForm((p) => ({ ...p, imageUrl: v }))}
+                  onPreview={setPreviewImage}
+                  onPickFile={handleImagePick}
+                />
               </div>
               {imgError && <p className="text-sm text-red-400">{imgError}</p>}
               <button
@@ -564,7 +541,7 @@ export default function AdminChecklist() {
                   key={c._id}
                   className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex gap-3 items-start"
                 >
-                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-800 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-950 flex items-center justify-center">
                     <ChecklistThumb tripId={selectedTripId} item={c} isAdmin />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -616,7 +593,11 @@ export default function AdminChecklist() {
           membersLoading={membersLoading}
           onClose={() => setEditItem(null)}
           onSaved={reloadChecklists}
+          onPreview={setPreviewImage}
         />
+      )}
+      {previewImage && (
+        <ImagePreviewModal src={previewImage} onClose={() => setPreviewImage(null)} />
       )}
       {deleteModal}
     </TripModuleShell>

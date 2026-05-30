@@ -9,9 +9,8 @@ export function TripStatBox({ label, value, icon, accent = "indigo" }) {
 
   return (
     <div
-      className={`rounded-xl px-3 py-2.5 border shimmer-parent ${accents[accent] || accents.slate}`}
+      className={`rounded-xl px-3 py-2.5 border ${accents[accent] || accents.slate}`}
     >
-      <div className="shimmer-child" />
       <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
         {icon ? `${icon} ` : ""}
         {label}

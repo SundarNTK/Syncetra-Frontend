@@ -182,7 +182,7 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
       className="rounded-2xl overflow-hidden relative"
       style={{
         border: "1px solid rgba(249,115,22,0.2)",
-        boxShadow: "0 0 0 1px rgba(249,115,22,0.06), 0 0 50px rgba(249,115,22,0.08), 0 12px 40px rgba(0,0,0,0.5)",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
       }}
     >
       <div className="flex flex-wrap items-center gap-3 px-5 py-3 border-b cmd-header-grad">

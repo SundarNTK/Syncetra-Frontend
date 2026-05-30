@@ -8,6 +8,7 @@ import {
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell, { MasterList, MasterListItem, MasterListEmpty } from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import { pollOptionGlowClass } from "../../../components/polls/pollOptionStyles";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const IconPlus  = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>;
@@ -45,18 +46,6 @@ const TYPE_BADGE = {
   general: "bg-blue-600/20 text-blue-300 border border-blue-700/40",
   trip:    "bg-amber-600/20 text-amber-300 border border-amber-700/40",
 };
-
-/** View modal: distinct border per option index */
-const OPTION_VIEW_BORDERS = [
-  "border-2 border-cyan-500/55 ring-1 ring-cyan-500/20",
-  "border-2 border-fuchsia-500/55 ring-1 ring-fuchsia-500/20",
-  "border-2 border-amber-500/55 ring-1 ring-amber-500/20",
-  "border-2 border-emerald-500/55 ring-1 ring-emerald-500/20",
-  "border-2 border-rose-500/55 ring-1 ring-rose-500/20",
-  "border-2 border-indigo-500/55 ring-1 ring-indigo-500/20",
-  "border-2 border-orange-500/55 ring-1 ring-orange-500/20",
-  "border-2 border-sky-500/55 ring-1 ring-sky-500/20",
-];
 
 /** Equal-width action column on sm+ */
 const POLL_BTN_COL = "w-full sm:w-[7.25rem]";
@@ -226,14 +215,15 @@ function AnalyticsModal({ pollId, onClose }) {
                   )}
                 </p>
                 {leadersText && !isCompleted && (
-                  <p className="text-emerald-400">
-                    ⚡ Leading: <strong>{leadersText}</strong>
+                  <p className="poll-highlight-line font-semibold">
+                    <span className="poll-leading-gradient font-bold">⚡ Leading: {leadersText}</span>
                   </p>
                 )}
                 {leadersText && isCompleted && (
-                  <p className="inline-flex items-center gap-1 text-xs">
-                    <span className="text-amber-400/90">🏆 Winner{leadingLabels.length > 1 ? "s" : ""}:</span>
-                    <span className="poll-winner-gradient text-sm font-bold">{leadersText}</span>
+                  <p className="poll-highlight-line font-semibold">
+                    <span className="poll-winner-gradient font-bold">
+                      🏆 Winner{leadingLabels.length > 1 ? "s" : ""}: {leadersText}
+                    </span>
                   </p>
                 )}
               </div>
@@ -346,7 +336,7 @@ function ViewPollModal({ poll, trips, onClose }) {
                 return (
                 <li
                   key={i}
-                  className={`bg-slate-800/60 rounded-xl p-3 ${OPTION_VIEW_BORDERS[i % OPTION_VIEW_BORDERS.length]}`}
+                  className={`rounded-xl p-3 ${pollOptionGlowClass(i)}`}
                 >
                   <p className="text-sm font-medium text-white mb-1">
                     {i + 1}. {o.label}
@@ -639,6 +629,15 @@ function CreatePollModal({ onClose, onCreated, trips }) {
 }
 
 // ─── PollCard ─────────────────────────────────────────────────────────────────
+function PollMemberStat({ label, value, variant }) {
+  return (
+    <div className="poll-admin-stat-col">
+      <span className="poll-admin-stat-label">{label}</span>
+      <div className={`poll-admin-stat-box poll-admin-stat-box--${variant}`}>{value}</div>
+    </div>
+  );
+}
+
 function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAnalytics, onStatusChange, onDelete }) {
   const status     = poll.pollStatus || "open";
   const statusMeta = STATUS_META[status] || STATUS_META.open;
@@ -653,76 +652,98 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
     <MasterListItem className="w-full min-w-0 !overflow-visible">
       <div className="flex w-full min-w-0 flex-col sm:flex-row sm:items-stretch gap-4 p-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-0.5">
-            <h3 className="font-semibold text-base sm:text-lg text-white truncate min-w-0">{poll.title}</h3>
-            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 border ${TYPE_BADGE[poll.pollType]}`}>
-              {poll.pollType === "trip" ? "Trip Poll" : "General"}
-            </span>
-            <StatusBadge status={status} className="shrink-0" />
+          <div className="flex items-start justify-between gap-3 mb-0.5">
+            <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
+              <h3 className="font-semibold text-base sm:text-lg text-white truncate min-w-0">{poll.title}</h3>
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 border ${TYPE_BADGE[poll.pollType]}`}>
+                {poll.pollType === "trip" ? "Trip Poll" : "General"}
+              </span>
+              <StatusBadge status={status} className="shrink-0" />
+            </div>
+            {eligible > 0 && (
+              <div className="flex items-end gap-2 shrink-0">
+                <PollMemberStat label="Members" value={eligible} variant="members" />
+                <PollMemberStat label="Voted" value={uniqueResponded} variant="voted" />
+              </div>
+            )}
           </div>
 
-          <p className="text-sm text-slate-400 mb-2 whitespace-pre-wrap break-words">{poll.question}</p>
+          <p className="text-base text-slate-300 mb-2.5 whitespace-pre-wrap break-words leading-relaxed">{poll.question}</p>
 
-          {leadingOpts.length > 0 && status === "open" && (
-            <p className="text-xs text-emerald-400 mb-2 flex items-center gap-1 flex-wrap">
-              <span>⚡</span>
-              <span>Leading: <strong className="text-emerald-300">{leadingLabels}</strong></span>
-              <span className="text-slate-500">({maxVotes} vote{maxVotes !== 1 ? "s" : ""})</span>
-            </p>
-          )}
-          {leadingOpts.length > 0 && status === "completed" && (
-            <p className="text-xs text-amber-500/90 mb-2 flex items-center gap-1 flex-wrap">
-              <span>🏆</span>
-              <span>Winner{leadingOpts.length > 1 ? "s" : ""}: </span>
-              <span className="poll-winner-gradient text-sm font-bold">{leadingLabels}</span>
-            </p>
-          )}
-          {leadingOpts.length > 0 && status === "paused" && (
-            <p className="text-xs text-yellow-400/80 mb-2 flex items-center gap-1">
-              <span>⏸</span>
-              <span>Leading (paused): <strong className="text-yellow-300">{leadingLabels}</strong></span>
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-1.5">
-            {(poll.options || []).slice(0, 6).map((o, i) => {
-              const count     = o.votes?.length || 0;
-              const isLeading = count === maxVotes && totalVotes > 0;
-              const optPct    = pctOfEligible(count, eligible);
-              return (
-                <span
-                  key={i}
-                  className={`text-xs px-2 py-0.5 rounded-full border ${
-                    isLeading && status === "open"
-                      ? "bg-emerald-700/30 text-emerald-300 border-emerald-700/40"
-                      : isLeading && status === "completed"
-                      ? "bg-amber-900/35 text-amber-200 border-amber-500/45"
-                      : "bg-slate-700/60 text-slate-300 border-transparent"
-                  }`}
-                >
-                  {o.label}{" "}
-                  <span className="opacity-60">
-                    ({count}
-                    {optPct != null ? ` · ${optPct}%` : ""})
-                  </span>
+          <div className="mt-0.5">
+            {leadingOpts.length > 0 && status === "open" && (
+              <p className="poll-highlight-line mt-5 mb-8 flex items-center gap-1.5 flex-wrap font-semibold">
+                <span className="text-base">⚡</span>
+                <span className="poll-leading-gradient font-bold">
+                  Leading: {leadingLabels}
                 </span>
+                <span className="text-slate-500 text-xs font-normal">({maxVotes} vote{maxVotes !== 1 ? "s" : ""})</span>
+              </p>
+            )}
+            {leadingOpts.length > 0 && status === "completed" && (
+              <p className="poll-highlight-line mt-5 mb-8 flex items-center gap-1.5 flex-wrap font-semibold">
+                <span className="text-base">🏆</span>
+                <span className="poll-winner-gradient font-bold">
+                  Winner{leadingOpts.length > 1 ? "s" : ""}: {leadingLabels}
+                </span>
+              </p>
+            )}
+            {leadingOpts.length > 0 && status === "paused" && (
+              <p className="poll-highlight-line mt-5 mb-8 flex items-center gap-1.5 flex-wrap font-semibold">
+                <span className="text-base">⏸</span>
+                <span className="poll-paused-gradient font-bold">
+                  Leading (paused): {leadingLabels}
+                </span>
+              </p>
+            )}
+            <div className="space-y-2">
+            {(poll.options || []).map((o, i) => {
+              const count = o.votes?.length || 0;
+              const isLeading = count === maxVotes && totalVotes > 0;
+              const eligiblePct = pctOfEligible(count, eligible);
+              const shareOfCast = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+              const barPct = eligiblePct != null ? eligiblePct : shareOfCast;
+              const barColor =
+                isLeading && status === "completed"
+                  ? "bg-amber-500"
+                  : isLeading
+                  ? "bg-emerald-500"
+                  : "bg-slate-600";
+
+              return (
+                <div
+                  key={i}
+                  className={`rounded-xl overflow-hidden ${pollOptionGlowClass(i)}`}
+                >
+                  <div className="px-3 py-2.5 bg-slate-950/30">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={`text-sm font-medium leading-snug min-w-0 ${isLeading ? "text-emerald-300" : "text-slate-200"}`}>
+                        {isLeading && status === "open" && "⚡ "}
+                        {isLeading && status === "completed" && "🏆 "}
+                        {o.label}
+                      </span>
+                      <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap">
+                        {count} vote{count !== 1 ? "s" : ""} · {barPct}%
+                      </span>
+                    </div>
+                    <div className="mt-2 h-2 bg-slate-800/80 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                        style={{ width: `${barPct}%`, minWidth: barPct > 0 ? "0.25rem" : 0 }}
+                      />
+                    </div>
+                  </div>
+                </div>
               );
             })}
-            {poll.options?.length > 6 && (
-              <span className="text-xs text-slate-500">+{poll.options.length - 6} more</span>
-            )}
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1.5">
-            {eligible > 0 ? (
-              <>
-                <span className="text-slate-400">{uniqueResponded}</span> / {eligible} members responded
-                <span className="mx-1.5 text-slate-600">·</span>
-                {totalVotes} vote{totalVotes !== 1 ? "s" : ""} recorded
-              </>
-            ) : (
-              <>{totalVotes} total vote{totalVotes !== 1 ? "s" : ""}</>
-            )}
-          </p>
+
+          {eligible <= 0 && totalVotes > 0 && (
+            <p className="text-xs text-slate-500 mt-2">
+              {totalVotes} total vote{totalVotes !== 1 ? "s" : ""} recorded
+            </p>
+          )}
           {poll.pollType === "trip" && poll.tripId && (
             <p className="text-[10px] text-slate-500 mt-1">
               Trip: <span className="text-slate-400">{trips.find((t) => String(t._id) === String(poll.tripId))?.tripName || "—"}</span>

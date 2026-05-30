@@ -1,9 +1,18 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useAppSelector } from "../hooks";
 import { getAdminTrips, getUserTrips } from "../services/trips";
 import { ROLES } from "../constants/enum";
+import { tripPhase } from "../components/trip/tripUtils";
 
 const STORAGE_KEY = "syncetra_selected_trip";
+
+function pickDefaultTripId(trips) {
+  if (!trips.length) return "";
+  const active = trips.find((t) => tripPhase(t) === "active");
+  if (active) return active._id;
+  const idx = Math.floor(Math.random() * trips.length);
+  return trips[idx]._id;
+}
 
 const TripContext = createContext(null);
 
@@ -16,6 +25,7 @@ export function TripProvider({ children }) {
     () => localStorage.getItem(STORAGE_KEY) || ""
   );
   const [loading, setLoading] = useState(false);
+  const manualTripPickRef = useRef(false);
 
   const loadTrips = useCallback(async () => {
     if (!isLogin) return;
@@ -37,10 +47,22 @@ export function TripProvider({ children }) {
       }));
       setTrips(normalized);
       setSelectedTripIdState((current) => {
-        if (normalized.length && !normalized.find((t) => t._id === current)) {
-          const first = normalized[0]._id;
-          localStorage.setItem(STORAGE_KEY, first);
-          return first;
+        if (!normalized.length) return "";
+
+        const valid = normalized.find((t) => String(t._id) === String(current));
+
+        if (!manualTripPickRef.current) {
+          const id = pickDefaultTripId(normalized);
+          if (String(id) !== String(current)) {
+            localStorage.setItem(STORAGE_KEY, id);
+          }
+          return id;
+        }
+
+        if (!valid) {
+          const id = pickDefaultTripId(normalized);
+          localStorage.setItem(STORAGE_KEY, id);
+          return id;
         }
         return current;
       });
@@ -54,6 +76,7 @@ export function TripProvider({ children }) {
   }, [loadTrips]);
 
   const setSelectedTripId = (id) => {
+    manualTripPickRef.current = true;
     setSelectedTripIdState(id);
     localStorage.setItem(STORAGE_KEY, id);
   };

@@ -1,12 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
+import { useAppSelector } from "../../hooks";
+import { ROLES } from "../../constants/enum";
 import { getTasks, addTask, deleteTask } from "../../services/trips";
 import { getAdminGroups, getGroupById } from "../../services/groups";
 import { getSocket } from "../../services/socketService";
 import { formatDateTimeDisplay } from "../../utils/dateTimeUtils";
 import SyncetraLoader from "../ui/SyncetraLoader";
+import TaskEditModal from "./TaskEditModal";
+import AssignedMemberChips from "./AssignedMemberChips";
 
 const IconClose   = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>;
 const IconTrash   = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>;
+const IconEdit    = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>;
 const IconPlus    = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>;
 const IconSpinner = () => <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="60" strokeDashoffset="20" strokeLinecap="round"/></svg>;
 
@@ -99,7 +104,7 @@ function AckTable({ acknowledgments }) {
 }
 
 // ─── TaskRow ────────────────────────────────────────────────────────────────
-function TaskRow({ task, members, onDelete }) {
+function TaskRow({ task, members, isSuperAdmin, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -115,16 +120,7 @@ function TaskRow({ task, members, onDelete }) {
           {task.description && (
             <p className="text-xs text-slate-500 mt-0.5 truncate">{task.description}</p>
           )}
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {(task.assignedTo || []).map((u) => {
-              const name = typeof u === "object" ? (u.name || u.email) : (members.find((m) => String(m.id || m._id) === String(u))?.name || String(u));
-              return (
-                <span key={String(u._id || u)} className="text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded-full">
-                  {name}
-                </span>
-              );
-            })}
-          </div>
+          <AssignedMemberChips task={task} members={members} />
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button
@@ -133,6 +129,15 @@ function TaskRow({ task, members, onDelete }) {
           >
             {expanded ? "Hide" : "Members"}
           </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => onEdit(task)}
+              className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
+              title="Edit task"
+            >
+              <IconEdit />
+            </button>
+          )}
           <button
             onClick={() => onDelete(task._id)}
             className="p-1.5 rounded-lg text-red-400 hover:bg-red-900/30 transition-colors"
@@ -153,11 +158,14 @@ function TaskRow({ task, members, onDelete }) {
 // ─── AdminTaskManager ───────────────────────────────────────────────────────
 export default function AdminTaskManager({ trip, onClose }) {
   const tripId = trip._id;
+  const { userInfo } = useAppSelector((s) => s.user);
+  const isSuperAdmin = userInfo?.user?.role === ROLES.SUPER_ADMIN;
   const [tasks,   setTasks]   = useState([]);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState("");
+  const [editTask, setEditTask] = useState(null);
 
   const [form, setForm] = useState({
     title: "",
@@ -328,6 +336,8 @@ export default function AdminTaskManager({ trip, onClose }) {
                     key={task._id}
                     task={task}
                     members={members}
+                    isSuperAdmin={isSuperAdmin}
+                    onEdit={setEditTask}
                     onDelete={handleDelete}
                   />
                 ))}
@@ -336,6 +346,16 @@ export default function AdminTaskManager({ trip, onClose }) {
           </div>
         </div>
       </div>
+
+      {editTask && (
+        <TaskEditModal
+          task={editTask}
+          tripId={tripId}
+          members={members}
+          onClose={() => setEditTask(null)}
+          onSaved={load}
+        />
+      )}
     </div>
   );
 }
