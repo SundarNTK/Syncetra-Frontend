@@ -17,7 +17,7 @@ export default function SelectedTripCard({
 
   return (
     <div
-      className="rounded-2xl border overflow-hidden animate-fade-in"
+      className="rounded-2xl border animate-fade-in"
       style={{
         background: "linear-gradient(135deg,rgba(15,23,42,0.95) 0%,rgba(30,41,59,0.9) 100%)",
         border: "1px solid rgba(99,102,241,0.25)",
@@ -25,24 +25,30 @@ export default function SelectedTripCard({
       }}
     >
       <div
-        className="flex flex-wrap items-center gap-3 px-4 sm:px-5 py-3 border-b border-slate-800/80"
+        className="border-b border-slate-800/80"
         style={{ background: "linear-gradient(90deg,rgba(99,102,241,0.08) 0%,transparent 100%)" }}
       >
-        <span className="w-2 h-2 rounded-full bg-indigo-400 animate-live-dot shrink-0" />
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest shrink-0">
-          Selected Trip
-        </span>
-        <DashboardTripPicker />
-        <Link
-          to={tripsLink}
-          className="text-xs text-indigo-400 hover:text-indigo-300 shrink-0 transition-colors ml-auto"
-        >
-          {tripsLinkLabel}
-        </Link>
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-5 pt-3 pb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-live-dot shrink-0" />
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Selected Trip
+            </span>
+          </div>
+          <Link
+            to={tripsLink}
+            className="text-xs text-indigo-400 hover:text-indigo-300 shrink-0 transition-colors"
+          >
+            {tripsLinkLabel}
+          </Link>
+        </div>
+        <div className="px-4 sm:px-5 pb-3 relative z-20">
+          <DashboardTripPicker />
+        </div>
       </div>
 
       {selectedTrip ? (
-        <div className="flex flex-col lg:flex-row">
+        <div className="flex flex-col lg:flex-row overflow-hidden rounded-b-2xl">
           <div className="lg:w-48 xl:w-52 shrink-0 relative overflow-hidden">
             {selectedTrip.coverImage ? (
               <img
