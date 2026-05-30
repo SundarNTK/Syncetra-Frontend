@@ -5,17 +5,17 @@ import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
 
 // ─── Trip type metadata ───────────────────────────────────────────────────────
 const TRIP_TYPES = [
-  { value: "group",     label: "Group Tour",  icon: "👥" },
-  { value: "adventure", label: "Adventure",   icon: "🏔️" },
-  { value: "family",    label: "Family",      icon: "👨‍👩‍👧‍👦" },
-  { value: "solo",      label: "Solo",        icon: "🧳" },
-  { value: "beach",     label: "Beach",       icon: "🏖️" },
-  { value: "mountain",  label: "Mountain",    icon: "⛰️" },
-  { value: "road_trip", label: "Road Trip",   icon: "🚗" },
-  { value: "business",  label: "Business",    icon: "💼" },
-  { value: "cultural",  label: "Cultural",    icon: "🏛️" },
-  { value: "religious", label: "Religious",   icon: "🛕" },
-  { value: "other",     label: "Other",       icon: "✈️" },
+  { value: "group",     label: "Group Tour",  icon: "👥", glow: "59,130,246" },
+  { value: "adventure", label: "Adventure",   icon: "🏔️", glow: "249,115,22" },
+  { value: "family",    label: "Family",      icon: "👨‍👩‍👧‍👦", glow: "16,185,129" },
+  { value: "solo",      label: "Solo",        icon: "🧳", glow: "139,92,246" },
+  { value: "beach",     label: "Beach",       icon: "🏖️", glow: "6,182,212" },
+  { value: "mountain",  label: "Mountain",    icon: "⛰️", glow: "100,116,139" },
+  { value: "road_trip", label: "Road Trip",   icon: "🚗", glow: "234,179,8" },
+  { value: "business",  label: "Business",    icon: "💼", glow: "99,102,241" },
+  { value: "cultural",  label: "Cultural",    icon: "🏛️", glow: "236,72,153" },
+  { value: "religious", label: "Religious",   icon: "🛕", glow: "167,139,250" },
+  { value: "other",     label: "Other",       icon: "✈️", glow: "16,185,129" },
 ];
 const tripTypeMap = Object.fromEntries(TRIP_TYPES.map((t) => [t.value, t]));
 
@@ -25,6 +25,45 @@ const STATUS_BADGE = {
   completed: "bg-slate-600/20 text-slate-300 border border-slate-600/40",
   cancelled: "bg-red-600/20 text-red-400 border border-red-700/40",
 };
+
+const STATUS_COVER_GLOW = {
+  planned:   "trip-cover-glow--planned",
+  active:    "trip-cover-glow--active",
+  completed: "trip-cover-glow--completed",
+  cancelled: "trip-cover-glow--cancelled",
+};
+
+const COUNTDOWN_THEME = {
+  planned:   { glow: "59,130,246", label: "Starts in", textCls: "text-blue-300" },
+  active:    { glow: "16,185,129", label: "Starts in", textCls: "text-emerald-300" },
+  completed: { glow: "100,116,139", label: "Completed", textCls: "text-slate-400" },
+  cancelled: { glow: "239,68,68", label: "Cancelled", textCls: "text-red-400" },
+};
+
+function getCountdownTheme(trip) {
+  return COUNTDOWN_THEME[trip?.status] || COUNTDOWN_THEME.planned;
+}
+
+const KEYFRAMES = `
+@keyframes digitDrop {
+  0%   { transform: translateY(-40%) scale(0.8); opacity: 0; }
+  100% { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+@keyframes floatBob {
+  0%,100% { transform: translateY(0px); }
+  50%     { transform: translateY(-8px); }
+}
+@keyframes gradShift {
+  0%,100% { background-position: 0% 50%; }
+  50%     { background-position: 100% 50%; }
+}
+@keyframes shimmerText {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.digit-drop { animation: digitDrop 0.22s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+.float-bob  { animation: floatBob 3.5s ease-in-out infinite; }
+`;
 
 const fmtDate = (iso) => (iso ? formatDateTimeDisplay(iso).split(",")[0] : null);
 const pad2 = (n) => String(Math.max(0, n)).padStart(2, "0");
@@ -71,13 +110,39 @@ const IconEye   = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24"
 const IconClose = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>;
 
 // ─── Compact countdown tile ───────────────────────────────────────────────────
-function CountdownTile({ value, label, large }) {
+function CountdownTile({ value, label, glow, size = "sm" }) {
+  const isLg = size === "lg";
   return (
-    <div className={`flex flex-col items-center justify-center rounded-xl bg-emerald-900/20 border border-emerald-700/30 ${large ? "w-16 h-16 sm:w-20 sm:h-20" : "w-12 h-12"}`}>
-      <span key={value} className={`font-bold tabular-nums leading-none text-emerald-400 ${large ? "text-2xl sm:text-3xl" : "text-lg"}`}>
+    <div
+      className={`flex flex-col items-center justify-center rounded-xl ${isLg ? "w-20 h-20 sm:w-24 sm:h-24" : "w-12 h-12"} relative overflow-hidden`}
+      style={{
+        background: `rgba(${glow}, 0.07)`,
+        border: `1px solid rgba(${glow}, 0.35)`,
+        boxShadow: `0 0 ${isLg ? 20 : 10}px rgba(${glow}, 0.25), inset 0 0 ${isLg ? 20 : 8}px rgba(${glow}, 0.05)`,
+      }}
+    >
+      <div
+        className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{
+          background: `linear-gradient(135deg, transparent 40%, rgba(${glow}, 0.3) 50%, transparent 60%)`,
+          backgroundSize: "200% 200%",
+          animation: "gradShift 3s ease infinite",
+        }}
+      />
+      <span
+        key={value}
+        className={`digit-drop font-bold tabular-nums leading-none ${isLg ? "text-3xl sm:text-4xl" : "text-lg"}`}
+        style={{
+          color: `rgb(${glow})`,
+          textShadow: `0 0 12px rgba(${glow}, 0.6)`,
+        }}
+      >
         {pad2(value)}
       </span>
-      <span className={`uppercase tracking-widest text-emerald-600/70 mt-0.5 ${large ? "text-[10px] sm:text-[11px]" : "text-[9px]"}`}>
+      <span
+        className={`${isLg ? "text-[11px] mt-1" : "text-[9px] mt-0.5"} uppercase tracking-widest font-medium`}
+        style={{ color: `rgba(${glow}, 0.7)` }}
+      >
         {label}
       </span>
     </div>
@@ -104,24 +169,23 @@ function TripStatusText({ type, compact = false }) {
     fontWeight: 700,
   };
 
+  if (compact) {
+    return (
+      <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ border, background: bg }}>
+        <span className="text-sm leading-none">{icon}</span>
+        <span style={{ ...shimmer, fontSize: "0.72rem" }}>{text}</span>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <style>{`@keyframes shimmerText{0%{background-position:200% center}100%{background-position:-200% center}}`}</style>
-      {compact ? (
-        <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ border, background: bg }}>
-          <span className="text-sm leading-none">{icon}</span>
-          <span style={{ ...shimmer, fontSize: "0.72rem" }}>{text}</span>
-        </div>
-      ) : (
-        <div className="rounded-2xl p-5 flex items-center gap-4" style={{ border, background: `linear-gradient(135deg,${bg} 0%,rgba(15,23,42,0.9) 100%)` }}>
-          <span className="text-3xl leading-none">{icon}</span>
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5 font-semibold">Trip Status</p>
-            <span style={{ ...shimmer, fontSize: "1.4rem" }}>{text}</span>
-          </div>
-        </div>
-      )}
-    </>
+    <div className="rounded-2xl p-5 flex items-center gap-4" style={{ border, background: `linear-gradient(135deg,${bg} 0%,rgba(15,23,42,0.9) 100%)` }}>
+      <span className="text-3xl leading-none">{icon}</span>
+      <div>
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5 font-semibold">Trip Status</p>
+        <span style={{ ...shimmer, fontSize: "1.4rem" }}>{text}</span>
+      </div>
+    </div>
   );
 }
 
@@ -129,6 +193,7 @@ function TripStatusText({ type, compact = false }) {
 function TripCountdownStrip({ trip }) {
   const { phase, targetDate } = getTripPhase(trip);
   const time = useCountdown(phase === "upcoming" ? targetDate : null);
+  const theme = getCountdownTheme(trip);
 
   if (phase === "cancelled" || phase === "no-dates") return null;
   if (phase === "completed") return <TripStatusText type="completed" compact />;
@@ -136,15 +201,55 @@ function TripCountdownStrip({ trip }) {
   if (!time) return null;
 
   return (
-    <div className="mt-2.5">
-      <p className="text-[10px] uppercase tracking-widest font-medium mb-1.5 text-emerald-500">
-        Starts in
+    <div className="mt-2 sm:mt-2.5">
+      <p className={`text-[10px] uppercase tracking-widest font-medium mb-1 sm:mb-1.5 ${theme.textCls}`}>
+        {theme.label}
       </p>
-      <div className="flex items-center gap-1.5">
-        <CountdownTile value={time.days}    label="D" />
-        <CountdownTile value={time.hours}   label="H" />
-        <CountdownTile value={time.minutes} label="M" />
-        <CountdownTile value={time.seconds} label="S" />
+      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+        <CountdownTile value={time.days}    label="D" glow={theme.glow} size="sm" />
+        <CountdownTile value={time.hours}   label="H" glow={theme.glow} size="sm" />
+        <CountdownTile value={time.minutes} label="M" glow={theme.glow} size="sm" />
+        <CountdownTile value={time.seconds} label="S" glow={theme.glow} size="sm" />
+      </div>
+    </div>
+  );
+}
+
+function TripCountdownFull({ trip }) {
+  const { phase, targetDate } = getTripPhase(trip);
+  const time = useCountdown(phase === "upcoming" ? targetDate : null);
+  const theme = getCountdownTheme(trip);
+
+  if (phase === "cancelled" || phase === "no-dates") return null;
+  if (phase === "completed") return <TripStatusText type="completed" compact={false} />;
+  if (phase === "begun")     return <TripStatusText type="begun"     compact={false} />;
+  if (!time) return null;
+
+  const glow = theme.glow;
+  return (
+    <div
+      className="rounded-2xl p-5 relative overflow-hidden"
+      style={{
+        background: `linear-gradient(135deg, rgba(${glow}, 0.12) 0%, rgba(15,23,42,0.9) 60%, rgba(${glow}, 0.06) 100%)`,
+        border: `1px solid rgba(${glow}, 0.25)`,
+        boxShadow: `0 0 30px rgba(${glow}, 0.1)`,
+        backgroundSize: "300% 300%",
+        animation: "gradShift 6s ease infinite",
+      }}
+    >
+      <p className={`text-xs uppercase tracking-widest font-semibold mb-4 flex items-center gap-2 ${theme.textCls}`}>
+        <span className="animate-pulse">⏱</span>
+        {theme.label}
+      </p>
+      <div className="flex items-center gap-3 flex-wrap">
+        {[
+          { value: time.days,    label: "Days" },
+          { value: time.hours,   label: "Hours" },
+          { value: time.minutes, label: "Minutes" },
+          { value: time.seconds, label: "Seconds" },
+        ].map(({ value, label }) => (
+          <CountdownTile key={label} value={value} label={label} glow={glow} size="lg" />
+        ))}
       </div>
     </div>
   );
@@ -152,9 +257,7 @@ function TripCountdownStrip({ trip }) {
 
 // ─── TripViewModal ─────────────────────────────────────────────────────────────
 function TripViewModal({ trip, onClose }) {
-  const tripType = tripTypeMap[trip.tripType] || TRIP_TYPES[10];
-  const { phase, targetDate } = getTripPhase(trip);
-  const time = useCountdown(phase === "upcoming" ? targetDate : null);
+  const tripType = tripTypeMap[trip.tripType] || tripTypeMap.group;
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -214,23 +317,7 @@ function TripViewModal({ trip, onClose }) {
             <p className="text-slate-300 text-sm leading-relaxed">{trip.description}</p>
           )}
 
-          {/* Status / countdown block */}
-          {phase === "completed" && <TripStatusText type="completed" compact={false} />}
-          {phase === "begun"     && <TripStatusText type="begun"     compact={false} />}
-          {phase === "upcoming" && time && (
-            <div className="rounded-2xl p-4 bg-emerald-900/10 border border-emerald-700/25">
-              <p className="text-xs uppercase tracking-widest font-semibold mb-3 text-emerald-400 flex items-center gap-2">
-                <span className="animate-pulse">⏱</span>
-                Starts in
-              </p>
-              <div className="flex items-center gap-3 flex-wrap">
-                <CountdownTile value={time.days}    label="Days"  large />
-                <CountdownTile value={time.hours}   label="Hours" large />
-                <CountdownTile value={time.minutes} label="Mins"  large />
-                <CountdownTile value={time.seconds} label="Secs"  large />
-              </div>
-            </div>
-          )}
+          <TripCountdownFull trip={trip} />
 
           {/* Info tiles */}
           <div className="grid grid-cols-2 gap-3">
@@ -270,54 +357,69 @@ function TripViewModal({ trip, onClose }) {
 
 // ─── TripCard ─────────────────────────────────────────────────────────────────
 function TripCard({ trip, onView }) {
-  const tripType = tripTypeMap[trip.tripType] || TRIP_TYPES[10];
+  const tripType = tripTypeMap[trip.tripType] || tripTypeMap.group;
+  const coverGlowClass = STATUS_COVER_GLOW[trip.status] || STATUS_COVER_GLOW.planned;
+  const actionBtn =
+    "flex items-center justify-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium transition-colors w-full sm:w-auto";
 
   return (
-    <MasterListItem>
-      {/* Cover image */}
-      <div className="w-32 sm:w-40 shrink-0 relative self-stretch min-h-[7.5rem] bg-slate-950 border-r border-slate-800/60 overflow-hidden">
-        {trip.coverImage ? (
-          <img
-            src={trip.coverImage}
-            alt={trip.tripName}
-            className="absolute inset-0 w-full h-full object-contain p-1.5"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-900 flex flex-col items-center justify-center gap-1">
-            <span className="text-3xl opacity-40">{tripType.icon}</span>
-          </div>
-        )}
-        {trip.coverImage && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1">
-            <p className="text-[10px] text-white/90 truncate">{trip.tripName}</p>
-          </div>
-        )}
+    <MasterListItem className="master-list-item trip-card flex-col sm:flex-row">
+      {/* Cover — full-width banner on mobile; left column with curved glow on sm+ */}
+      <div className="trip-cover-column relative shrink-0 w-full h-40 sm:h-auto sm:w-36 md:w-40 sm:min-h-[7.5rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60 p-1 sm:p-1.5">
+        <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
+          <span className="trip-cover-glow-shimmer" aria-hidden="true" />
+          {trip.coverImage ? (
+            <img
+              src={trip.coverImage}
+              alt={trip.tripName}
+              className="absolute inset-0 w-full h-full object-cover sm:object-contain sm:p-1"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1"
+              style={{
+                background: `linear-gradient(135deg, rgba(${tripType.glow},0.15) 0%, #1e293b 100%)`,
+              }}
+            >
+              <span className="text-3xl opacity-50">{tripType.icon}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Info + actions */}
-      <div className="flex-1 p-4 flex flex-col sm:flex-row justify-between items-start gap-3 min-w-0">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h3 className="font-semibold text-base sm:text-lg truncate">{trip.tripName}</h3>
-            <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${STATUS_BADGE[trip.status] || STATUS_BADGE.planned}`}>
+      {/* Info + actions — stacked on mobile like admin */}
+      <div className="flex-1 flex flex-col sm:flex-row min-w-0 w-full">
+        <div className="flex-1 p-3 sm:p-4 min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
+            <h3 className="font-semibold text-base sm:text-lg leading-snug break-words w-full sm:w-auto sm:truncate sm:flex-1 min-w-0">
+              {trip.tripName}
+            </h3>
+            <span
+              className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full capitalize shrink-0 ${STATUS_BADGE[trip.status] || STATUS_BADGE.planned}`}
+            >
               {trip.status}
             </span>
-            <span className="text-[10px] text-slate-500 shrink-0">{tripType.icon} {tripType.label}</span>
+            <span className="text-[10px] text-slate-500 shrink-0">
+              {tripType.icon} {tripType.label}
+            </span>
           </div>
-          <p className="text-sm text-slate-400 mb-1">{trip.description || "No description"}</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-sm text-slate-400 mb-1.5 line-clamp-2 sm:line-clamp-none leading-relaxed">
+            {trip.description || "No description"}
+          </p>
+          <p className="text-xs text-slate-500 leading-relaxed">
             Budget ₹{(trip.budget || 0).toLocaleString()}
             {trip.startDate && <> · {fmtDate(trip.startDate)}</>}
-            {trip.endDate   && <> → {fmtDate(trip.endDate)}</>}
+            {trip.endDate && <> → {fmtDate(trip.endDate)}</>}
           </p>
+
           <TripCountdownStrip trip={trip} />
         </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-col gap-1.5 shrink-0 self-start">
+        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-1.5 p-3 pt-0 sm:p-4 sm:pt-4 sm:pl-2 sm:shrink-0 sm:self-start border-t sm:border-t-0 sm:border-l border-slate-700/40">
           <button
+            type="button"
             onClick={() => onView(trip)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors"
+            className={`${actionBtn} col-span-2 sm:col-span-1 bg-slate-700 hover:bg-slate-600 text-slate-300`}
           >
             <IconEye /> View
           </button>
@@ -331,6 +433,16 @@ function TripCard({ trip, onView }) {
 export default function UserTrips() {
   const { trips } = useTrip();
   const [viewTrip, setViewTrip] = useState(null);
+
+  useEffect(() => {
+    const id = "user-trip-keyframes";
+    if (!document.getElementById(id)) {
+      const s = document.createElement("style");
+      s.id = id;
+      s.textContent = KEYFRAMES;
+      document.head.appendChild(s);
+    }
+  }, []);
 
   return (
     <MasterPageShell title="My Trips" description="Trips you are assigned to">

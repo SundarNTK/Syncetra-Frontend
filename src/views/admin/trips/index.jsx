@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useTrip } from "../../../context/TripContext";
-import { createTrip, deleteTrip, updateTrip } from "../../../services/trips";
+import { createTrip, deleteTrip, getTripMembers, updateTrip } from "../../../services/trips";
 import DatePickerField from "../../../components/ui/DatePickerField";
 import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
 import MasterPageShell, {
@@ -86,6 +86,30 @@ const EMPTY_FORM = {
   tripType: "group",
   location: null,
 };
+
+function useTripMemberCount(tripId, fallbackCount = 0) {
+  const [memberCount, setMemberCount] = useState(fallbackCount);
+
+  useEffect(() => {
+    if (!tripId) {
+      setMemberCount(fallbackCount);
+      return undefined;
+    }
+    let ignore = false;
+    getTripMembers(tripId)
+      .then((res) => {
+        if (!ignore) setMemberCount((res?.data || []).length);
+      })
+      .catch(() => {
+        if (!ignore) setMemberCount(fallbackCount);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [tripId, fallbackCount]);
+
+  return memberCount;
+}
 
 // ─── Global keyframes (injected once) ────────────────────────────────────────
 const KEYFRAMES = `
@@ -585,9 +609,11 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
     }
     try {
       const loc = form.location;
+      const budget = Number(form.budget) || 0;
       await onSubmit({
         ...form,
-        budget: Number(form.budget) || 0,
+        budget,
+        collectedAmount: budget,
         startDate: form.startDate
           ? new Date(`${form.startDate}T00:00:00`).toISOString()
           : undefined,
@@ -627,7 +653,7 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
         rows={2}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+      <div className={`grid grid-cols-1 gap-3 items-center ${isEdit ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
         <select
           value={form.tripType}
           onChange={f("tripType")}
@@ -647,6 +673,17 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
           onChange={f("budget")}
           className={inputCls}
         />
+        {isEdit && (
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Collected</label>
+            <div
+              className={`${inputCls} flex items-center bg-slate-900 text-slate-300`}
+              aria-readonly="true"
+            >
+              ₹{(Number(form.budget) || 0).toLocaleString()}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1184,6 +1221,8 @@ function TripViewModal({ trip, onClose, onEdit }) {
   }, [onClose]);
 
   const tripType = tripTypeMap[trip.tripType] || tripTypeMap.group;
+  const memberCount = useTripMemberCount(trip._id, (trip.members || []).length);
+  const collectedAmount = Number(trip.budget) || Number(trip.collectedAmount) || 0;
 
   return (
     <div
@@ -1264,7 +1303,7 @@ function TripViewModal({ trip, onClose, onEdit }) {
             />
             <InfoTile
               label="Collected"
-              value={`₹${(trip.collectedAmount || 0).toLocaleString()}`}
+              value={`₹${collectedAmount.toLocaleString()}`}
             />
             <InfoTile
               label="Start date"
@@ -1273,7 +1312,7 @@ function TripViewModal({ trip, onClose, onEdit }) {
             <InfoTile label="End date" value={fmtDate(trip.endDate) || "—"} />
             <InfoTile
               label="Members"
-              value={`${(trip.members || []).length} member${(trip.members || []).length !== 1 ? "s" : ""}`}
+              value={`${memberCount} member${memberCount !== 1 ? "s" : ""}`}
             />
             <InfoTile
               label="Status"
@@ -1311,6 +1350,8 @@ function TripEditModal({ trip, onClose, onSaved, saving }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const memberCount = useTripMemberCount(trip._id, (trip.members || []).length);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8"
@@ -1328,6 +1369,12 @@ function TripEditModal({ trip, onClose, onSaved, saving }) {
           >
             <IconClose />
           </button>
+        </div>
+        <div className="px-5 pt-4 shrink-0">
+          <InfoTile
+            label="Members"
+            value={`${memberCount} member${memberCount !== 1 ? "s" : ""}`}
+          />
         </div>
         <div className="p-5 overflow-y-auto min-h-0 flex-1">
           <TripForm

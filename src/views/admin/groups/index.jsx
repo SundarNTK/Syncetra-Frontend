@@ -29,17 +29,15 @@ function GroupCoverThumb({ trip }) {
     : "";
 
   return (
-    <div className="trip-cover-column relative shrink-0 w-28 sm:w-36 md:w-40 self-stretch min-h-[7.5rem] bg-slate-950 border-r border-slate-800/60 p-1 sm:p-1.5">
+    <div className="trip-cover-column relative shrink-0 w-full h-40 sm:h-auto sm:w-36 md:w-40 sm:min-h-[7.5rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60 p-1 sm:p-1.5">
       <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
+        <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip?.coverImage ? (
-          <>
-            <span className="trip-cover-glow-shimmer" aria-hidden="true" />
-            <img
-              src={trip.coverImage}
-              alt={trip.tripName}
-              className="absolute inset-0 w-full h-full object-contain p-1"
-            />
-          </>
+          <img
+            src={trip.coverImage}
+            alt={trip.tripName}
+            className="absolute inset-0 w-full h-full object-cover sm:object-contain sm:p-1"
+          />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-slate-700 to-slate-900">
             <span className="text-3xl opacity-30">✈️</span>
@@ -54,6 +52,9 @@ function GroupCoverThumb({ trip }) {
     </div>
   );
 }
+
+const actionBtn =
+  "flex items-center justify-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium transition-colors w-full sm:w-auto";
 
 export default function AdminGroups() {
   const [groups, setGroups] = useState([]);
@@ -116,9 +117,11 @@ export default function AdminGroups() {
               <MasterListItem key={g._id} className="master-list-item trip-card flex-col sm:flex-row">
                 <GroupCoverThumb trip={trip} />
 
-                <div className="flex-1 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start gap-3 min-w-0 w-full">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base sm:text-lg truncate mb-2">{g.groupName}</h3>
+                <div className="flex-1 flex flex-col sm:flex-row min-w-0 w-full">
+                  <div className="flex-1 p-3 sm:p-4 min-w-0">
+                    <h3 className="font-semibold text-base sm:text-lg leading-snug break-words w-full sm:w-auto sm:truncate sm:flex-1 min-w-0 mb-2">
+                      {g.groupName}
+                    </h3>
 
                     <div className="flex flex-wrap items-center gap-2">
                       <span
@@ -140,10 +143,10 @@ export default function AdminGroups() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5 shrink-0 self-start w-full sm:w-auto">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-col gap-1.5 p-3 pt-0 sm:p-4 sm:pt-4 sm:pl-2 sm:shrink-0 sm:self-start border-t sm:border-t-0 sm:border-l border-slate-700/40">
                     <Link
                       to={`/admin/groups/${g._id}`}
-                      className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700/30 hover:bg-emerald-700/50 text-emerald-400 text-xs font-medium transition-colors border border-emerald-700/40"
+                      className={`${actionBtn} bg-emerald-700/30 hover:bg-emerald-700/50 text-emerald-400 border border-emerald-700/40`}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -151,8 +154,9 @@ export default function AdminGroups() {
                       View Members
                     </Link>
                     <button
+                      type="button"
                       onClick={() => handleDelete(g._id)}
-                      className="text-xs text-red-400 px-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-900/50 transition-colors"
+                      className={`${actionBtn} bg-red-900/30 hover:bg-red-900/50 text-red-400`}
                     >
                       Delete
                     </button>

@@ -15,6 +15,26 @@ const STATUS_BADGE = {
   cancelled: "bg-red-600/20 text-red-400 border border-red-700/40",
 };
 
+const STATUS_COVER_GLOW = {
+  planned:   "trip-cover-glow--planned",
+  active:    "trip-cover-glow--active",
+  completed: "trip-cover-glow--completed",
+  cancelled: "trip-cover-glow--cancelled",
+};
+
+const TRIP_LINK_BADGE = {
+  planned:   "bg-blue-600/20 text-blue-400 border-blue-700/40 shadow-[0_0_14px_rgba(56,189,248,0.28)]",
+  active:    "bg-emerald-600/20 text-emerald-400 border-emerald-700/40 shadow-[0_0_14px_rgba(52,211,153,0.32)]",
+  completed: "bg-slate-600/20 text-slate-300 border-slate-600/40 shadow-[0_0_12px_rgba(148,163,184,0.2)]",
+  cancelled: "bg-red-600/20 text-red-400 border-red-700/40 shadow-[0_0_14px_rgba(239,68,68,0.28)]",
+};
+
+const MEMBER_BADGE =
+  "bg-violet-600/20 text-violet-300 border-violet-700/40 shadow-[0_0_14px_rgba(139,92,246,0.28)]";
+
+const actionBtn =
+  "flex items-center justify-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium transition-colors w-full sm:w-auto";
+
 const IconEye   = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>;
 const IconClose = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>;
 
@@ -157,55 +177,79 @@ function GroupViewModal({ group, trip, onClose }) {
   );
 }
 
-// ─── GroupCard ─────────────────────────────────────────────────────────────────
-function GroupCard({ group, trip, onView }) {
+// ─── GroupCoverThumb ───────────────────────────────────────────────────────────
+function GroupCoverThumb({ trip }) {
+  const coverGlowClass = trip
+    ? STATUS_COVER_GLOW[trip.status] || STATUS_COVER_GLOW.planned
+    : "";
+
   return (
-    <MasterListItem>
-      {/* Trip cover image */}
-      <div className="w-28 sm:w-36 shrink-0 relative">
+    <div className="trip-cover-column relative shrink-0 w-full h-40 sm:h-auto sm:w-36 md:w-40 sm:min-h-[7.5rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60 p-1 sm:p-1.5">
+      <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
+        <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip?.coverImage ? (
           <img
             src={trip.coverImage}
             alt={trip.tripName}
-            className="w-full h-full object-cover min-h-[6rem]"
+            className="absolute inset-0 w-full h-full object-cover sm:object-contain sm:p-1"
           />
         ) : (
-          <div className="w-full h-full min-h-[6rem] bg-gradient-to-br from-slate-700 to-slate-900 flex flex-col items-center justify-center gap-1">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-slate-700 to-slate-900">
             <span className="text-3xl opacity-30">✈️</span>
             {trip && (
-              <span className="text-[10px] text-slate-500 px-1 text-center leading-tight">
+              <span className="text-[10px] text-slate-500 px-1 text-center leading-tight line-clamp-2">
                 {trip.tripName}
               </span>
             )}
           </div>
         )}
-        {trip?.coverImage && (
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1">
-            <p className="text-[10px] text-white/90 truncate">{trip.tripName}</p>
-          </div>
-        )}
       </div>
+    </div>
+  );
+}
 
-      {/* Group info + actions */}
-      <div className="flex-1 p-4 flex flex-col sm:flex-row justify-between items-start gap-3 min-w-0">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-base sm:text-lg truncate">{group.groupName}</h3>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {group.members?.length || 0} member{group.members?.length !== 1 ? "s" : ""}
-          </p>
-          {trip ? (
-            <p className="text-xs text-emerald-400/80 mt-1 flex items-center gap-1">
-              <span>✈️</span> {trip.tripName}
-            </p>
-          ) : (
-            <p className="text-xs text-slate-600 mt-1">No trip linked</p>
-          )}
+// ─── GroupCard ─────────────────────────────────────────────────────────────────
+function GroupCard({ group, trip, onView }) {
+  const memberCount = group.members?.length || 0;
+  const tripBadge = trip
+    ? TRIP_LINK_BADGE[trip.status] || TRIP_LINK_BADGE.planned
+    : null;
+
+  return (
+    <MasterListItem className="master-list-item trip-card flex-col sm:flex-row">
+      <GroupCoverThumb trip={trip} />
+
+      <div className="flex-1 flex flex-col sm:flex-row min-w-0 w-full">
+        <div className="flex-1 p-3 sm:p-4 min-w-0">
+          <h3 className="font-semibold text-base sm:text-lg leading-snug break-words w-full sm:w-auto sm:truncate sm:flex-1 min-w-0 mb-2">
+            {group.groupName}
+          </h3>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full border ${MEMBER_BADGE}`}
+            >
+              👥 {memberCount} member{memberCount !== 1 ? "s" : ""}
+            </span>
+            {trip ? (
+              <span
+                className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full border capitalize ${tripBadge}`}
+              >
+                ✈️ {trip.tripName}
+              </span>
+            ) : (
+              <span className="inline-flex items-center text-[10px] font-medium px-2.5 py-1 rounded-full bg-slate-800 text-slate-500 border border-slate-700">
+                No trip linked
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 shrink-0 self-start">
+        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-1.5 p-3 pt-0 sm:p-4 sm:pt-4 sm:pl-2 sm:shrink-0 sm:self-start border-t sm:border-t-0 sm:border-l border-slate-700/40">
           <button
+            type="button"
             onClick={() => onView(group)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium transition-colors"
+            className={`${actionBtn} col-span-2 sm:col-span-1 bg-slate-700 hover:bg-slate-600 text-slate-300`}
           >
             <IconEye /> View
           </button>
