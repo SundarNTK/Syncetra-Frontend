@@ -4,6 +4,7 @@ import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getExpenses, addExpense, updateExpense, getTripHub } from "../../../services/trips";
 import { getAdminGroups } from "../../../services/groups";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -71,7 +72,7 @@ function ImageField({ value, onChange, onPreview }) {
             className="w-full flex items-center justify-center p-3 min-h-[120px] max-h-[260px] cursor-zoom-in hover:bg-slate-900/40 transition-colors"
             title="Click to view full size"
           >
-            <img
+            <ZoomableImage
               src={value}
               alt="Receipt preview"
               className="max-w-full max-h-[240px] w-auto h-auto object-contain rounded-md shadow-lg"
@@ -239,7 +240,7 @@ function ImagePreviewModal({ src, onClose }) {
       onClick={onClose}
     >
       <div className="relative max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-        <img src={src} alt="" className="w-full rounded-2xl shadow-2xl border border-slate-700" />
+        <ZoomableImage src={src} alt="Receipt" className="w-full rounded-2xl shadow-2xl border border-slate-700" />
         <div className="absolute top-2 right-2 flex gap-2">
           <button type="button" onClick={handleDownload}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/70 hover:bg-emerald-700/90 text-white text-xs font-medium transition-colors backdrop-blur-sm">
@@ -452,7 +453,7 @@ export default function AdminExpenses() {
                           title="View receipt"
                           className="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 hover:border-emerald-600/60 transition-colors relative group flex items-center justify-center"
                         >
-                          <img src={x.imageUrl} alt="receipt" className="max-w-full max-h-full object-contain p-0.5" />
+                          <ZoomableImage src={x.imageUrl} alt="receipt" className="max-w-full max-h-full object-contain p-0.5" />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>

@@ -69,8 +69,8 @@ export const addPoll = (tripId, data) =>
 export const votePoll = (tripId, pollId, optionIndex, isAdmin = false) =>
   apiPost(scope(isAdmin), EndPoints.TRIP_POLL_VOTE(tripId, pollId), { optionIndex });
 
-export const getTripMembers = (tripId) =>
-  apiGet(API_SCOPE.ADMIN, EndPoints.TRIP_MEMBERS(tripId));
+export const getTripMembers = (tripId, isAdmin = true) =>
+  apiGet(scope(isAdmin), EndPoints.TRIP_MEMBERS(tripId));
 
 export const getChecklists = (tripId, isAdmin = true) =>
   apiGet(scope(isAdmin), EndPoints.TRIP_CHECKLISTS(tripId));

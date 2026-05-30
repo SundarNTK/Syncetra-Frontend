@@ -40,3 +40,16 @@ export function fmtTripDateShort(iso) {
     year: "2-digit",
   });
 }
+
+export function getTripLocation(trip) {
+  if (trip?.location?.lat && trip?.location?.lng) return trip.location;
+  if (trip?.latitude != null && trip?.longitude != null) {
+    return {
+      name: trip.locationName || `${trip.latitude}, ${trip.longitude}`,
+      lat: Number(trip.latitude),
+      lng: Number(trip.longitude),
+      url: trip.mapLink || `https://maps.google.com/?q=${trip.latitude},${trip.longitude}`,
+    };
+  }
+  return null;
+}

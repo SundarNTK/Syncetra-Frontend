@@ -6,6 +6,7 @@ import { TripModuleShell } from "../../../components/trip/TripSelector";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { getMedia, getMediaItem, addMedia, deleteMedia as deleteMediaApi } from "../../../services/trips";
 import { fileToDataUrl } from "../../../utils/fileToDataUrl";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 const CATEGORY_TABS = ["all", "mine", "food", "travel", "moments", "other"];
 const CATEGORIES = ["food", "travel", "moments", "other"];
@@ -95,7 +96,7 @@ function MediaTile({ item, onView, isAdmin, onDelete }) {
       {isVideo ? (
         <video src={item.url} className="w-full h-40 object-cover bg-black" preload="metadata" />
       ) : (
-        <img src={item.url} alt={item.caption || item.fileName || "media"} className="w-full h-40 object-cover" />
+        <ZoomableImage src={item.url} alt={item.caption || item.fileName || "media"} className="w-full h-40 object-cover" />
       )}
 
       {/* hover overlay */}
@@ -272,7 +273,7 @@ function MediaViewer({ items, startIndex, tripId, isAdmin, onClose, onRequestDel
               className="max-h-full max-w-full rounded-xl shadow-2xl"
             />
           ) : (
-            <img
+            <ZoomableImage
               key={item._id}
               src={currentUrl}
               alt={item.caption || item.fileName || "media"}
@@ -390,7 +391,7 @@ function ConfirmUploadPopup({ tripName, category, caption, items, prepErrors, on
                 {item.mediaType === "video" ? (
                   <video src={item.dataUrl} className="w-full h-16 object-cover bg-black" muted />
                 ) : (
-                  <img src={item.thumbUrl || item.dataUrl} alt="" className="w-full h-16 object-cover" />
+                  <ZoomableImage src={item.thumbUrl || item.dataUrl} alt="" className="w-full h-16 object-cover" />
                 )}
                 <p className="text-[10px] text-slate-500 truncate px-1.5 py-1">{item.fileName}</p>
               </div>

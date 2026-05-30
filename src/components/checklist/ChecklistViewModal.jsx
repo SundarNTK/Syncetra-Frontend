@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { formatChecklistAssignees } from "../ui/MemberMultiSelect";
 import { getChecklistItem } from "../../services/trips";
+import ZoomableImage from "../ui/ZoomableImage";
 
 const IconClose = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -59,9 +60,9 @@ export default function ChecklistViewModal({ tripId, item, tripMembers = [], isA
             {loading ? (
               <span className="text-slate-500 text-sm">Loading image…</span>
             ) : detail?.imageUrl ? (
-              <img
+              <ZoomableImage
                 src={detail.imageUrl}
-                alt=""
+                alt="Checklist item"
                 className="max-w-full max-h-[320px] w-auto h-auto object-contain rounded-md shadow-lg"
               />
             ) : (

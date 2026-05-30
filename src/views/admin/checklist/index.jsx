@@ -20,6 +20,7 @@ import {
   getTripMembers,
   getChecklistItem,
 } from "../../../services/trips";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 const INPUT =
   "w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-slate-200 placeholder-slate-500";
@@ -74,7 +75,7 @@ function ImagePreviewModal({ src, onClose }) {
     >
       <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
         <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 flex items-center justify-center max-h-[85vh]">
-          <img src={src} alt="" className="max-w-full max-h-[80vh] w-auto h-auto object-contain rounded-lg shadow-2xl" />
+          <ZoomableImage src={src} alt="Preview" className="max-w-full max-h-[80vh] w-auto h-auto object-contain rounded-lg shadow-2xl" />
         </div>
         <button
           type="button"
@@ -112,10 +113,11 @@ function ChecklistImageField({ value, onChange, onPreview, onPickFile }) {
             className="w-full flex items-center justify-center p-3 min-h-[120px] max-h-[260px] cursor-zoom-in hover:bg-slate-900/40 transition-colors"
             title="Click to view full size"
           >
-            <img
+            <ZoomableImage
               src={value}
               alt="Item preview"
               className="max-w-full max-h-[240px] w-auto h-auto object-contain rounded-md shadow-lg"
+            />
             />
           </button>
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-800 bg-slate-900/90">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getChecklistItem } from "../../services/trips";
+import ZoomableImage from "../ui/ZoomableImage";
 
 /** Thumbnail for checklist rows; loads full image when list omits large data URLs. */
 export function ChecklistThumb({ tripId, item, isAdmin = true, className = "max-w-full max-h-full object-contain p-0.5" }) {
@@ -32,7 +33,7 @@ export function ChecklistThumb({ tripId, item, isAdmin = true, className = "max-
     };
   }, [tripId, item?._id, item?.imageUrl, item?.hasImage, isAdmin]);
 
-  if (src) return <img src={src} alt="" className={className} />;
+  if (src) return <ZoomableImage src={src} alt="" className={className} />;
   if (loading || item?.hasImage) return <span className="text-xs text-slate-500">…</span>;
   return <span className="text-xl text-slate-600">📦</span>;
 }

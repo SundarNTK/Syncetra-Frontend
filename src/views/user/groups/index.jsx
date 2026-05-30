@@ -4,6 +4,7 @@ import { joinGroupRooms } from "../../../services/socketService";
 import { requestNotificationPermission } from "../../../utils/notifications";
 import { useTrip } from "../../../context/TripContext";
 import MasterPageShell, { MasterList, MasterListItem, MasterListEmpty } from "../../../components/layout/MasterPageShell";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
 
 const fmtDate = (iso) => (iso ? formatDateTimeDisplay(iso).split(",")[0] : null);
@@ -11,7 +12,7 @@ const fmtDate = (iso) => (iso ? formatDateTimeDisplay(iso).split(",")[0] : null)
 const STATUS_BADGE = {
   planned:   "bg-blue-600/20 text-blue-400 border border-blue-700/40",
   active:    "bg-emerald-600/20 text-emerald-400 border border-emerald-700/40",
-  completed: "bg-slate-600/20 text-slate-300 border border-slate-600/40",
+  completed: "bg-amber-600/20 text-amber-300 border border-amber-700/40",
   cancelled: "bg-red-600/20 text-red-400 border border-red-700/40",
 };
 
@@ -25,7 +26,7 @@ const STATUS_COVER_GLOW = {
 const TRIP_LINK_BADGE = {
   planned:   "bg-blue-600/20 text-blue-400 border-blue-700/40 shadow-[0_0_14px_rgba(56,189,248,0.28)]",
   active:    "bg-emerald-600/20 text-emerald-400 border-emerald-700/40 shadow-[0_0_14px_rgba(52,211,153,0.32)]",
-  completed: "bg-slate-600/20 text-slate-300 border-slate-600/40 shadow-[0_0_12px_rgba(148,163,184,0.2)]",
+  completed: "bg-amber-600/20 text-amber-300 border-amber-700/40 shadow-[0_0_14px_rgba(251,191,36,0.32)]",
   cancelled: "bg-red-600/20 text-red-400 border-red-700/40 shadow-[0_0_14px_rgba(239,68,68,0.28)]",
 };
 
@@ -40,6 +41,8 @@ const IconClose = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"
 
 // ─── GroupViewModal ────────────────────────────────────────────────────────────
 function GroupViewModal({ group, trip, onClose }) {
+  const memberCount = group.members?.length || 0;
+
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -55,60 +58,82 @@ function GroupViewModal({ group, trip, onClose }) {
         className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-slate-800">
-          <div>
-            <h2 className="text-xl font-bold text-white">{group.groupName}</h2>
-            <p className="text-sm text-slate-400 mt-0.5">
-              {group.members?.length || 0} member{group.members?.length !== 1 ? "s" : ""}
-            </p>
+        {trip?.coverImage ? (
+          <div className="relative">
+            <ZoomableImage
+              src={trip.coverImage}
+              alt={trip.tripName}
+              className="w-full h-52 object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 hover:bg-black/80 text-white transition-colors"
+            >
+              <IconClose />
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 pointer-events-none">
+              <h2 className="text-2xl font-bold text-white">{group.groupName}</h2>
+              {trip && (
+                <p className="text-sm text-white/80 mt-0.5">✈️ {trip.tripName}</p>
+              )}
+            </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 transition-colors">
-            <IconClose />
-          </button>
+        ) : (
+          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
+            <div>
+              <h2 className="text-xl font-bold text-white">{group.groupName}</h2>
+              {trip && (
+                <p className="text-sm text-slate-400 mt-0.5">✈️ {trip.tripName}</p>
+              )}
+            </div>
+            <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 transition-colors">
+              <IconClose />
+            </button>
+          </div>
+        )}
+
+        <div className="px-5 pt-4 flex items-center gap-2 flex-wrap">
+          {trip && (
+            <span className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full capitalize border ${STATUS_BADGE[trip.status] || STATUS_BADGE.planned}`}>
+              {trip.status}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 text-xs text-slate-400 bg-slate-800/60 border border-slate-700/60 px-2.5 py-1 rounded-full">
+            👥 {memberCount} member{memberCount !== 1 ? "s" : ""}
+          </span>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Linked trip */}
+        <div className="p-5 pt-3 space-y-4">
           {trip ? (
-            <div className="rounded-2xl overflow-hidden border border-slate-700">
-              {trip.coverImage && (
-                <img src={trip.coverImage} alt={trip.tripName} className="w-full h-36 object-cover" />
+            <>
+              {trip.description && (
+                <p className="text-sm text-slate-300 leading-relaxed">{trip.description}</p>
               )}
-              <div className="p-4 space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize border ${STATUS_BADGE[trip.status] || STATUS_BADGE.planned}`}>
-                    {trip.status}
-                  </span>
-                  <h3 className="font-semibold text-white">{trip.tripName}</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-800/60 rounded-xl p-3">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Budget</p>
+                  <p className="text-sm font-medium text-slate-200">₹{(trip.budget || 0).toLocaleString()}</p>
                 </div>
-                {trip.description && (
-                  <p className="text-sm text-slate-300 leading-relaxed">{trip.description}</p>
+                <div className="bg-slate-800/60 rounded-xl p-3">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Status</p>
+                  <p className="text-sm font-medium text-slate-200 capitalize">{trip.status}</p>
+                </div>
+                {trip.startDate && (
+                  <div className="bg-slate-800/60 rounded-xl p-3">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Start Date</p>
+                    <p className="text-sm font-medium text-slate-200">{fmtDate(trip.startDate) || "—"}</p>
+                  </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
+                {trip.endDate && (
                   <div className="bg-slate-800/60 rounded-xl p-3">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Budget</p>
-                    <p className="text-sm font-medium text-slate-200">₹{(trip.budget || 0).toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">End Date</p>
+                    <p className="text-sm font-medium text-slate-200">{fmtDate(trip.endDate) || "—"}</p>
                   </div>
-                  <div className="bg-slate-800/60 rounded-xl p-3">
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Status</p>
-                    <p className="text-sm font-medium text-slate-200 capitalize">{trip.status}</p>
-                  </div>
-                  {trip.startDate && (
-                    <div className="bg-slate-800/60 rounded-xl p-3">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Start Date</p>
-                      <p className="text-sm font-medium text-slate-200">{fmtDate(trip.startDate) || "—"}</p>
-                    </div>
-                  )}
-                  {trip.endDate && (
-                    <div className="bg-slate-800/60 rounded-xl p-3">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">End Date</p>
-                      <p className="text-sm font-medium text-slate-200">{fmtDate(trip.endDate) || "—"}</p>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            </div>
+            </>
           ) : (
             <div className="bg-slate-800/40 border border-slate-700/40 rounded-xl px-4 py-3 text-sm text-slate-500 flex items-center gap-2">
               <span>✈️</span> No trip linked to this group yet.
@@ -188,10 +213,10 @@ function GroupCoverThumb({ trip }) {
       <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
         <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip?.coverImage ? (
-          <img
+          <ZoomableImage
             src={trip.coverImage}
             alt={trip.tripName}
-            className="absolute inset-0 w-full h-full object-cover sm:object-contain sm:p-1"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-slate-700 to-slate-900">

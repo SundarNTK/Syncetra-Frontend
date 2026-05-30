@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getUserVehicles } from "../../../services/trips";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 const VEHICLE_TYPES = [
   { value: "bus",             label: "Bus" },
@@ -79,7 +80,7 @@ function ImageFullscreenModal({ images, initialIndex = 0, onClose }) {
         className="flex-1 flex items-center justify-center relative overflow-hidden px-14 min-h-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
+        <ZoomableImage
           key={idx}
           src={images[idx]}
           alt=""
@@ -169,7 +170,7 @@ function VehicleDetailModal({ vehicle, onClose }) {
               className="w-full h-56 bg-slate-950 flex items-center justify-center overflow-hidden cursor-zoom-in"
               onClick={() => setFullscreen(true)}
             >
-              <img src={imgs[imgIdx]} alt="" className="max-w-full max-h-56 object-contain select-none" />
+              <ZoomableImage src={imgs[imgIdx]} alt="" className="max-w-full max-h-56 object-contain select-none" />
             </div>
             {imgs.length > 1 && (
               <>
@@ -341,7 +342,7 @@ function VehicleCard({ vehicle, onView }) {
             className="w-full h-44 bg-slate-950 flex items-center justify-center overflow-hidden cursor-zoom-in"
             onClick={() => setFullscreen(true)}
           >
-            <img src={imgs[imgIdx]} alt="" className="max-w-full max-h-44 object-contain select-none" />
+            <ZoomableImage src={imgs[imgIdx]} alt="" className="max-w-full max-h-44 object-contain select-none" />
           </div>
           {imgs.length > 1 && (
             <>

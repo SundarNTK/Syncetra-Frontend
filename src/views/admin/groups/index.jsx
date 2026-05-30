@@ -5,6 +5,7 @@ import { getAdminGroups, deleteGroup } from "../../../services/groups";
 import { useTrip } from "../../../context/TripContext";
 import MasterPageShell, { MasterList, MasterListItem } from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 const STATUS_COVER_GLOW = {
   planned: "trip-cover-glow--planned",
@@ -16,7 +17,7 @@ const STATUS_COVER_GLOW = {
 const TRIP_LINK_BADGE = {
   planned: "bg-blue-600/20 text-blue-400 border-blue-700/40 shadow-[0_0_14px_rgba(56,189,248,0.28)]",
   active: "bg-emerald-600/20 text-emerald-400 border-emerald-700/40 shadow-[0_0_14px_rgba(52,211,153,0.32)]",
-  completed: "bg-slate-600/20 text-slate-300 border-slate-600/40 shadow-[0_0_12px_rgba(148,163,184,0.2)]",
+  completed: "bg-amber-600/20 text-amber-300 border-amber-700/40 shadow-[0_0_14px_rgba(251,191,36,0.32)]",
   cancelled: "bg-red-600/20 text-red-400 border-red-700/40 shadow-[0_0_14px_rgba(239,68,68,0.28)]",
 };
 
@@ -33,10 +34,10 @@ function GroupCoverThumb({ trip }) {
       <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
         <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip?.coverImage ? (
-          <img
+          <ZoomableImage
             src={trip.coverImage}
             alt={trip.tripName}
-            className="absolute inset-0 w-full h-full object-cover sm:object-contain sm:p-1"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-slate-700 to-slate-900">

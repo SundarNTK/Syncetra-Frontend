@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useTrip } from "../../../context/TripContext";
-import { createTrip, deleteTrip, getTripMembers, updateTrip } from "../../../services/trips";
+import { createTrip, deleteTrip, updateTrip } from "../../../services/trips";
+import useTripMemberCount from "../../../hooks/useTripMemberCount";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
+import TripLocationMap from "../../../components/trip/TripLocationMap";
 import DatePickerField from "../../../components/ui/DatePickerField";
 import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
 import MasterPageShell, {
@@ -33,7 +36,7 @@ const tripTypeMap = Object.fromEntries(TRIP_TYPES.map((t) => [t.value, t]));
 const STATUS_BADGE = {
   planned: "bg-blue-600/20 text-blue-400 border border-blue-700/40",
   active: "bg-emerald-600/20 text-emerald-400 border border-emerald-700/40",
-  completed: "bg-slate-600/20 text-slate-300 border border-slate-600/40",
+  completed: "bg-amber-600/20 text-amber-300 border border-amber-700/40",
   cancelled: "bg-red-600/20 text-red-400 border border-red-700/40",
 };
 
@@ -87,29 +90,6 @@ const EMPTY_FORM = {
   location: null,
 };
 
-function useTripMemberCount(tripId, fallbackCount = 0) {
-  const [memberCount, setMemberCount] = useState(fallbackCount);
-
-  useEffect(() => {
-    if (!tripId) {
-      setMemberCount(fallbackCount);
-      return undefined;
-    }
-    let ignore = false;
-    getTripMembers(tripId)
-      .then((res) => {
-        if (!ignore) setMemberCount((res?.data || []).length);
-      })
-      .catch(() => {
-        if (!ignore) setMemberCount(fallbackCount);
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [tripId, fallbackCount]);
-
-  return memberCount;
-}
 
 // ─── Global keyframes (injected once) ────────────────────────────────────────
 const KEYFRAMES = `
@@ -1043,7 +1023,7 @@ function TripCreationSuccessPopup({ data, onClose }) {
             {data.coverImage ? (
               <div className="slide-up-1 flex justify-center mb-5">
                 <div className="relative">
-                  <img
+                  <ZoomableImage
                     src={data.coverImage}
                     alt={data.tripName}
                     className="image-float w-32 h-32 rounded-2xl object-cover"
@@ -1236,45 +1216,25 @@ function TripViewModal({ trip, onClose, onEdit }) {
         {/* Cover banner */}
         {trip.coverImage ? (
           <div className="relative">
-            <img
+            <ZoomableImage
               src={trip.coverImage}
               alt={trip.tripName}
               className="w-full h-52 object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
             <button
               onClick={onClose}
               className="absolute top-3 right-3 p-1.5 rounded-full bg-black/50 hover:bg-black/80 text-white transition-colors"
             >
               <IconClose />
             </button>
-            <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_BADGE[trip.status]}`}
-                >
-                  {trip.status}
-                </span>
-                <span className="text-xs text-white/70">
-                  {tripType.icon} {tripType.label}
-                </span>
-              </div>
+            <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 pointer-events-none">
               <h2 className="text-2xl font-bold text-white">{trip.tripName}</h2>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
             <div>
-              <div className="flex items-center gap-2 mb-0.5">
-                <span
-                  className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_BADGE[trip.status]}`}
-                >
-                  {trip.status}
-                </span>
-                <span className="text-xs text-slate-400">
-                  {tripType.icon} {tripType.label}
-                </span>
-              </div>
               <h2 className="text-xl font-bold text-white">{trip.tripName}</h2>
             </div>
             <button
@@ -1286,12 +1246,28 @@ function TripViewModal({ trip, onClose, onEdit }) {
           </div>
         )}
 
-        <div className="p-5 space-y-4">
+        <div className="px-5 pt-4 flex items-center gap-2 flex-wrap">
+          <span
+            className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_BADGE[trip.status]}`}
+          >
+            {trip.status}
+          </span>
+          <span className="inline-flex items-center gap-1 text-xs text-slate-400 bg-slate-800/60 border border-slate-700/60 px-2.5 py-1 rounded-full">
+            👥 {memberCount} member{memberCount !== 1 ? "s" : ""}
+          </span>
+          <span className="text-xs text-slate-500">
+            {tripType.icon} {tripType.label}
+          </span>
+        </div>
+
+        <div className="p-5 pt-3 space-y-4">
           {trip.description && (
             <p className="text-slate-300 text-sm leading-relaxed">
               {trip.description}
             </p>
           )}
+
+          <TripLocationMap trip={trip} />
 
           {/* Premium countdown */}
           <TripCountdownFull trip={trip} />
@@ -1404,10 +1380,10 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
         <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
           <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip.coverImage ? (
-          <img
+          <ZoomableImage
             src={trip.coverImage}
             alt={trip.tripName}
-            className="absolute inset-0 w-full h-full object-cover sm:object-contain sm:p-1"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
           <div

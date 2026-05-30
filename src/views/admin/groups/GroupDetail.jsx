@@ -10,53 +10,54 @@ import {
 } from "../../../services/groups";
 import { getMembers } from "../../../services/users";
 import { useTrip } from "../../../context/TripContext";
-
-const STATUS_COVER_GLOW = {
-  planned: "trip-cover-glow--planned",
-  active: "trip-cover-glow--active",
-  completed: "trip-cover-glow--completed",
-  cancelled: "trip-cover-glow--cancelled",
-};
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 const TRIP_LINK_BADGE = {
   planned: "bg-blue-600/20 text-blue-400 border-blue-700/40 shadow-[0_0_14px_rgba(56,189,248,0.28)]",
   active: "bg-emerald-600/20 text-emerald-400 border-emerald-700/40 shadow-[0_0_14px_rgba(52,211,153,0.32)]",
-  completed: "bg-slate-600/20 text-slate-300 border-slate-600/40 shadow-[0_0_12px_rgba(148,163,184,0.2)]",
+  completed: "bg-amber-600/20 text-amber-300 border-amber-700/40 shadow-[0_0_14px_rgba(251,191,36,0.32)]",
   cancelled: "bg-red-600/20 text-red-400 border-red-700/40 shadow-[0_0_14px_rgba(239,68,68,0.28)]",
 };
 
 function GroupTripCover({ trip }) {
   if (!trip) return null;
-  const coverGlowClass = STATUS_COVER_GLOW[trip.status] || STATUS_COVER_GLOW.planned;
   const linkBadge = TRIP_LINK_BADGE[trip.status] || TRIP_LINK_BADGE.planned;
 
   return (
     <div className="space-y-3">
-      <span
-        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border capitalize ${linkBadge}`}
-      >
-        <span>✈️</span>
-        {trip.tripName}
-        <span className="opacity-70 font-normal">· {trip.status || "planned"}</span>
-      </span>
-
-      <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 p-2 sm:p-3">
-        <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card w-full min-h-[11rem] sm:min-h-[16rem] ${coverGlowClass}`}>
-          <span className="trip-cover-glow-shimmer" aria-hidden="true" />
-          {trip.coverImage ? (
-            <img
-              src={trip.coverImage}
-              alt={trip.tripName}
-              className="absolute inset-0 w-full h-full object-contain p-2 sm:p-3"
-            />
-          ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-emerald-900/30 to-slate-900">
-              <span className="text-5xl opacity-40">✈️</span>
-              <p className="text-sm text-slate-400">{trip.tripName}</p>
-            </div>
-          )}
+      {trip.coverImage ? (
+        <div className="relative rounded-2xl overflow-hidden border border-slate-700/80">
+          <ZoomableImage
+            src={trip.coverImage}
+            alt={trip.tripName}
+            className="w-full h-52 object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+            <span
+              className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1 rounded-full border capitalize mb-2 ${linkBadge}`}
+            >
+              <span>✈️</span>
+              {trip.tripName}
+              <span className="opacity-70 font-normal">· {trip.status || "planned"}</span>
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border capitalize ${linkBadge}`}
+          >
+            <span>✈️</span>
+            {trip.tripName}
+            <span className="opacity-70 font-normal">· {trip.status || "planned"}</span>
+          </span>
+          <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 min-h-[11rem] flex flex-col items-center justify-center gap-2">
+            <span className="text-5xl opacity-40">✈️</span>
+            <p className="text-sm text-slate-400">{trip.tripName}</p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

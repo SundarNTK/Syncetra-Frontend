@@ -337,10 +337,10 @@ input, select, textarea, button {
     inset 0 0 44px rgba(52, 211, 153, 0.12);
 }
 .trip-cover-glow--completed::before {
-  border: 1.5px solid rgba(148, 163, 184, 0.65);
+  border: 1.5px solid rgba(251, 191, 36, 0.85);
   box-shadow:
-    inset 0 0 16px rgba(148, 163, 184, 0.22),
-    inset 0 0 32px rgba(148, 163, 184, 0.08);
+    inset 0 0 22px rgba(251, 191, 36, 0.32),
+    inset 0 0 44px rgba(245, 158, 11, 0.14);
 }
 .trip-cover-glow--cancelled::before {
   border: 1.5px solid rgba(239, 68, 68, 0.75);
@@ -368,6 +368,15 @@ input, select, textarea, button {
   );
   width: 55%;
   animation: shimmer-sweep 2.6s ease-in-out infinite;
+}
+.trip-cover-glow--completed .trip-cover-glow-shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 28%,
+    rgba(251, 191, 36, 0.42) 46%,
+    rgba(251, 191, 36, 0.18) 52%,
+    transparent 68%
+  );
 }
 .trip-cover-glow--planned {
   animation: tripCoverGlowPlanned 2.8s ease-in-out infinite;
@@ -412,15 +421,15 @@ input, select, textarea, button {
 @keyframes tripCoverGlowCompleted {
   0%, 100% {
     box-shadow:
-      inset 0 0 12px rgba(148, 163, 184, 0.28),
-      0 0 12px rgba(148, 163, 184, 0.28),
-      0 0 24px rgba(148, 163, 184, 0.12);
+      inset 0 0 14px rgba(251, 191, 36, 0.38),
+      0 0 14px rgba(251, 191, 36, 0.42),
+      0 0 28px rgba(245, 158, 11, 0.22);
   }
   50% {
     box-shadow:
-      inset 0 0 18px rgba(148, 163, 184, 0.45),
-      0 0 18px rgba(148, 163, 184, 0.45),
-      0 0 36px rgba(148, 163, 184, 0.2);
+      inset 0 0 24px rgba(251, 191, 36, 0.58),
+      0 0 24px rgba(251, 191, 36, 0.68),
+      0 0 48px rgba(245, 158, 11, 0.35);
   }
 }
 @keyframes tripCoverGlowCancelled {

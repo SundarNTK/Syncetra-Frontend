@@ -4,6 +4,7 @@ import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getVehicles, addVehicle, updateVehicle } from "../../../services/trips";
 import DatePickerField from "../../../components/ui/DatePickerField";
+import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
 const VEHICLE_TYPES = [
@@ -97,7 +98,7 @@ function ImageUploader({ images, onChange }) {
         <div className="flex gap-2 flex-wrap">
           {images.map((src, i) => (
             <div key={i} className="relative w-20 h-16 rounded-xl overflow-hidden border border-slate-700 shrink-0 group">
-              <img src={src} alt="" className="w-full h-full object-cover" />
+              <ZoomableImage src={src} alt="" className="w-full h-full object-cover" />
               <button
                 type="button"
                 onClick={() => remove(i)}
@@ -383,7 +384,7 @@ function ImageFullscreenModal({ images, initialIndex = 0, onClose }) {
         className="flex-1 flex items-center justify-center relative overflow-hidden px-14 min-h-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
+        <ZoomableImage
           key={idx}
           src={images[idx]}
           alt=""
@@ -473,7 +474,7 @@ function VehicleDetailModal({ vehicle, onClose, onEdit }) {
               className="w-full h-56 bg-slate-950 flex items-center justify-center overflow-hidden cursor-zoom-in"
               onClick={() => setFullscreen(true)}
             >
-              <img src={imgs[imgIdx]} alt="" className="max-w-full max-h-56 object-contain select-none" />
+              <ZoomableImage src={imgs[imgIdx]} alt="" className="max-w-full max-h-56 object-contain select-none" />
             </div>
             {imgs.length > 1 && (
               <>
@@ -658,7 +659,7 @@ function VehicleCard({ vehicle, onView, onEdit }) {
             className="w-full h-44 bg-slate-950 flex items-center justify-center overflow-hidden cursor-zoom-in"
             onClick={() => setFullscreen(true)}
           >
-            <img src={imgs[imgIdx]} alt="" className="max-w-full max-h-44 object-contain select-none" />
+            <ZoomableImage src={imgs[imgIdx]} alt="" className="max-w-full max-h-44 object-contain select-none" />
           </div>
           {imgs.length > 1 && (
             <>
