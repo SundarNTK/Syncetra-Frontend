@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -28,12 +28,26 @@ function MapInit() {
   return null;
 }
 
-function FlyToSelected({ center, zoom }) {
+function FlyToFocus({ defaultCenter, defaultZoom, selectedTripId, selectedCenter, selectedZoom = 11 }) {
   const map = useMap();
+  const prevSelectedRef = useRef(selectedTripId);
+  const userPickedTripRef = useRef(false);
+
   useEffect(() => {
-    if (!center) return;
-    map.flyTo(center, zoom ?? 11, { duration: 1.1 });
-  }, [map, center, zoom]);
+    if (selectedTripId !== prevSelectedRef.current) {
+      prevSelectedRef.current = selectedTripId;
+      if (selectedCenter) {
+        userPickedTripRef.current = true;
+        map.flyTo(selectedCenter, selectedZoom, { duration: 1.1 });
+        return;
+      }
+    }
+
+    if (!userPickedTripRef.current && defaultCenter) {
+      map.flyTo(defaultCenter, defaultZoom ?? 11, { duration: 1.1 });
+    }
+  }, [map, defaultCenter, defaultZoom, selectedTripId, selectedCenter, selectedZoom]);
+
   return null;
 }
 
@@ -146,24 +160,22 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
   const tripsWithLoc = trips.filter((t) => t.location?.lat && t.location?.lng);
   const activeCount = tripsWithLoc.filter((t) => tripPhase(t) === "active").length;
   const upcomingCount = tripsWithLoc.filter((t) => tripPhase(t) === "upcoming").length;
-  const selectedTrip = trips.find((t) => String(t._id) === String(selectedTripId));
-  const selectedHasLoc = selectedTrip?.location?.lat && selectedTrip?.location?.lng;
+  const defaultFocusTrip =
+    tripsWithLoc.find((t) => tripPhase(t) === "active") || tripsWithLoc[0] || null;
 
-  const avgCenter =
-    tripsWithLoc.length > 0
-      ? [
-          tripsWithLoc.reduce((s, t) => s + t.location.lat, 0) / tripsWithLoc.length,
-          tripsWithLoc.reduce((s, t) => s + t.location.lng, 0) / tripsWithLoc.length,
-        ]
-      : DEFAULT_MAP_CENTER;
-
-  const flyTarget = selectedHasLoc
-    ? [selectedTrip.location.lat, selectedTrip.location.lng]
-    : tripsWithLoc.length > 0
-    ? avgCenter
+  const defaultCenter = defaultFocusTrip
+    ? [defaultFocusTrip.location.lat, defaultFocusTrip.location.lng]
     : null;
+  const defaultZoom = defaultFocusTrip ? 11 : DEFAULT_MAP_ZOOM;
 
-  const flyZoom = selectedHasLoc ? 11 : tripsWithLoc.length === 1 ? 10 : tripsWithLoc.length > 1 ? 6 : DEFAULT_MAP_ZOOM;
+  const selectedTrip = trips.find((t) => String(t._id) === String(selectedTripId));
+  const selectedCenter =
+    selectedTrip?.location?.lat && selectedTrip?.location?.lng
+      ? [selectedTrip.location.lat, selectedTrip.location.lng]
+      : null;
+
+  const mapCenter = defaultCenter || DEFAULT_MAP_CENTER;
+  const mapZoom = defaultFocusTrip ? 11 : DEFAULT_MAP_ZOOM;
 
   return (
     <div
@@ -261,8 +273,8 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
         )}
 
         <MapContainer
-          center={DEFAULT_MAP_CENTER}
-          zoom={DEFAULT_MAP_ZOOM}
+          center={mapCenter}
+          zoom={mapZoom}
           minZoom={3}
           maxZoom={18}
           style={{ height: "100%", width: "100%", background: "#0c1220", zIndex: 1 }}
@@ -273,7 +285,14 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
           <TileLayer url={DASH_MAP_TILES.satellite.url} attribution={DASH_MAP_TILES.satellite.attribution} />
           <TileLayer url={DASH_MAP_TILES.labels.url} attribution="" opacity={0.78} />
           <MapInit />
-          {flyTarget && <FlyToSelected center={flyTarget} zoom={flyZoom} />}
+          {defaultCenter && (
+            <FlyToFocus
+              defaultCenter={defaultCenter}
+              defaultZoom={defaultZoom}
+              selectedTripId={selectedTripId}
+              selectedCenter={selectedCenter}
+            />
+          )}
           {tripsWithLoc.map((t) => {
             const phase = tripPhase(t);
             const isSelected = String(t._id) === String(selectedTripId);

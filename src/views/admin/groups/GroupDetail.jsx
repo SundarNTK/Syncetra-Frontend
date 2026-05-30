@@ -4,14 +4,62 @@ import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import {
   getGroupById,
-  getAdminGroups,
   addGroupMember,
   updateGroupMember,
   removeGroupMember,
-  updateGroup,
 } from "../../../services/groups";
 import { getMembers } from "../../../services/users";
 import { useTrip } from "../../../context/TripContext";
+
+const STATUS_COVER_GLOW = {
+  planned: "trip-cover-glow--planned",
+  active: "trip-cover-glow--active",
+  completed: "trip-cover-glow--completed",
+  cancelled: "trip-cover-glow--cancelled",
+};
+
+const TRIP_LINK_BADGE = {
+  planned: "bg-blue-600/20 text-blue-400 border-blue-700/40 shadow-[0_0_14px_rgba(56,189,248,0.28)]",
+  active: "bg-emerald-600/20 text-emerald-400 border-emerald-700/40 shadow-[0_0_14px_rgba(52,211,153,0.32)]",
+  completed: "bg-slate-600/20 text-slate-300 border-slate-600/40 shadow-[0_0_12px_rgba(148,163,184,0.2)]",
+  cancelled: "bg-red-600/20 text-red-400 border-red-700/40 shadow-[0_0_14px_rgba(239,68,68,0.28)]",
+};
+
+function GroupTripCover({ trip }) {
+  if (!trip) return null;
+  const coverGlowClass = STATUS_COVER_GLOW[trip.status] || STATUS_COVER_GLOW.planned;
+  const linkBadge = TRIP_LINK_BADGE[trip.status] || TRIP_LINK_BADGE.planned;
+
+  return (
+    <div className="space-y-3">
+      <span
+        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border capitalize ${linkBadge}`}
+      >
+        <span>✈️</span>
+        {trip.tripName}
+        <span className="opacity-70 font-normal">· {trip.status || "planned"}</span>
+      </span>
+
+      <div className="rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-950 p-2 sm:p-3">
+        <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card w-full min-h-[11rem] sm:min-h-[16rem] ${coverGlowClass}`}>
+          <span className="trip-cover-glow-shimmer" aria-hidden="true" />
+          {trip.coverImage ? (
+            <img
+              src={trip.coverImage}
+              alt={trip.tripName}
+              className="absolute inset-0 w-full h-full object-contain p-2 sm:p-3"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-emerald-900/30 to-slate-900">
+              <span className="text-5xl opacity-40">✈️</span>
+              <p className="text-sm text-slate-400">{trip.tripName}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const INPUT_CLS =
   "w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-600 " +
@@ -122,7 +170,6 @@ export default function GroupDetail() {
   const [group,       setGroup]       = useState(null);
   const [allUsers,    setAllUsers]    = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [linkedTripIds, setLinkedTripIds] = useState([]);
 
   const [error, setError]       = useState("");
   const [addLoading, setAddLoading] = useState(false);
@@ -141,14 +188,6 @@ export default function GroupDetail() {
     load();
     getMembers()
       .then((res) => setAllUsers(res?.data || []))
-      .catch(() => {});
-    getAdminGroups()
-      .then((res) => {
-        const ids = (res?.data || [])
-          .filter((g) => String(g._id) !== id && g.tripId)
-          .map((g) => String(g.tripId));
-        setLinkedTripIds(ids);
-      })
       .catch(() => {});
   }, [id]);
 
@@ -232,51 +271,13 @@ export default function GroupDetail() {
         <p className="text-slate-400 text-sm mt-1">View, add, edit and remove members</p>
       </div>
 
-      {/* Trip selector */}
-      <div className="flex items-center gap-3">
-        {trip?.coverImage && (
-          <img src={trip.coverImage} alt={trip.tripName}
-            className="w-9 h-9 rounded-lg object-cover border border-slate-700 shrink-0" />
-        )}
-        <div className="flex-1 max-w-sm">
-          <label className="block text-xs text-slate-500 mb-1">Linked trip</label>
-          <select
-            value={String(group.tripId || "")}
-            onChange={async (e) => { await updateGroup(id, { tripId: e.target.value || null }); load(); }}
-            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
-          >
-            <option value="">— No trip linked —</option>
-            {trips
-              .filter((t) => !linkedTripIds.includes(t._id))
-              .map((t) => <option key={t._id} value={t._id}>{t.tripName}</option>)}
-          </select>
-        </div>
-      </div>
-
-      {/* Trip cover */}
-      {trip && (
-        <div className="rounded-2xl overflow-hidden border border-slate-700 shadow-lg">
-          {trip.coverImage ? (
-            <div className="relative">
-              <img src={trip.coverImage} alt={trip.tripName}
-                className="w-full h-48 sm:h-64 object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end px-5 pb-4">
-                <div>
-                  <p className="text-white text-lg font-bold">{trip.tripName}</p>
-                  <p className="text-slate-300 text-xs capitalize">{trip.status}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="w-full h-24 bg-gradient-to-br from-emerald-900/40 to-slate-800 flex items-center gap-4 px-5">
-              <span className="text-4xl opacity-50">✈️</span>
-              <div>
-                <p className="text-white font-semibold">{trip.tripName}</p>
-                <p className="text-slate-400 text-xs capitalize">{trip.status}</p>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* Linked trip cover (read-only — link trip when creating/editing group) */}
+      {trip ? (
+        <GroupTripCover trip={trip} />
+      ) : (
+        <p className="text-sm text-slate-500 rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3">
+          No trip linked to this group.
+        </p>
       )}
 
       {/* Info banner */}

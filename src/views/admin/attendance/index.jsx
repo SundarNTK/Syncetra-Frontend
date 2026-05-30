@@ -55,14 +55,37 @@ function StatusToggle({ value, onChange }) {
   );
 }
 
+/* ─── Checkpoint stat box ─────────────────────────────────────────────────── */
+function CpStatBox({ value, variant, label }) {
+  const glowCls = {
+    members: "animate-cp-glow-sky",
+    present: "animate-cp-glow-emerald",
+    absent:  "animate-cp-glow-red",
+    late:    "animate-cp-glow-amber",
+  }[variant];
+
+  return (
+    <div className="cp-stat-col">
+      <span className="cp-stat-label">{label}</span>
+      <div
+        className={`cp-stat-box cp-stat-box--${variant} ${glowCls}`}
+        aria-label={`${label}: ${value}`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
 /* ─── CheckpointCard ──────────────────────────────────────────────────────── */
-function CheckpointCard({ cp, onClick }) {
-  const notMarked = cp.total - cp.present - cp.absent - cp.late;
+function CheckpointCard({ cp, memberCount, onClick }) {
+  const totalMembers = cp.total || memberCount || 0;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3.5 bg-slate-900/80 border border-slate-700/60 rounded-xl hover:border-emerald-700/50 hover:bg-slate-900 transition-all text-left group"
+      className="w-full flex flex-wrap sm:flex-nowrap items-center gap-3 px-4 py-3.5 bg-slate-900/80 border border-slate-700/60 rounded-xl hover:border-emerald-700/50 hover:bg-slate-900 transition-all text-left group"
     >
       {/* Icon */}
       <div className="w-9 h-9 rounded-xl bg-emerald-950/60 border border-emerald-800/40 flex items-center justify-center shrink-0">
@@ -71,32 +94,26 @@ function CheckpointCard({ cp, onClick }) {
         </svg>
       </div>
 
-      {/* Info */}
+      {/* Name + time */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{cp.checkpoint}</p>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          {cp.present > 0 && (
-            <span className="text-[10px] text-emerald-400 font-medium">✓ {cp.present}</span>
-          )}
-          {cp.absent > 0 && (
-            <span className="text-[10px] text-red-400 font-medium">✗ {cp.absent}</span>
-          )}
-          {cp.late > 0 && (
-            <span className="text-[10px] text-amber-400 font-medium">~ {cp.late}</span>
-          )}
-          {notMarked > 0 && (
-            <span className="text-[10px] text-slate-500 font-medium">· {notMarked} unmarked</span>
-          )}
-          {cp.markedAt && (
-            <span className="text-[10px] text-slate-600 ml-auto shrink-0">
-              {fmt(cp.markedAt)} · {fmtTime(cp.markedAt)}
-            </span>
-          )}
-        </div>
+        {cp.markedAt && (
+          <p className="text-[10px] text-slate-500 mt-0.5">
+            {fmt(cp.markedAt)} · {fmtTime(cp.markedAt)}
+          </p>
+        )}
+      </div>
+
+      {/* Per-checkpoint totals */}
+      <div className="flex items-end gap-1.5 sm:gap-2 shrink-0 w-full sm:w-auto justify-end sm:justify-start order-last sm:order-none">
+        <CpStatBox value={totalMembers} variant="members" label="Members" />
+        <CpStatBox value={cp.present || 0} variant="present" label="Present" />
+        <CpStatBox value={cp.absent || 0} variant="absent" label="Absent" />
+        <CpStatBox value={cp.late || 0} variant="late" label="Late" />
       </div>
 
       {/* Arrow */}
-      <svg className="w-4 h-4 text-slate-600 group-hover:text-emerald-500 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="w-4 h-4 text-slate-600 group-hover:text-emerald-500 shrink-0 transition-colors self-center" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
       </svg>
     </button>
@@ -254,11 +271,6 @@ export default function AdminAttendance() {
   };
 
   /* ── summary stats ── */
-  const totalPresent = checkpoints.reduce((s, c) => s + c.present, 0);
-  const totalAbsent  = checkpoints.reduce((s, c) => s + c.absent,  0);
-  const totalLate    = checkpoints.reduce((s, c) => s + c.late,    0);
-
-  /* ── checkpoint heading ── */
   const cpHeading = isNew ? "New Checkpoint" : (selectedCp || "");
 
   /* ══════════════════════ RENDER ══════════════════════ */
@@ -295,12 +307,10 @@ export default function AdminAttendance() {
                 </span>
               </div>
             )}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { label: "Members",     value: members.length,                       cls: "text-slate-200" },
-                { label: "Checkpoints", value: checkpoints.length,                   cls: "text-blue-300" },
-                { label: "Present",     value: totalPresent,                         cls: "text-emerald-400" },
-                { label: "Absent/Late", value: totalAbsent + totalLate,              cls: "text-red-400" },
+                { label: "Members",     value: members.length,     cls: "text-slate-200" },
+                { label: "Checkpoints", value: checkpoints.length, cls: "text-blue-300" },
               ].map((s) => (
                 <div key={s.label} className="bg-slate-800/60 rounded-xl p-2.5 text-center">
                   <p className={`text-lg font-bold ${s.cls}`}>{s.value}</p>
@@ -365,6 +375,7 @@ export default function AdminAttendance() {
                     <CheckpointCard
                       key={cp.checkpoint}
                       cp={cp}
+                      memberCount={members.length}
                       onClick={() => openCheckpoint(cp.checkpoint)}
                     />
                   ))}

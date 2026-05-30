@@ -471,6 +471,26 @@ input, select, textarea, button {
   0%, 100% { box-shadow: 0 0 10px rgba(239,68,68,0.3), 0 0 30px rgba(239,68,68,0.1); }
   50%       { box-shadow: 0 0 25px rgba(239,68,68,0.6), 0 0 50px rgba(239,68,68,0.3); }
 }
+@keyframes glow-pulse-sky {
+  0%, 100% { box-shadow: 0 0 10px rgba(56,189,248,0.25), 0 0 28px rgba(56,189,248,0.1); }
+  50%       { box-shadow: 0 0 22px rgba(56,189,248,0.55), 0 0 44px rgba(56,189,248,0.28); }
+}
+@keyframes cp-glow-sky {
+  0%, 100% { box-shadow: 0 0 6px rgba(56,189,248,0.18), 0 0 14px rgba(56,189,248,0.08); }
+  50%       { box-shadow: 0 0 12px rgba(56,189,248,0.32), 0 0 22px rgba(56,189,248,0.14); }
+}
+@keyframes cp-glow-emerald {
+  0%, 100% { box-shadow: 0 0 6px rgba(16,185,129,0.18), 0 0 14px rgba(16,185,129,0.08); }
+  50%       { box-shadow: 0 0 12px rgba(16,185,129,0.32), 0 0 22px rgba(16,185,129,0.14); }
+}
+@keyframes cp-glow-red {
+  0%, 100% { box-shadow: 0 0 6px rgba(239,68,68,0.18), 0 0 14px rgba(239,68,68,0.08); }
+  50%       { box-shadow: 0 0 12px rgba(239,68,68,0.32), 0 0 22px rgba(239,68,68,0.14); }
+}
+@keyframes cp-glow-amber {
+  0%, 100% { box-shadow: 0 0 6px rgba(245,158,11,0.18), 0 0 14px rgba(245,158,11,0.08); }
+  50%       { box-shadow: 0 0 12px rgba(245,158,11,0.32), 0 0 22px rgba(245,158,11,0.14); }
+}
 @keyframes counter-pop {
   0%   { transform: scale(0.6); opacity: 0; }
   65%  { transform: scale(1.1); }
@@ -492,8 +512,65 @@ input, select, textarea, button {
 .animate-glow-gold     { animation: glow-pulse-gold 2.5s ease-in-out infinite; }
 .animate-glow-emerald  { animation: glow-pulse-emerald 2.5s ease-in-out infinite; }
 .animate-glow-red      { animation: glow-pulse-red 2.5s ease-in-out infinite; }
+.animate-glow-sky      { animation: glow-pulse-sky 2.5s ease-in-out infinite; }
+.animate-cp-glow-sky     { animation: cp-glow-sky 3s ease-in-out infinite; }
+.animate-cp-glow-emerald { animation: cp-glow-emerald 3s ease-in-out infinite; }
+.animate-cp-glow-red     { animation: cp-glow-red 3s ease-in-out infinite; }
+.animate-cp-glow-amber   { animation: cp-glow-amber 3s ease-in-out infinite; }
 .animate-live-dot      { animation: live-dot 1.2s ease-in-out infinite; }
-.animate-gradient-x    { background-size: 200% 200%; animation: gradient-x 4s ease-in-out infinite; }
+/* Attendance checkpoint list — stat boxes with labels */
+.cp-stat-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+.cp-stat-label {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+  line-height: 1;
+  white-space: nowrap;
+}
+.cp-stat-box {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+.cp-stat-box--members {
+  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(56, 189, 248, 0.28);
+  color: #7dd3fc;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.45);
+}
+.cp-stat-box--present {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(52, 211, 153, 0.28);
+  color: #6ee7b7;
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.45);
+}
+.cp-stat-box--absent {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fca5a5;
+  text-shadow: 0 0 8px rgba(248, 113, 113, 0.45);
+}
+.cp-stat-box--late {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fcd34d;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.45);
+}
 
 .shimmer-parent { overflow: hidden; position: relative; }
 .shimmer-child {
