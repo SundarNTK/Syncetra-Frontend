@@ -115,14 +115,6 @@ function CheckpointDetailModal({ checkpoint, entries, onClose }) {
               }
             />
             <DetailRow
-              label="Check-in"
-              value={
-                latest?.checkInAt
-                  ? `${fmt(latest.checkInAt)} · ${fmtTime(latest.checkInAt)}`
-                  : null
-              }
-            />
-            <DetailRow
               label="Check-out"
               value={
                 latest?.checkOutAt
