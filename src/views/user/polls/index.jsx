@@ -219,7 +219,7 @@ function FilterBar({ value, onChange }) {
     { value: "trip",    label: "Trip" },
   ];
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {FILTERS.map((f) => (
         <button key={f.value} onClick={() => onChange(f.value)}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${value === f.value ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}>
@@ -252,53 +252,52 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
   };
 
   return (
-    <li className="bg-slate-800 rounded-xl overflow-hidden relative">
-      {hasDescriptions && (
-        <button
-          type="button"
-          onClick={() => onViewDescription(poll)}
-          className="poll-view-desc-btn absolute top-3 right-3 z-10"
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          View Description
-        </button>
-      )}
-      <div className="p-4 sm:p-5">
+    <li className="bg-slate-800 rounded-xl overflow-hidden w-full min-w-0">
+      <div className="p-4 sm:p-5 flex flex-col gap-3 w-full min-w-0">
         {/* Header */}
-        <div className={`flex items-start justify-between gap-3 mb-1 ${hasDescriptions ? "pr-36 sm:pr-40" : ""}`}>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-base">{poll.title}</h3>
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[poll.pollType]}`}>
-                {poll.pollType === "trip" ? "Trip" : "General"}
+        <div className="flex flex-col gap-2 w-full min-w-0">
+          <h3 className="font-semibold text-base sm:text-lg text-white leading-snug break-words">
+            {poll.title}
+          </h3>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${TYPE_BADGE[poll.pollType]}`}>
+              {poll.pollType === "trip" ? "Trip" : "General"}
+            </span>
+            {isClosed && (
+              <span className="text-[10px] bg-slate-600/40 text-slate-400 px-2 py-0.5 rounded-full border border-slate-600/40 capitalize shrink-0">
+                {poll.pollStatus}
               </span>
-              {isClosed && (
-                <span className="text-[10px] bg-slate-600/40 text-slate-400 px-2 py-0.5 rounded-full border border-slate-600/40 capitalize">
-                  {poll.pollStatus}
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-slate-400 mt-0.5">{poll.question}</p>
-          </div>
-          <span className="text-xs text-slate-500 shrink-0 mt-0.5 text-right">
-            {eligible > 0 ? (
-              <>
-                {uniqueResponded}/{eligible} responded
-              </>
-            ) : (
-              <>
-                {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
-              </>
             )}
-          </span>
+            <span className="text-xs text-slate-500 shrink-0 sm:ml-auto">
+              {eligible > 0 ? (
+                <>{uniqueResponded}/{eligible} responded</>
+              ) : (
+                <>{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</>
+              )}
+            </span>
+          </div>
         </div>
 
-        <div className="mb-3" />
+        <p className="text-sm text-slate-400 leading-relaxed break-words whitespace-normal">
+          {poll.question}
+        </p>
+
+        {hasDescriptions && (
+          <button
+            type="button"
+            onClick={() => onViewDescription(poll)}
+            className="poll-view-desc-btn w-full sm:w-auto justify-center sm:justify-start"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            View Description
+          </button>
+        )}
 
         {/* Options */}
-        <div className="space-y-2">
+        <div className="space-y-2 w-full min-w-0">
           {(poll.options || []).map((opt, i) => {
             const count    = opt.votes?.length || 0;
             const eligiblePct = pctOfEligible(count, eligible);
@@ -313,7 +312,7 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
                 type="button"
                 disabled={hasVoted || isClosed}
                 onClick={() => !hasVoted && !isClosed && onVoteConfirm(poll, i)}
-                className={`w-full text-left rounded-xl border transition-all overflow-hidden ${
+                className={`w-full min-w-0 text-left rounded-xl border transition-all overflow-hidden ${
                   isVoted
                     ? "border-emerald-600/60 bg-emerald-950/30"
                     : hasVoted || isClosed
@@ -321,16 +320,16 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
                     : "border-slate-700 bg-slate-900/40 hover:border-emerald-600/40 hover:bg-emerald-950/10 cursor-pointer active:scale-[0.99]"
                 }`}
               >
-                <div className="px-4 py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`text-sm font-medium ${isVoted ? "text-emerald-300" : "text-slate-200"}`}>
+                <div className="px-3 sm:px-4 py-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-2">
+                    <span className={`text-sm font-medium leading-snug break-words min-w-0 ${isVoted ? "text-emerald-300" : "text-slate-200"}`}>
                       {isVoted && "✓ "}{opt.label}
                       {isWinner && (
-                        <span className="ml-1.5 text-[10px] bg-emerald-600/30 text-emerald-400 px-1.5 py-0.5 rounded-full">Leading</span>
+                        <span className="ml-1.5 text-[10px] bg-emerald-600/30 text-emerald-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">Leading</span>
                       )}
                     </span>
                     {(hasVoted || isClosed) && (
-                      <span className="text-xs text-slate-400 shrink-0">
+                      <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap">
                         {count} ({barPct}%
                         {eligiblePct != null ? " of members" : " of votes"})
                       </span>
@@ -352,10 +351,10 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
         </div>
 
         {!hasVoted && !isClosed && (
-          <p className="text-xs text-slate-500 mt-3 text-center">Tap an option to cast your vote</p>
+          <p className="text-xs text-slate-500 text-center">Tap an option to cast your vote</p>
         )}
         {isClosed && !hasVoted && (
-          <p className="text-xs text-amber-400/70 mt-3 text-center">This poll is {poll.pollStatus}</p>
+          <p className="text-xs text-amber-400/70 text-center">This poll is {poll.pollStatus}</p>
         )}
       </div>
     </li>
