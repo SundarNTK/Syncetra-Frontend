@@ -6,7 +6,7 @@ import { updateMyProfile } from "../../services/profile";
 import { forgotPassword } from "../../services/auth";
 import { ROLES } from "../../constants/enum";
 import ChangePasswordModal from "../../components/change-password/ChangePasswordModal";
-import { Avatar } from "../../components/profile/ProfileDropdown";
+import ProfileImageUpload from "../../components/profile/ProfileImageUpload";
 
 /* ─── Constants ────────────────────────────────────────────────────────────── */
 const INPUT_CLS =
@@ -24,26 +24,46 @@ const ROLE_LABELS = {
   [ROLES.USER]: "Member",
 };
 
-const ROLE_BADGE = {
-  [ROLES.SUPER_ADMIN]: "bg-violet-950 text-violet-300 border-violet-800",
-  [ROLES.ADMIN]: "bg-emerald-950 text-emerald-300 border-emerald-800",
-  [ROLES.USER]: "bg-blue-950 text-blue-300 border-blue-800",
-};
-
-/* ─── Toast ─────────────────────────────────────────────────────────────────── */
-function Toast({ toast }) {
+/* ─── Center popup ──────────────────────────────────────────────────────────── */
+function CenterPopup({ toast, onClose }) {
   if (!toast) return null;
   const isSuccess = toast.type === "success";
   return (
-    <div
-      className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-medium transition-all duration-300
-        ${isSuccess
-          ? "bg-emerald-950 border-emerald-700 text-emerald-300"
-          : "bg-red-950 border-red-700 text-red-300"
-        }`}
-    >
-      <span>{isSuccess ? "✓" : "✕"}</span>
-      <span>{toast.message}</span>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        aria-label="Close"
+        onClick={onClose}
+      />
+      <div
+        className={`relative w-full max-w-sm rounded-2xl border shadow-2xl px-6 py-8 text-center
+          ${isSuccess
+            ? "bg-slate-900 border-emerald-700/60"
+            : "bg-slate-900 border-red-700/60"
+          }`}
+      >
+        <div
+          className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-bold
+            ${isSuccess ? "bg-emerald-950 text-emerald-400" : "bg-red-950 text-red-400"}`}
+        >
+          {isSuccess ? "✓" : "✕"}
+        </div>
+        <p className={`text-sm font-medium leading-relaxed ${isSuccess ? "text-emerald-100" : "text-red-200"}`}>
+          {toast.message}
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className={`mt-6 w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors
+            ${isSuccess
+              ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+              : "bg-slate-700 hover:bg-slate-600 text-white"
+            }`}
+        >
+          OK
+        </button>
+      </div>
     </div>
   );
 }
@@ -63,6 +83,13 @@ export default function UserProfile() {
   const [firstName, setFirstName] = useState(nameParts[0] || "");
   const [lastName, setLastName] = useState(nameParts.slice(1).join(" ") || "");
   const [phone, setPhone] = useState(user?.mobileNumber || "");
+  const [profileImage, setProfileImage] = useState(user?.profileImage || "");
+  const [savedBaseline, setSavedBaseline] = useState({
+    firstName: nameParts[0] || "",
+    lastName: nameParts.slice(1).join(" ") || "",
+    phone: user?.mobileNumber || "",
+    profileImage: user?.profileImage || "",
+  });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -76,8 +103,15 @@ export default function UserProfile() {
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
   };
+
+  const closeToast = () => setToast(null);
+
+  const isDirty =
+    firstName.trim() !== savedBaseline.firstName.trim() ||
+    lastName.trim() !== savedBaseline.lastName.trim() ||
+    phone.replace(/\s/g, "") !== (savedBaseline.phone || "").replace(/\s/g, "") ||
+    (profileImage || "") !== (savedBaseline.profileImage || "");
 
   /* ── validation ── */
   const validate = () => {
@@ -98,11 +132,28 @@ export default function UserProfile() {
     if (Object.keys(errs).length) return;
 
     const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
+    const cleanPhone = phone.replace(/\s/g, "");
     setSaving(true);
     try {
-      await updateMyProfile(isAdmin, { name: fullName, mobileNumber: phone.replace(/\s/g, "") });
-      dispatch(UPDATE_USER_PROFILE({ name: fullName, mobileNumber: phone.replace(/\s/g, "") }));
-      showToast("Profile updated successfully.");
+      await updateMyProfile(isAdmin, {
+        name: fullName,
+        mobileNumber: cleanPhone,
+        profileImage: profileImage || null,
+      });
+      dispatch(
+        UPDATE_USER_PROFILE({
+          name: fullName,
+          mobileNumber: cleanPhone,
+          profileImage: profileImage || null,
+        })
+      );
+      setSavedBaseline({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: cleanPhone,
+        profileImage: profileImage || "",
+      });
+      showToast(`${firstName.trim()} your profile updated successfully`);
     } catch (err) {
       showToast(err.message || "Failed to update profile.", "error");
     } finally {
@@ -126,7 +177,7 @@ export default function UserProfile() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
-      <Toast toast={toast} />
+      <CenterPopup toast={toast} onClose={closeToast} />
 
       {/* ── Page header ── */}
       <div className="flex items-center gap-3">
@@ -146,28 +197,19 @@ export default function UserProfile() {
         </div>
       </div>
 
-      {/* ── Identity card ── */}
-      <div className="bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 flex flex-col sm:flex-row items-center sm:items-start gap-5">
-        <div className="rounded-2xl overflow-hidden shrink-0">
-          <Avatar user={user} size="lg" />
-        </div>
-        <div className="text-center sm:text-left space-y-1.5">
-          <h2 className="text-xl font-bold text-white">{user?.name}</h2>
-          <p className="text-sm text-slate-400">{user?.email}</p>
-          <span
-            className={`inline-block text-xs px-2.5 py-1 rounded-full border font-medium mt-1 ${ROLE_BADGE[role] || ROLE_BADGE[ROLES.USER]}`}
-          >
-            {ROLE_LABELS[role] || role}
-          </span>
-        </div>
-      </div>
-
       {/* ── Profile form card ── */}
       <div className="bg-slate-900/80 border border-slate-700/60 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-800">
           <h3 className="text-sm font-semibold text-white">Profile Information</h3>
         </div>
         <form onSubmit={handleSave} className="p-6 space-y-5">
+          <div>
+            <label className="text-xs text-slate-400 uppercase tracking-wide">Profile Photo</label>
+            <div className="mt-2 p-4 rounded-xl bg-slate-950/50 border border-slate-800">
+              <ProfileImageUpload value={profileImage} onChange={setProfileImage} />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* First Name */}
             <div>
@@ -258,7 +300,7 @@ export default function UserProfile() {
           <div className="pt-1 flex justify-end">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !isDirty}
               className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-medium text-white transition-colors"
             >
               {saving ? "Saving..." : "Save Changes"}
