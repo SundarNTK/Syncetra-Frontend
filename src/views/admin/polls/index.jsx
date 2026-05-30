@@ -8,6 +8,7 @@ import {
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell, { MasterList, MasterListItem, MasterListEmpty } from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
 import { pollOptionGlowClass } from "../../../components/polls/pollOptionStyles";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
@@ -566,18 +567,31 @@ function CreatePollModal({ onClose, onCreated, trips }) {
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-xs text-slate-400 block mb-1">Poll Type</label>
-              <select value={form.pollType} onChange={(e) => setForm({ ...form, pollType: e.target.value })} className={inputCls}>
-                <option value="general">General (all members)</option>
-                <option value="trip">Trip-based</option>
-              </select>
+              <SearchableSelect
+                value={form.pollType}
+                onChange={(pollType) => setForm({ ...form, pollType })}
+                options={[
+                  { value: "general", label: "General (all members)" },
+                  { value: "trip", label: "Trip-based" },
+                ]}
+                searchable={false}
+                placeholder="Poll type"
+              />
             </div>
             {form.pollType === "trip" && (
               <div className="flex-1">
                 <label className="text-xs text-slate-400 block mb-1">Select Trip</label>
-                <select value={form.tripId} onChange={(e) => setForm({ ...form, tripId: e.target.value })} className={inputCls} required>
-                  <option value="">— Choose trip —</option>
-                  {trips.map((t) => <option key={t._id} value={t._id}>{t.tripName}</option>)}
-                </select>
+                <SearchableSelect
+                  value={form.tripId}
+                  onChange={(tripId) => setForm({ ...form, tripId })}
+                  options={[
+                    { value: "", label: "— Choose trip —" },
+                    ...trips.map((t) => ({ value: t._id, label: t.tripName })),
+                  ]}
+                  placeholder="— Choose trip —"
+                searchPlaceholder="Search trips…"
+                required
+              />
               </div>
             )}
           </div>

@@ -1,3 +1,5 @@
+import { SYNC_NATIVE_SELECT } from "./formControlStyles";
+
 /** Converts 24h "HH:mm" to { hour12, minute, ampm } */
 export const parse24h = (time24) => {
   if (!time24) return { hour12: "7", minute: "00", ampm: "AM" };
@@ -24,6 +26,8 @@ export const to24h = (hour12, minute, ampm) => {
 const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 
+const timeSelectCls = `${SYNC_NATIVE_SELECT} min-w-[4.25rem] py-2`;
+
 export default function TimePicker12h({ value, onChange }) {
   const { hour12, minute, ampm } = parse24h(value);
 
@@ -36,7 +40,8 @@ export default function TimePicker12h({ value, onChange }) {
       <select
         value={hour12}
         onChange={(e) => update(e.target.value, minute, ampm)}
-        className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-slate-100 min-w-[4rem]"
+        className={timeSelectCls}
+        aria-label="Hour"
       >
         {HOURS.map((h) => (
           <option key={h} value={h}>
@@ -44,11 +49,12 @@ export default function TimePicker12h({ value, onChange }) {
           </option>
         ))}
       </select>
-      <span className="text-slate-400 font-bold">:</span>
+      <span className="text-cyan-400/60 font-bold text-lg leading-none">:</span>
       <select
         value={minute}
         onChange={(e) => update(hour12, e.target.value, ampm)}
-        className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-slate-100 min-w-[4rem]"
+        className={timeSelectCls}
+        aria-label="Minute"
       >
         {MINUTES.map((m) => (
           <option key={m} value={m}>
@@ -59,11 +65,12 @@ export default function TimePicker12h({ value, onChange }) {
       <select
         value={ampm}
         onChange={(e) => update(hour12, minute, e.target.value)}
-        className={`px-3 py-2 rounded-lg border-2 font-semibold min-w-[4.5rem] ${
+        className={`${timeSelectCls} min-w-[4.75rem] font-semibold ${
           ampm === "AM"
-            ? "bg-amber-600/20 border-amber-500 text-amber-300"
-            : "bg-indigo-600/20 border-indigo-500 text-indigo-300"
+            ? "border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.08)]"
+            : "border-indigo-500/40 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.08)]"
         }`}
+        aria-label="AM or PM"
       >
         <option value="AM">AM</option>
         <option value="PM">PM</option>

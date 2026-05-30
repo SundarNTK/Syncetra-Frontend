@@ -6,6 +6,7 @@ import { getAdminGroups, getGroupById } from "../../services/groups";
 import { getSocket } from "../../services/socketService";
 import { formatDateTimeDisplay } from "../../utils/dateTimeUtils";
 import SyncetraLoader from "../ui/SyncetraLoader";
+import MemberMultiSelect from "../ui/MemberMultiSelect";
 import TaskEditModal from "./TaskEditModal";
 import AssignedMemberChips from "./AssignedMemberChips";
 
@@ -28,40 +29,6 @@ const TASK_STATUS_CLS = {
   in_progress: "bg-blue-600/20 text-blue-400",
   completed:   "bg-emerald-600/20 text-emerald-400",
 };
-
-// ─── MemberMultiSelect ──────────────────────────────────────────────────────
-function MemberMultiSelect({ members, selected, onChange }) {
-  const toggle = (id) => {
-    if (selected.includes(id)) onChange(selected.filter((s) => s !== id));
-    else onChange([...selected, id]);
-  };
-
-  return (
-    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-      {members.length === 0 && (
-        <p className="text-xs text-slate-500 py-2">No members in this trip</p>
-      )}
-      {members.map((m) => {
-        const id = String(m.id || m._id);
-        const checked = selected.includes(id);
-        return (
-          <label
-            key={id}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${checked ? "bg-emerald-700/20 border border-emerald-700/40" : "bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800"}`}
-          >
-            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${checked ? "bg-emerald-600 border-emerald-600" : "border-slate-600"}`}>
-              {checked && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10" fill="currentColor"><path d="M1 5l3 3 5-5"/></svg>}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm text-slate-200 truncate">{m.name}</p>
-              <p className="text-[10px] text-slate-500 truncate">{m.email}</p>
-            </div>
-          </label>
-        );
-      })}
-    </div>
-  );
-}
 
 // ─── AckTable ──────────────────────────────────────────────────────────────
 function AckTable({ acknowledgments }) {
@@ -300,9 +267,12 @@ export default function AdminTaskManager({ trip, onClose }) {
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Assign to members</label>
               <MemberMultiSelect
-                members={members}
-                selected={form.assignedTo}
+                options={members}
+                value={form.assignedTo}
                 onChange={(ids) => setForm((p) => ({ ...p, assignedTo: ids }))}
+                emptyMeansAll={false}
+                placeholder="Select members to assign"
+                emptyHint="No members in this trip"
               />
             </div>
 

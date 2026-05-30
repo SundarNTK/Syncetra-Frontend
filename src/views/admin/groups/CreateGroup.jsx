@@ -3,43 +3,68 @@ import { useNavigate } from "react-router-dom";
 import { createGroup, getAdminGroups } from "../../../services/groups";
 import { getMembers } from "../../../services/users";
 import { useTrip } from "../../../context/TripContext";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
 
 /* ─── MemberPickerDropdown ───────────────────────────────────────────────────
    Multi-select from existing registered members.
    selectedIds: string[]   onChange: (ids: string[]) => void
 ─────────────────────────────────────────────────────────────────────────────*/
 function MemberPickerDropdown({ allMembers, selectedIds, onChange, loading }) {
-  const [open, setOpen]     = useState(false);
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const ref                 = useRef(null);
+  const [draft, setDraft] = useState([]);
+  const ref = useRef(null);
+
+  const allIds = allMembers.map((m) => String(m.id || m._id));
 
   useEffect(() => {
+    if (!open) return undefined;
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current?.contains(e.target)) return;
+      setOpen(false);
+      setSearch("");
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [open]);
+
+  const openPanel = () => {
+    setDraft([...selectedIds]);
+    setSearch("");
+    setOpen(true);
+  };
+
+  const closePanel = () => {
+    setOpen(false);
+    setSearch("");
+  };
+
+  const handleCancel = () => closePanel();
+
+  const handleOkay = () => {
+    onChange([...draft]);
+    closePanel();
+  };
 
   const filtered = allMembers.filter((m) => {
     const q = search.toLowerCase();
     return (
-      (m.name  || "").toLowerCase().includes(q) ||
+      (m.name || "").toLowerCase().includes(q) ||
       (m.email || "").toLowerCase().includes(q)
     );
   });
 
-  const allSelected  = allMembers.length > 0 && selectedIds.length === allMembers.length;
-  const someSelected = selectedIds.length > 0 && !allSelected;
+  const allSelected = allMembers.length > 0 && draft.length === allMembers.length;
+  const someSelected = draft.length > 0 && !allSelected;
 
   const toggle = (id) => {
-    if (selectedIds.includes(id)) onChange(selectedIds.filter((s) => s !== id));
-    else onChange([...selectedIds, id]);
+    if (draft.includes(id)) setDraft(draft.filter((s) => s !== id));
+    else setDraft([...draft, id]);
   };
 
   const toggleAll = () => {
-    if (allSelected) onChange([]);
-    else onChange(allMembers.map((m) => String(m.id || m._id)));
+    if (allSelected) setDraft([]);
+    else setDraft([...allIds]);
   };
 
   const label =
@@ -54,7 +79,7 @@ function MemberPickerDropdown({ allMembers, selectedIds, onChange, loading }) {
       {/* Trigger */}
       <button
         type="button"
-        onClick={() => setOpen((p) => !p)}
+        onClick={() => (open ? handleCancel() : openPanel())}
         className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-600 focus:outline-none focus:border-red-500/60 text-sm transition-colors"
       >
         <span className={selectedIds.length === 0 ? "text-slate-500" : "text-slate-200"}>
@@ -84,7 +109,7 @@ function MemberPickerDropdown({ allMembers, selectedIds, onChange, loading }) {
                 {m.name || m.email}
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); toggle(id); }}
+                  onClick={(e) => { e.stopPropagation(); onChange(selectedIds.filter((s) => s !== id)); }}
                   className="hover:text-red-400 leading-none ml-0.5"
                 >
                   ×
@@ -146,7 +171,7 @@ function MemberPickerDropdown({ allMembers, selectedIds, onChange, loading }) {
                 ) : (
                   filtered.map((m) => {
                     const id      = String(m.id || m._id);
-                    const checked = selectedIds.includes(id);
+                    const checked = draft.includes(id);
                     return (
                       <div
                         key={id}
@@ -179,16 +204,15 @@ function MemberPickerDropdown({ allMembers, selectedIds, onChange, loading }) {
                 )}
               </div>
 
-              {/* Okay footer */}
-              <div className="border-t border-slate-700/60 px-3 py-2.5 flex items-center justify-between bg-slate-900/60">
-                <span className="text-xs text-slate-500">
-                  {selectedIds.length === 0 ? "None selected" : `${selectedIds.length} selected`}
+              {/* Footer */}
+              <div className="sync-date-panel__footer sync-date-panel__footer--multi gap-2">
+                <span className="text-xs text-slate-500 truncate min-w-0 flex-1">
+                  {draft.length === 0 ? "None selected" : `${draft.length} selected`}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white transition-colors"
-                >
+                <button type="button" className="sync-date-footer-btn shrink-0" onClick={handleCancel}>
+                  Cancel
+                </button>
+                <button type="button" className="sync-date-footer-btn sync-date-footer-btn--primary shrink-0" onClick={handleOkay}>
                   Okay
                 </button>
               </div>
@@ -302,16 +326,20 @@ export default function CreateGroup() {
                   className="w-12 h-12 rounded-xl object-cover border border-slate-700 shrink-0"
                 />
               )}
-              <select
+              <SearchableSelect
+                className="flex-1 w-full min-w-0"
                 value={tripId}
-                onChange={(e) => setTripId(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all text-sm text-white"
-              >
-                <option value="">None</option>
-                {availableTrips.map((t) => (
-                  <option key={t._id} value={t._id}>{t.name || t.tripName}</option>
-                ))}
-              </select>
+                onChange={setTripId}
+                options={[
+                  { value: "", label: "None" },
+                  ...availableTrips.map((t) => ({
+                    value: t._id,
+                    label: t.name || t.tripName,
+                  })),
+                ]}
+                placeholder="None"
+                searchPlaceholder="Search trips…"
+              />
             </div>
           )}
         </div>

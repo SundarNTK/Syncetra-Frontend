@@ -4,6 +4,7 @@ import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getVehicles, addVehicle, updateVehicle } from "../../../services/trips";
 import DatePickerField from "../../../components/ui/DatePickerField";
+import { SYNC_NATIVE_SELECT } from "../../../components/ui/formControlStyles";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
@@ -176,7 +177,7 @@ function VehicleForm({ initial, onSave, onCancel, saving }) {
         </div>
         <div>
           <label className={labelCls}>Vehicle Type</label>
-          <select value={form.type} onChange={(e) => set("type", e.target.value)} className={inputCls}>
+          <select value={form.type} onChange={(e) => set("type", e.target.value)} className={SYNC_NATIVE_SELECT}>
             {VEHICLE_TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}

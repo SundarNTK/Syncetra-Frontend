@@ -1,11 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { SET_USER_INFO } from "../../store/userSlice";
 import { login, register, forgotPassword, resetPassword } from "../../services/auth";
-import { registerDeviceForPush } from "../../utils/fcm";
 import { ROLES } from "../../constants/enum";
 import { SyncetraBrand } from "../../components/brand/SyncetraLogo";
+import SyncetraLoader from "../../components/ui/SyncetraLoader";
+
+const INTRO_CINEMATIC = "/intro-styles/cinematic";
+const introAfterAuth = (destination) => ({
+  introFlow: true,
+  destination,
+});
 
 // ─── Shared field styles ──────────────────────────────────────────────────────
 const INPUT_CLS =
@@ -213,13 +219,17 @@ export default function Login() {
   );
 
   const isAdminRole = (r) => r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN;
+  const postLoginNavRef = useRef(false);
 
+  // Already signed in — skip login page (no intro; intro is only after fresh sign-in)
   useEffect(() => {
+    if (postLoginNavRef.current) return;
     if (isLogin && userInfo?.user?.name) {
       const dest = isAdminRole(userInfo.user.role) ? "/admin/dashboard" : "/user/dashboard";
-      navigate("/intro", { replace: true, state: { destination: dest } });
+      navigate(dest, { replace: true });
     }
-  }, [isLogin, userInfo, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const switchMode = (m) => {
     setMode(m);
@@ -235,15 +245,12 @@ export default function Login() {
     try {
       const res = await login(identifier, password);
       const session = res.data;
+      postLoginNavRef.current = true;
       dispatch(SET_USER_INFO(session));
-      if (session.user.role === ROLES.USER) {
-        await registerDeviceForPush(null, session.token);
-      }
       const dest = isAdminRole(session.user.role) ? "/admin/dashboard" : "/user/dashboard";
-      navigate("/intro", { state: { destination: dest } });
+      navigate(INTRO_CINEMATIC, { replace: true, state: introAfterAuth(dest) });
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -270,6 +277,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 sm:p-6">
+      {loading && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-slate-950/85 backdrop-blur-sm">
+          <SyncetraLoader size="md" />
+          <p className="text-sm text-slate-300 font-medium">Signing in…</p>
+        </div>
+      )}
       <style>{LOGIN_BG_CSS}</style>
       <div className="absolute inset-0 bg-gradient-to-br from-[#05090f] via-[#0c1124] to-[#1a0a24]" />
       <div className="absolute inset-0 pointer-events-none">

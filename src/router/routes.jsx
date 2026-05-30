@@ -91,7 +91,10 @@ function SplashRedirect() {
           : "/user/dashboard";
       navigate(dest, { replace: true });
     } else {
-      navigate("/intro", { replace: true, state: { destination: "/login" } });
+      navigate("/intro-styles/cinematic", {
+        replace: true,
+        state: { introFlow: true, destination: "/login" },
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

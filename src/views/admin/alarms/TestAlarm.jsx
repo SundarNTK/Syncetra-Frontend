@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getAdminGroups } from "../../../services/groups";
 import { testTriggerAlarm } from "../../../services/alarms";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
 
 export default function TestAlarm() {
   const [groups, setGroups] = useState([]);
@@ -74,18 +75,17 @@ export default function TestAlarm() {
         </div>
         <div>
           <label className="text-sm text-slate-400">Group (optional)</label>
-          <select
+          <SearchableSelect
             value={groupId}
-            onChange={(e) => setGroupId(e.target.value)}
-            className="w-full mt-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-600"
-          >
-            <option value="">Auto — first group containing this mobile</option>
-            {groups.map((g) => (
-              <option key={g._id} value={g._id}>
-                {g.groupName}
-              </option>
-            ))}
-          </select>
+            onChange={setGroupId}
+            options={[
+              { value: "", label: "Auto — first group containing this mobile" },
+              ...groups.map((g) => ({ value: g._id, label: g.groupName })),
+            ]}
+            placeholder="Auto — first group containing this mobile"
+            searchPlaceholder="Search groups…"
+            className="mt-1"
+          />
         </div>
         <div>
           <label className="text-sm text-slate-400">Alarm title</label>

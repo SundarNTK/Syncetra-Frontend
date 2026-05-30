@@ -5,6 +5,7 @@ import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getExpenses, addExpense, updateExpense, getTripHub } from "../../../services/trips";
 import { getAdminGroups } from "../../../services/groups";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
+import { SYNC_NATIVE_SELECT } from "../../../components/ui/formControlStyles";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -174,7 +175,7 @@ function EditModal({ expense, tripId, onClose, onSaved, onPreview }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Category</label>
-              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={inputCls}>
+              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={SYNC_NATIVE_SELECT}>
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
@@ -394,7 +395,7 @@ export default function AdminExpenses() {
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className={inputCls}
+                className={SYNC_NATIVE_SELECT}
               >
                 {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>

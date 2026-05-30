@@ -7,6 +7,7 @@ import useTripMemberCount from "../../../hooks/useTripMemberCount";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import TripLocationMap from "../../../components/trip/TripLocationMap";
 import DatePickerField from "../../../components/ui/DatePickerField";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
 import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
 import MasterPageShell, {
   MasterList,
@@ -634,18 +635,18 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
       />
 
       <div className={`grid grid-cols-1 gap-3 items-center ${isEdit ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-        <select
+        <SearchableSelect
           value={form.tripType}
-          onChange={f("tripType")}
-          className={inputCls}
+          onChange={(v) => setForm((p) => ({ ...p, tripType: v }))}
+          options={TRIP_TYPES.map((t) => ({
+            value: t.value,
+            label: t.label,
+            icon: t.icon,
+          }))}
+          placeholder="Trip type"
+          searchPlaceholder="Search trip types…"
           aria-label="Trip type"
-        >
-          {TRIP_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.icon} {t.label}
-            </option>
-          ))}
-        </select>
+        />
         <input
           type="number"
           placeholder="Budget"
@@ -690,16 +691,18 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
         {isEdit && (
           <div>
             <label className="block text-xs text-slate-400 mb-1">Status</label>
-            <select
+            <SearchableSelect
               value={form.status}
-              onChange={f("status")}
-              className={inputCls}
-            >
-              <option value="planned">Planned</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              onChange={(v) => setForm((p) => ({ ...p, status: v }))}
+              options={[
+                { value: "planned", label: "Planned" },
+                { value: "active", label: "Active" },
+                { value: "completed", label: "Completed" },
+                { value: "cancelled", label: "Cancelled" },
+              ]}
+              searchable={false}
+              placeholder="Status"
+            />
           </div>
         )}
       </div>

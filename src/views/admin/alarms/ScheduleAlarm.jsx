@@ -6,6 +6,7 @@ import StatusSelect from "../../../components/ui/StatusSelect";
 import TimePicker12h from "../../../components/ui/TimePicker12h";
 import DatePickerField, { getTodayStr } from "../../../components/ui/DatePickerField";
 import { previewSound } from "../../../components/alarm-popup/AlarmPopup";
+import AlarmTargetFields, { buildAlarmTargetPayload } from "../../../components/alarms/AlarmTargetFields";
 
 const SOUND_OPTIONS = [
   {
@@ -51,6 +52,8 @@ export default function ScheduleAlarm() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [groupId, setGroupId] = useState("");
+  const [targetType, setTargetType] = useState("group_all");
+  const [targetMemberIds, setTargetMemberIds] = useState([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [soundType, setSoundType] = useState("siren");
@@ -85,6 +88,10 @@ export default function ScheduleAlarm() {
     setLoading(true);
     setError("");
     try {
+      if (targetType === "selected" && !targetMemberIds.length) {
+        throw new Error("Select at least one member for particular-member alerts.");
+      }
+
       const schedules = dateBlocks.map((b) => ({
         date: b.date,
         status: b.status,
@@ -101,6 +108,7 @@ export default function ScheduleAlarm() {
         schedules,
         repeatType: "none",
         soundType,
+        ...buildAlarmTargetPayload({ targetType, targetMemberIds }),
       });
       navigate("/admin/alarms");
     } catch (err) {
@@ -120,33 +128,33 @@ export default function ScheduleAlarm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Group</label>
-            <select
-              value={groupId}
-              onChange={(e) => setGroupId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
-              required
-            >
-              <option value="">Select group</option>
-              {groups.map((g) => (
-                <option key={g._id} value={g._id}>
-                  {g.groupName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Alarm Title</label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
-              placeholder="Enter alarm title"
-              required
-            />
-          </div>
+        <div className="rounded-2xl border border-slate-700 bg-slate-900/50 p-4 sm:p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-slate-300">Recipients</h3>
+          <AlarmTargetFields
+            groups={groups}
+            groupId={groupId}
+            targetType={targetType}
+            targetMemberIds={targetMemberIds}
+            onGroupIdChange={setGroupId}
+            onTargetTypeChange={(v) => {
+              setTargetType(v);
+              setTargetMemberIds([]);
+            }}
+            onTargetMemberIdsChange={setTargetMemberIds}
+            variant="alarm"
+            labelClassName="block text-sm font-medium text-slate-400 mb-2"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-400 mb-2">Alarm Title</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
+            placeholder="Enter alarm title"
+            required
+          />
         </div>
 
         <div>

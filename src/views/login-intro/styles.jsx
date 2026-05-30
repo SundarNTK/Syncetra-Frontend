@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { LOGO_FULL } from "../../components/brand/SyncetraLogo";
 
@@ -297,12 +297,18 @@ export default function IntroStylePreview() {
   const params = useParams();
   const introFlow = Boolean(location.state?.introFlow);
   const id = introFlow ? "cinematic" : STYLES[params.styleId] ? params.styleId : "cinematic";
+  const exitTimerRef = useRef(null);
 
   useEffect(() => {
-    if (!introFlow || !location.state?.destination) return;
-    const toExit = setTimeout(() => navigate(location.state.destination, { replace: true }), 3000);
-    return () => clearTimeout(toExit);
-  }, [introFlow, location.state, navigate]);
+    if (!introFlow || !location.state?.destination) return undefined;
+    exitTimerRef.current = setTimeout(
+      () => navigate(location.state.destination, { replace: true }),
+      2000
+    );
+    return () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
+  }, [introFlow, location.state?.destination, navigate]);
 
   return (
     <>

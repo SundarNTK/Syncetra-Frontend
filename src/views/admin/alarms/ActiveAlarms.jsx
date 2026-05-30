@@ -8,12 +8,24 @@ import {
 } from "../../../services/alarms";
 import { getAdminGroups } from "../../../services/groups";
 import MasterPageShell, { MasterList, MasterListItem } from "../../../components/layout/MasterPageShell";
+import AlarmTargetFields, {
+  alarmTargetLabel,
+  buildAlarmTargetPayload,
+} from "../../../components/alarms/AlarmTargetFields";
+
+const emptyEmergency = () => ({
+  groupId: "",
+  title: "",
+  targetType: "group_all",
+  targetMemberIds: [],
+});
 
 export default function ActiveAlarms() {
   const [alarms, setAlarms] = useState([]);
   const [groups, setGroups] = useState([]);
   const [codes, setCodes] = useState({});
-  const [emergency, setEmergency] = useState({ groupId: "", title: "" });
+  const [emergency, setEmergency] = useState(emptyEmergency);
+  const [submitting, setSubmitting] = useState(false);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
 
   const load = async () => {
@@ -53,13 +65,26 @@ export default function ActiveAlarms() {
 
   const handleEmergency = async (e) => {
     e.preventDefault();
-    await triggerEmergency({
-      groupId: emergency.groupId,
-      title: emergency.title || "EMERGENCY ALERT",
-      description: "Immediate group alert",
-    });
-    setEmergency({ groupId: "", title: "" });
-    load();
+    if (emergency.targetType === "selected" && !emergency.targetMemberIds.length) {
+      alert("Select at least one member for particular-member alerts.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await triggerEmergency({
+        groupId: emergency.groupId,
+        title: emergency.title || "EMERGENCY ALERT",
+        description: "Immediate group alert",
+        ...buildAlarmTargetPayload(emergency),
+      });
+      setEmergency(emptyEmergency());
+      load();
+    } catch (err) {
+      alert(err.message || "Could not trigger alarm");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -69,27 +94,34 @@ export default function ActiveAlarms() {
         className="mb-6 p-4 bg-red-950 border border-red-600 rounded-xl space-y-3"
       >
         <h3 className="font-semibold text-red-400">Emergency Instant Alarm</h3>
-        <select
-          value={emergency.groupId}
-          onChange={(e) => setEmergency({ ...emergency, groupId: e.target.value })}
-          className="w-full px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
-          required
-        >
-          <option value="">Select group</option>
-          {groups.map((g) => (
-            <option key={g._id} value={g._id}>
-              {g.groupName}
-            </option>
-          ))}
-        </select>
+
+        <AlarmTargetFields
+          groups={groups}
+          groupId={emergency.groupId}
+          targetType={emergency.targetType}
+          targetMemberIds={emergency.targetMemberIds}
+          onGroupIdChange={(groupId) => setEmergency((prev) => ({ ...prev, groupId }))}
+          onTargetTypeChange={(targetType) =>
+            setEmergency((prev) => ({ ...prev, targetType, targetMemberIds: [] }))
+          }
+          onTargetMemberIdsChange={(targetMemberIds) =>
+            setEmergency((prev) => ({ ...prev, targetMemberIds }))
+          }
+          variant="alarm"
+        />
+
         <input
           value={emergency.title}
           onChange={(e) => setEmergency({ ...emergency, title: e.target.value })}
           placeholder="Alert title"
           className="w-full px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all"
         />
-        <button type="submit" className="w-full py-2 bg-red-600 rounded-lg font-bold hover:bg-red-700 transition-colors">
-          TRIGGER NOW
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full py-2 bg-red-600 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+        >
+          {submitting ? "Triggering…" : "TRIGGER NOW"}
         </button>
       </form>
 
@@ -100,28 +132,34 @@ export default function ActiveAlarms() {
           {alarms.map((a) => (
             <MasterListItem key={a._id} className="master-list-item flex-col bg-red-900/30 border border-red-600">
               <div className="p-4 w-full">
-              <h3 className="font-bold text-base sm:text-lg">{a.title}</h3>
-              <p className="text-sm text-slate-300">{a.description}</p>
-              <p className="text-xs text-slate-400 mt-1">Status: {a.status}</p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <button
-                  onClick={() => revealCode(a._id)}
-                  className="text-sm px-3 py-2 bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
-                >
-                  Reveal Stop Code
-                </button>
-                <button
-                  onClick={() => handleCancel(a._id)}
-                  className="text-sm px-3 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-              {codes[a._id] && (
-                <p className="mt-2 text-2xl sm:text-3xl font-mono font-bold tracking-widest text-amber-300 break-all">
-                  {codes[a._id]}
+                <h3 className="font-bold text-base sm:text-lg">{a.title}</h3>
+                <p className="text-sm text-slate-300">{a.description}</p>
+                <p className="text-xs text-slate-400 mt-1">Status: {a.status}</p>
+                <p className="text-xs text-slate-400">
+                  Recipients: {alarmTargetLabel(a.targetType)}
+                  {a.targetType === "selected" && a.targetMemberIds?.length
+                    ? ` (${a.targetMemberIds.length} selected)`
+                    : ""}
                 </p>
-              )}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <button
+                    onClick={() => revealCode(a._id)}
+                    className="text-sm px-3 py-2 bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors"
+                  >
+                    Reveal Stop Code
+                  </button>
+                  <button
+                    onClick={() => handleCancel(a._id)}
+                    className="text-sm px-3 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {codes[a._id] && (
+                  <p className="mt-2 text-2xl sm:text-3xl font-mono font-bold tracking-widest text-amber-300 break-all">
+                    {codes[a._id]}
+                  </p>
+                )}
               </div>
             </MasterListItem>
           ))}

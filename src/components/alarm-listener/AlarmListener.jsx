@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { SET_ACTIVE_ALARM, CLEAR_ACTIVE_ALARM, ADD_TASK_NOTIFICATION } from "../../store/userSlice";
 import { connectSocket, joinGroupRooms } from "../../services/socketService";
@@ -11,21 +11,42 @@ import { ROLES } from "../../constants/enum";
 export default function AlarmListener({ children }) {
   const dispatch = useAppDispatch();
   const { userInfo, activeAlarm } = useAppSelector((s) => s.user);
+  const token = userInfo?.token;
   const isUser = userInfo?.user?.role === ROLES.USER;
+
+  const syncAlarmState = useCallback(async () => {
+    if (!isUser || !token) return;
+    try {
+      const res = await getUserActiveAlarm();
+      if (res?.data) {
+        dispatch(SET_ACTIVE_ALARM(res.data));
+      } else {
+        dispatch(CLEAR_ACTIVE_ALARM());
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [isUser, token, dispatch]);
+
+  const joinMemberGroups = useCallback(async () => {
+    if (!isUser || !token) return;
+    try {
+      const res = await getUserGroups();
+      joinGroupRooms((res?.data || []).map((g) => g._id));
+    } catch {
+      /* ignore */
+    }
+  }, [isUser, token]);
 
   // Listen for postMessage from the service worker when user taps a background
   // notification. The SW sends FCM_ALARM_CLICK with alarmId so the popup opens.
   useEffect(() => {
-    if (!isUser || !userInfo?.token) return;
+    if (!isUser || !token) return;
 
     const params = new URLSearchParams(window.location.search);
     const alarmFromUrl = params.get("alarm");
     if (alarmFromUrl) {
-      getUserActiveAlarm()
-        .then((res) => {
-          if (res?.data) dispatch(SET_ACTIVE_ALARM(res.data));
-        })
-        .catch(() => {});
+      syncAlarmState();
       params.delete("alarm");
       const qs = params.toString();
       const next = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
@@ -50,37 +71,21 @@ export default function AlarmListener({ children }) {
     return () => {
       navigator.serviceWorker?.removeEventListener("message", handleSwMessage);
     };
-  }, [isUser, userInfo?.token, dispatch]);
+  }, [isUser, token, dispatch, syncAlarmState]);
 
   useEffect(() => {
-    if (!isUser || !userInfo?.token) return;
+    if (!isUser || !token) return;
 
     const socket = connectSocket(userInfo);
 
-    const checkActive = async () => {
-      try {
-        const res = await getUserActiveAlarm();
-        if (res?.data) {
-          dispatch(SET_ACTIVE_ALARM(res.data));
-        }
-      } catch {
-        /* ignore */
-      }
+    const bootstrap = () => {
+      requestNotificationPermission();
+      syncAlarmState();
+      joinMemberGroups();
     };
 
-    const loadGroups = async () => {
-      try {
-        const res = await getUserGroups();
-        const ids = (res?.data || []).map((g) => g._id);
-        joinGroupRooms(ids);
-      } catch {
-        /* ignore */
-      }
-    };
-
-    requestNotificationPermission();
-    checkActive();
-    loadGroups();
+    bootstrap();
+    socket.on("connect", bootstrap);
 
     socket.on("alarm:triggered", (payload) => {
       dispatch(
@@ -117,13 +122,20 @@ export default function AlarmListener({ children }) {
       );
     });
 
+    const onVisible = () => {
+      if (document.visibilityState === "visible") bootstrap();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
+      socket.off("connect", bootstrap);
       socket.off("alarm:triggered");
       socket.off("alarm:cancelled");
       socket.off("alarm:completed");
       socket.off("task:assigned");
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [isUser, userInfo, dispatch]);
+  }, [isUser, token, userInfo, dispatch, syncAlarmState, joinMemberGroups]);
 
   return (
     <>

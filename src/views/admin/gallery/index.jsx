@@ -7,6 +7,7 @@ import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { getMedia, getMediaItem, addMedia, deleteMedia as deleteMediaApi } from "../../../services/trips";
 import { fileToDataUrl } from "../../../utils/fileToDataUrl";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
+import { SYNC_NATIVE_SELECT } from "../../../components/ui/formControlStyles";
 
 const CATEGORY_TABS = ["all", "mine", "food", "travel", "moments", "other"];
 const CATEGORIES = ["food", "travel", "moments", "other"];
@@ -700,7 +701,7 @@ export default function TripGallery() {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select value={category} onChange={(e) => setCategory(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-slate-200">
+                className={SYNC_NATIVE_SELECT}>
                 {CATEGORIES.map((c) => <option key={c} value={c}>{toTitleCase(c)}</option>)}
               </select>
               <input placeholder="Caption (optional)" value={caption} onChange={(e) => setCaption(e.target.value)}
