@@ -18,6 +18,20 @@ export default function AlarmListener({ children }) {
   useEffect(() => {
     if (!isUser || !userInfo?.token) return;
 
+    const params = new URLSearchParams(window.location.search);
+    const alarmFromUrl = params.get("alarm");
+    if (alarmFromUrl) {
+      getUserActiveAlarm()
+        .then((res) => {
+          if (res?.data) dispatch(SET_ACTIVE_ALARM(res.data));
+        })
+        .catch(() => {});
+      params.delete("alarm");
+      const qs = params.toString();
+      const next = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+      window.history.replaceState({}, "", next);
+    }
+
     const handleSwMessage = (event) => {
       if (event.data?.type === "FCM_ALARM_CLICK" && event.data?.alarmId) {
         dispatch(

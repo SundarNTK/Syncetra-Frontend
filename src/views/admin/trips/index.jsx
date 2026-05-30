@@ -1352,9 +1352,9 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
 
   return (
     <MasterListItem className="master-list-item trip-card flex-col sm:flex-row">
-      {/* Cover — full-width banner on mobile, side column on sm+ */}
-      <div className="relative group shrink-0 w-full h-40 sm:h-auto sm:w-36 md:w-40 sm:min-h-[7.5rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60 overflow-hidden rounded-t-xl sm:rounded-none">
-        <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full ${coverGlowClass}`}>
+      {/* Cover — full-width banner on mobile; left column with curved glow on sm+ */}
+      <div className="trip-cover-column relative group shrink-0 w-full h-40 sm:h-auto sm:w-36 md:w-40 sm:min-h-[7.5rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60 p-1 sm:p-1.5">
+        <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
           <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip.coverImage ? (
           <img
@@ -1397,9 +1397,9 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
         </div>
       </div>
 
-      {/* Info + actions */}
-      <div className="flex-1 p-3 sm:p-4 flex flex-col gap-3 min-w-0 w-full">
-        <div className="min-w-0 flex-1">
+      {/* Info + actions — side-by-side on sm+ so buttons sit far right */}
+      <div className="flex-1 flex flex-col sm:flex-row min-w-0 w-full">
+        <div className="flex-1 p-3 sm:p-4 min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1.5">
             <h3 className="font-semibold text-base sm:text-lg leading-snug break-words w-full sm:w-auto sm:truncate sm:flex-1 min-w-0">
               {trip.tripName}
@@ -1425,7 +1425,7 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
           <TripCountdownStrip trip={trip} />
         </div>
 
-        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-1.5 w-full sm:w-auto sm:shrink-0 sm:self-start border-t border-slate-700/40 pt-3 sm:border-t-0 sm:pt-0">
+        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-1.5 p-3 pt-0 sm:p-4 sm:pt-4 sm:pl-2 sm:shrink-0 sm:self-start border-t sm:border-t-0 sm:border-l border-slate-700/40">
           <button
             onClick={() => onView(trip)}
             className={`${actionBtn} bg-slate-700 hover:bg-slate-600 text-slate-300`}

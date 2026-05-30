@@ -23,8 +23,11 @@ export function MasterList({ children, className = "" }) {
 }
 
 export function MasterListItem({ children, className = "" }) {
+  const isTripCard = className.includes("trip-card");
   return (
-    <li className={`w-full bg-slate-800 rounded-xl overflow-hidden flex ${className}`}>
+    <li
+      className={`w-full bg-slate-800 rounded-xl flex ${isTripCard ? "overflow-visible" : "overflow-hidden"} ${className}`}
+    >
       {children}
     </li>
   );
