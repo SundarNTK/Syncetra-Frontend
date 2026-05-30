@@ -51,12 +51,24 @@ function FlyToFocus({ defaultCenter, defaultZoom, selectedTripId, selectedCenter
   return null;
 }
 
+function phaseMarkerColors(phase) {
+  if (phase === "active") {
+    return { mc: "#f97316", rgb: "249,115,22", dark: "#7c2d12" };
+  }
+  if (phase === "upcoming") {
+    return { mc: "#38bdf8", rgb: "56,189,248", dark: "#0c4a6e" };
+  }
+  if (phase === "completed") {
+    return { mc: "#fbbf24", rgb: "251,191,36", dark: "#78350f" };
+  }
+  return { mc: "#94a3b8", rgb: "148,163,184", dark: "#334155" };
+}
+
 function createTripMarker(trip, phase, isSelected = false) {
   const isActive = phase === "active";
   const isUpcoming = phase === "upcoming";
-  const mc = isSelected ? "#a78bfa" : isActive ? "#f97316" : isUpcoming ? "#38bdf8" : "#94a3b8";
-  const rgb = isSelected ? "167,139,250" : isActive ? "249,115,22" : isUpcoming ? "56,189,248" : "148,163,184";
-  const dark = isSelected ? "#4c1d95" : isActive ? "#7c2d12" : isUpcoming ? "#0c4a6e" : "#334155";
+  const isCompleted = phase === "completed";
+  const { mc, rgb, dark } = phaseMarkerColors(phase);
 
   const makeRing = (sz, op, delay) =>
     `<div style="position:absolute;width:${sz}px;height:${sz}px;border-radius:50%;border:${isSelected ? 2 : 1.5}px solid rgba(${rgb},${op});top:50%;left:50%;transform:translate(-50%,-50%);animation:markerPulse ${isSelected ? 2.2 : 2.8}s ease-out ${delay}s infinite;"></div>`;
@@ -67,6 +79,8 @@ function createTripMarker(trip, phase, isSelected = false) {
     ? makeRing(100, 0.18, 0) + makeRing(72, 0.32, 0.6) + makeRing(48, 0.48, 1.2) + makeRing(28, 0.65, 1.8)
     : isUpcoming
     ? makeRing(70, 0.2, 0) + makeRing(44, 0.38, 0.8)
+    : isCompleted
+    ? makeRing(90, 0.2, 0) + makeRing(64, 0.34, 0.6) + makeRing(42, 0.5, 1.2) + makeRing(26, 0.62, 1.8)
     : makeRing(50, 0.18, 0);
 
   const name = trip.tripName.length > 15 ? trip.tripName.slice(0, 14) + "…" : trip.tripName;
@@ -90,8 +104,7 @@ function createTripMarker(trip, phase, isSelected = false) {
 }
 
 function TripPopup({ trip, phase }) {
-  const mc = phase === "active" ? "#f97316" : phase === "upcoming" ? "#38bdf8" : "#94a3b8";
-  const rgb = phase === "active" ? "249,115,22" : phase === "upcoming" ? "56,189,248" : "148,163,184";
+  const { mc, rgb } = phaseMarkerColors(phase);
   return (
     <div className="trip-map-popup" style={{ width: 260, fontFamily: "system-ui,sans-serif" }}>
       {trip.coverImage && (
@@ -194,7 +207,7 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
           {[
             { color: "#f97316", label: "Active", count: activeCount },
             { color: "#38bdf8", label: "Upcoming", count: upcomingCount },
-            { color: "#94a3b8", label: "Done", count: tripsWithLoc.filter((t) => tripPhase(t) === "completed").length },
+            { color: "#fbbf24", label: "Done", count: tripsWithLoc.filter((t) => tripPhase(t) === "completed").length },
           ]
             .filter((l) => l.count > 0)
             .map((l) => (
