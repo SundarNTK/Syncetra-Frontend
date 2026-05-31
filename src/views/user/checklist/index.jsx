@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppSelector } from "../../../hooks";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { ChecklistThumb } from "../../../components/trip/ChecklistThumb";
 import ChecklistViewModal from "../../../components/checklist/ChecklistViewModal";
+import SyncCheckbox from "../../../components/ui/SyncCheckbox";
 import { getChecklists, toggleChecklist } from "../../../services/trips";
 
 function userIdFromPackedEntry(p) {
@@ -26,19 +27,31 @@ function patchPackedBy(packedBy, myId, shouldBePacked) {
   return list;
 }
 
-function ChecklistRow({ row, packed, toggling, tripId, onTogglePacked, onViewDescription }) {
+function ChecklistRow({ row, packed, tripId, onTogglePacked, onViewDescription }) {
   const hasDescription = Boolean(row.description && String(row.description).trim());
   const hasImage = Boolean(row.imageUrl || row.hasImage);
   const showView = hasDescription || hasImage;
 
   return (
-    <li className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <li
+      className={`rounded-xl overflow-hidden border transition-colors duration-200 ${
+        packed
+          ? "checklist-row-packed border-emerald-700/40"
+          : "bg-slate-900 border-slate-800"
+      }`}
+    >
       <div className="flex gap-3 items-center p-3">
         <div className="w-14 h-14 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-950 flex items-center justify-center">
           <ChecklistThumb tripId={tripId} item={row} isAdmin={false} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-slate-100 text-sm leading-snug">{row.item}</p>
+          <p
+            className={`font-medium text-sm leading-snug transition-colors ${
+              packed ? "text-emerald-100/90 line-through decoration-emerald-600/50" : "text-slate-100"
+            }`}
+          >
+            {row.item}
+          </p>
           {showView && (
             <button
               type="button"
@@ -49,19 +62,16 @@ function ChecklistRow({ row, packed, toggling, tripId, onTogglePacked, onViewDes
             </button>
           )}
         </div>
-        <label
-          className={`shrink-0 flex items-center gap-2 select-none pr-1 ${
-            toggling ? "opacity-70" : "cursor-pointer"
-          }`}
-        >
-          <span className="sr-only">Packed</span>
-          <input
-            type="checkbox"
+        <label className="shrink-0 flex flex-col items-center gap-1.5 select-none cursor-pointer py-1">
+          <SyncCheckbox
             checked={packed}
-            disabled={toggling}
             onChange={onTogglePacked}
-            className="w-5 h-5 rounded border-slate-600 bg-slate-950 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer disabled:cursor-wait"
+            className="sync-checkbox-lg"
+            aria-label={packed ? "Mark as not packed" : "Mark as packed"}
           />
+          <span className={`checklist-packed-label ${packed ? "is-packed" : ""}`}>
+            {packed ? "Packed" : "Pack"}
+          </span>
         </label>
       </div>
     </li>
@@ -76,8 +86,8 @@ export default function UserChecklist() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
-  const [togglingIds, setTogglingIds] = useState(() => new Set());
   const [viewItem, setViewItem] = useState(null);
+  const inFlightRef = useRef(new Set());
 
   useEffect(() => {
     if (!selectedTripId) {
@@ -105,8 +115,8 @@ export default function UserChecklist() {
     };
   }, [selectedTripId]);
 
-  const handleTogglePacked = async (itemId) => {
-    if (!selectedTripId || !myId || togglingIds.has(itemId)) return;
+  const handleTogglePacked = (itemId) => {
+    if (!selectedTripId || !myId || inFlightRef.current.has(itemId)) return;
 
     const item = items.find((c) => c._id === itemId);
     if (!item) return;
@@ -120,20 +130,16 @@ export default function UserChecklist() {
         c._id === itemId ? { ...c, packedBy: patchPackedBy(c.packedBy, myId, nextPacked) } : c
       )
     );
-    setTogglingIds((prev) => new Set(prev).add(itemId));
 
-    try {
-      await toggleChecklist(selectedTripId, itemId, false);
-    } catch (err) {
-      setItems(snapshot);
-      alert(err.message || "Could not update checklist");
-    } finally {
-      setTogglingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(itemId);
-        return next;
+    inFlightRef.current.add(itemId);
+    toggleChecklist(selectedTripId, itemId, false)
+      .catch((err) => {
+        setItems(snapshot);
+        alert(err.message || "Could not update checklist");
+      })
+      .finally(() => {
+        inFlightRef.current.delete(itemId);
       });
-    }
   };
 
   const totalCount   = items.length;
@@ -144,7 +150,6 @@ export default function UserChecklist() {
     <TripModuleShell title="Checklist" description="Mark items you have packed" loading={loading && !!selectedTripId}>
       {loadError ? <p className="text-sm text-red-400 mb-3">{loadError}</p> : null}
 
-      {/* ── Summary box ── */}
       {selectedTripId && totalCount > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 text-center">
@@ -171,7 +176,6 @@ export default function UserChecklist() {
               key={c._id}
               row={c}
               packed={isPackedForUser(c.packedBy, myId)}
-              toggling={togglingIds.has(c._id)}
               tripId={selectedTripId}
               onTogglePacked={() => handleTogglePacked(c._id)}
               onViewDescription={setViewItem}

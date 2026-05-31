@@ -667,8 +667,9 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
     <MasterListItem className="w-full min-w-0 !overflow-visible">
       <div className="flex w-full min-w-0 flex-col sm:flex-row sm:items-stretch gap-4 p-4">
         <div className="flex-1 min-w-0">
-          <div className="flex flex-col gap-3 mb-2">
-            <div className="min-w-0">
+          {/* Title row — stats pinned top-right */}
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="min-w-0 flex-1 pr-1">
               <h3 className="font-semibold text-base sm:text-lg text-white leading-snug break-words">
                 {poll.title}
               </h3>
@@ -680,9 +681,9 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
               </div>
             </div>
             {eligible > 0 && (
-              <div className="flex gap-2 w-full sm:w-auto sm:ml-auto sm:justify-end">
-                <PollMemberStat label="Members" value={eligible} variant="members" className="flex-1 sm:flex-none" />
-                <PollMemberStat label="Voted" value={uniqueResponded} variant="voted" className="flex-1 sm:flex-none" />
+              <div className="flex items-start gap-2 shrink-0">
+                <PollMemberStat label="Members" value={eligible} variant="members" />
+                <PollMemberStat label="Voted" value={uniqueResponded} variant="voted" />
               </div>
             )}
           </div>
@@ -691,27 +692,33 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
 
           <div className="mt-0.5">
             {leadingOpts.length > 0 && status === "open" && (
-              <p className="poll-highlight-line mt-5 mb-8 flex items-center gap-1.5 flex-wrap font-semibold">
-                <span className="text-base">⚡</span>
-                <span className="poll-leading-gradient font-bold">
-                  Leading: {leadingLabels}
+              <p className="poll-highlight-line mt-5 mb-8 font-semibold leading-snug">
+                <span className="inline">
+                  <span className="text-base" aria-hidden>⚡ </span>
+                  <span className="poll-leading-gradient font-bold">Leading: {leadingLabels}</span>
                 </span>
-                <span className="text-slate-500 text-xs font-normal">({maxVotes} vote{maxVotes !== 1 ? "s" : ""})</span>
+                <span className="text-slate-500 text-xs font-normal ml-1.5">
+                  ({maxVotes} vote{maxVotes !== 1 ? "s" : ""})
+                </span>
               </p>
             )}
             {leadingOpts.length > 0 && status === "completed" && (
-              <p className="poll-highlight-line mt-5 mb-8 flex items-center gap-1.5 flex-wrap font-semibold">
-                <span className="text-base">🏆</span>
-                <span className="poll-winner-gradient font-bold">
-                  Winner{leadingOpts.length > 1 ? "s" : ""}: {leadingLabels}
+              <p className="poll-highlight-line mt-5 mb-8 font-semibold leading-snug">
+                <span className="inline">
+                  <span className="text-base" aria-hidden>🏆 </span>
+                  <span className="poll-winner-gradient font-bold">
+                    Winner{leadingOpts.length > 1 ? "s" : ""}: {leadingLabels}
+                  </span>
                 </span>
               </p>
             )}
             {leadingOpts.length > 0 && status === "paused" && (
-              <p className="poll-highlight-line mt-5 mb-8 flex items-center gap-1.5 flex-wrap font-semibold">
-                <span className="text-base">⏸</span>
-                <span className="poll-paused-gradient font-bold">
-                  Leading (paused): {leadingLabels}
+              <p className="poll-highlight-line mt-5 mb-8 font-semibold leading-snug">
+                <span className="inline">
+                  <span className="text-base" aria-hidden>⏸ </span>
+                  <span className="poll-paused-gradient font-bold">
+                    Leading (paused): {leadingLabels}
+                  </span>
                 </span>
               </p>
             )}
