@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 import {
   getAttendance,
   getAttendanceCheckpoints,
@@ -140,14 +141,8 @@ export default function AdminAttendance() {
   const [loading,   setLoading]   = useState(false);
   const [cpLoading, setCpLoading] = useState(false);
   const [saving,    setSaving]    = useState(false);
-  const [toast,     setToast]     = useState(null);
   const [cpError,   setCpError]   = useState("");
-
-  /* ── toast ── */
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  };
+  const { popup, showSuccess, showError } = useActionPopup();
 
   /* ── load members + checkpoints ── */
   const loadBase = useCallback(async () => {
@@ -260,11 +255,11 @@ export default function AdminAttendance() {
           );
         })
       );
-      showToast(`Attendance saved for "${cpName}"`);
+      showSuccess(`Attendance saved for "${cpName}"`);
       await loadBase();
       goBack();
     } catch (err) {
-      showToast(err.message || "Failed to save attendance.", "error");
+      showError(err.message || "Failed to save attendance.");
     } finally {
       setSaving(false);
     }
@@ -276,17 +271,7 @@ export default function AdminAttendance() {
   /* ══════════════════════ RENDER ══════════════════════ */
   return (
     <TripModuleShell title="Attendance" description="Checkpoint-wise member attendance" loading={loading && !!selectedTripId && view === "list"}>
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-medium ${
-          toast.type === "error"
-            ? "bg-red-950 border-red-700 text-red-300"
-            : "bg-emerald-950 border-emerald-700 text-emerald-300"
-        }`}>
-          <span>{toast.type === "error" ? "✕" : "✓"}</span>
-          <span>{toast.message}</span>
-        </div>
-      )}
+      {popup}
 
       {selectedTripId ? (
         <div className="space-y-4">

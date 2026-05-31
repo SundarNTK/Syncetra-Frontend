@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAppSelector } from "../../../hooks";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useTrip } from "../../../context/TripContext";
 import {
   getPolls, createPoll, updatePoll, deletePoll, getPollAnalytics,
@@ -784,7 +785,7 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
           {isAdminUser && (
             <PollStatusSelect status={status} pollId={poll._id} onStatusChange={onStatusChange} />
           )}
-          {isSuperAdmin && (
+          {isAdminUser && (
             <button type="button" onClick={() => onDelete(poll._id)} className={pollActionBtn("bg-red-900/40 hover:bg-red-900/60 text-red-400")}>
               <IconTrash /> Delete
             </button>
@@ -811,6 +812,7 @@ export default function AdminPolls() {
   const [viewPoll, setViewPoll]       = useState(null);
   const [editPoll, setEditPoll]       = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
+  const { popup, showSuccess, showError } = useActionPopup();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -830,8 +832,9 @@ export default function AdminPolls() {
     try {
       await updatePoll(pollId, { pollStatus: newStatus });
       load();
+      showSuccess("Poll status updated successfully.");
     } catch (err) {
-      alert(err.message || "Failed to update status");
+      showError(err.message || "Failed to update status");
     }
   };
 
@@ -863,6 +866,7 @@ export default function AdminPolls() {
         ) : null
       }
     >
+      {popup}
       {/* Filter bar */}
       <div className="flex items-center gap-2 flex-wrap">
         {[
@@ -907,7 +911,7 @@ export default function AdminPolls() {
 
       {!isSuperAdmin && isAdminUser && (
         <p className="text-xs text-slate-500 flex items-center gap-1.5">
-          <IconLock /> Super Admins can create, delete, and edit poll content. You can view polls, open analytics, and change poll status.
+          <IconLock /> Super Admins can create and edit poll content. You can view polls, delete polls, open analytics, and change poll status.
         </p>
       )}
 
@@ -915,7 +919,7 @@ export default function AdminPolls() {
         <CreatePollModal
           trips={trips}
           onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); load(); }}
+          onCreated={() => { setShowCreate(false); load(); showSuccess("Poll created successfully."); }}
         />
       )}
 
@@ -932,7 +936,7 @@ export default function AdminPolls() {
           poll={editPoll}
           trips={trips}
           onClose={() => setEditPoll(null)}
-          onSaved={() => { setEditPoll(null); load(); }}
+          onSaved={() => { setEditPoll(null); load(); showSuccess("Poll updated successfully."); }}
         />
       )}
       {deleteModal}

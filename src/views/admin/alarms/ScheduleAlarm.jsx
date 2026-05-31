@@ -7,6 +7,7 @@ import TimePicker12h from "../../../components/ui/TimePicker12h";
 import DatePickerField, { getTodayStr } from "../../../components/ui/DatePickerField";
 import { previewSound } from "../../../components/alarm-popup/AlarmPopup";
 import AlarmTargetFields, { buildAlarmTargetPayload } from "../../../components/alarms/AlarmTargetFields";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 
 const SOUND_OPTIONS = [
   {
@@ -60,6 +61,7 @@ export default function ScheduleAlarm() {
   const [dateBlocks, setDateBlocks] = useState([newDateBlock()]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { popup, showSuccess } = useActionPopup();
 
   useEffect(() => {
     getAdminGroups().then((res) => setGroups(res?.data || []));
@@ -110,7 +112,7 @@ export default function ScheduleAlarm() {
         soundType,
         ...buildAlarmTargetPayload({ targetType, targetMemberIds }),
       });
-      navigate("/admin/alarms");
+      showSuccess("Alarm scheduled successfully.", { onDismiss: () => navigate("/admin/alarms") });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -120,6 +122,7 @@ export default function ScheduleAlarm() {
 
   return (
     <div className="w-full max-w-none space-y-6">
+      {popup}
       <div>
         <h2 className="text-xl sm:text-2xl font-bold">Schedule Alarm</h2>
         <p className="text-slate-400 text-sm mt-1">

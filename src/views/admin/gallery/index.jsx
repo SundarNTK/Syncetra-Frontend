@@ -7,7 +7,7 @@ import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { getMedia, getMediaItem, addMedia, deleteMedia as deleteMediaApi } from "../../../services/trips";
 import { fileToDataUrl } from "../../../utils/fileToDataUrl";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
-import { SYNC_NATIVE_SELECT } from "../../../components/ui/formControlStyles";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
 
 const CATEGORY_TABS = ["all", "mine", "food", "travel", "moments", "other"];
 const CATEGORIES = ["food", "travel", "moments", "other"];
@@ -22,6 +22,11 @@ const toTitleCase = (text = "") =>
   String(text)
     .replace(/_/g, " ")
     .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
+const GALLERY_CATEGORY_OPTIONS = CATEGORIES.map((c) => ({
+  value: c,
+  label: toTitleCase(c),
+}));
 
 // ─── download helper ────────────────────────────────────────────────────────
 async function downloadMedia(url, fileName) {
@@ -700,10 +705,13 @@ export default function TripGallery() {
               Set category and caption first — they apply to all selected files.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <select value={category} onChange={(e) => setCategory(e.target.value)}
-                className={SYNC_NATIVE_SELECT}>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{toTitleCase(c)}</option>)}
-              </select>
+              <SearchableSelect
+                value={category}
+                onChange={setCategory}
+                options={GALLERY_CATEGORY_OPTIONS}
+                searchable={false}
+                searchThreshold={99}
+              />
               <input placeholder="Caption (optional)" value={caption} onChange={(e) => setCaption(e.target.value)}
                 className="px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-slate-200" />
             </div>

@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getAdminAlarms, getAlarmLogs } from "../../../services/alarms";
+import { getAdminAlarms, getAlarmLogs, deleteAlarm } from "../../../services/alarms";
 import { formatDateTimeDisplay, formatTime12hDisplay } from "../../../utils/dateTimeUtils";
 import MasterPageShell, { MasterList, MasterListItem } from "../../../components/layout/MasterPageShell";
+import { useAppSelector } from "../../../hooks";
+import { ROLES } from "../../../constants/enum";
+import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 
 const formatScheduleSummary = (schedules) => {
   if (!schedules?.length) return "—";
@@ -17,18 +20,14 @@ const formatScheduleSummary = (schedules) => {
 };
 
 const IconClose = () => (
-  <svg
-    className="w-5 h-5"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M6 18L18 6M6 6l12 12"
-    />
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const IconTrash = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 );
 
@@ -94,14 +93,29 @@ function LogStatusBadge({ status }) {
 export default function AlarmList() {
   const [alarms, setAlarms] = useState([]);
   const [logs, setLogs] = useState(null);
+  const { userInfo } = useAppSelector((s) => s.user);
+  const isSuperAdmin = userInfo?.user?.role === ROLES.SUPER_ADMIN;
+  const { confirmDelete, deleteModal } = useDeleteConfirm();
 
-  useEffect(() => {
-    getAdminAlarms().then((res) => setAlarms(res?.data || []));
-  }, []);
+  const load = () => getAdminAlarms().then((res) => setAlarms(res?.data || []));
+
+  useEffect(() => { load(); }, []);
 
   const viewLogs = async (id) => {
     const res = await getAlarmLogs(id);
     setLogs({ alarmId: id, items: res?.data || [] });
+  };
+
+  const handleDelete = (alarm) => {
+    confirmDelete({
+      title: "Delete Alarm",
+      recordLabel: alarm.title,
+      message: "This alarm and its history will be permanently removed.",
+      onConfirm: async () => {
+        await deleteAlarm(alarm._id);
+        load();
+      },
+    });
   };
 
   return (
@@ -132,7 +146,19 @@ export default function AlarmList() {
               <div className="p-4 w-full">
                 <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
                   <h3 className="font-semibold text-base sm:text-lg">{a.title}</h3>
-                  <AlarmStatusBadge status={a.status} />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <AlarmStatusBadge status={a.status} />
+                    {isSuperAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(a)}
+                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-900/30 transition-colors"
+                        title="Delete alarm"
+                      >
+                        <IconTrash />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-slate-400">
                   {a.schedules?.length
@@ -153,6 +179,8 @@ export default function AlarmList() {
           );
         })}
       </MasterList>
+
+      {deleteModal}
 
       {logs && (
         <div

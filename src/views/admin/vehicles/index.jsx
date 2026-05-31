@@ -2,10 +2,13 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
-import { getVehicles, addVehicle, updateVehicle } from "../../../services/trips";
+import { getVehicles, addVehicle, updateVehicle, deleteVehicle } from "../../../services/trips";
 import DatePickerField from "../../../components/ui/DatePickerField";
-import { SYNC_NATIVE_SELECT } from "../../../components/ui/formControlStyles";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
+import VehicleMetaBadges from "../../../components/vehicles/VehicleMetaBadges";
+import { useActionPopup } from "../../../hooks/useActionPopup";
+import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
 const VEHICLE_TYPES = [
@@ -23,6 +26,11 @@ const TYPE_ICON = {
   bus: "🚌", van: "🚐", car: "🚗", tempo_traveller: "🚌",
   minibus: "🚐", jeep: "🚙", auto: "🛺", bike: "🏍️",
 };
+
+const VEHICLE_TYPE_OPTIONS = VEHICLE_TYPES.map((t) => ({
+  ...t,
+  icon: TYPE_ICON[t.value] || "🚗",
+}));
 
 const fmtINR = (n) => n ? `₹${Number(n).toLocaleString("en-IN")}` : "—";
 const fmtDate = (iso) => {
@@ -44,6 +52,9 @@ const calcDuration = (start, end) => {
 
 const MAX_IMAGES = 5;
 const IMAGE_MAX_BYTES = 1.5 * 1024 * 1024; // 1.5 MB per image
+
+const cardActionBtn =
+  "flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-lg text-xs font-medium transition-colors min-w-0 flex-1 sm:flex-none";
 
 /* ─── Image helpers ──────────────────────────────────────────────────────────── */
 const toBase64 = (file) =>
@@ -177,11 +188,13 @@ function VehicleForm({ initial, onSave, onCancel, saving }) {
         </div>
         <div>
           <label className={labelCls}>Vehicle Type</label>
-          <select value={form.type} onChange={(e) => set("type", e.target.value)} className={SYNC_NATIVE_SELECT}>
-            {VEHICLE_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
+          <SearchableSelect
+            value={form.type}
+            onChange={(v) => set("type", v)}
+            options={VEHICLE_TYPE_OPTIONS}
+            searchable={false}
+            searchThreshold={99}
+          />
         </div>
       </div>
 
@@ -278,7 +291,7 @@ function VehicleForm({ initial, onSave, onCancel, saving }) {
 }
 
 /* ─── EditModal ──────────────────────────────────────────────────────────────── */
-function EditModal({ vehicle, tripId, onClose, onSaved }) {
+function EditModal({ vehicle, tripId, onClose, onSaved, onDelete }) {
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
 
@@ -337,6 +350,20 @@ function EditModal({ vehicle, tripId, onClose, onSaved }) {
             </div>
           )}
           <VehicleForm initial={initial} onSave={handleSave} onCancel={onClose} saving={saving} />
+          {onDelete && (
+            <div className="mt-4 pt-4 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={onDelete}
+                className="w-full py-2.5 rounded-xl bg-red-900/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete Vehicle
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>,
@@ -438,7 +465,7 @@ function ImageFullscreenModal({ images, initialIndex = 0, onClose }) {
 }
 
 /* ─── VehicleDetailModal ─────────────────────────────────────────────────────── */
-function VehicleDetailModal({ vehicle, onClose, onEdit }) {
+function VehicleDetailModal({ vehicle, onClose, onEdit, onDelete }) {
   const [imgIdx,     setImgIdx]     = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const imgs      = vehicle.images || [];
@@ -554,16 +581,7 @@ function VehicleDetailModal({ vehicle, onClose, onEdit }) {
               <h3 className="font-bold text-white text-lg mb-1">{vehicle.name || typeLabel}</h3>
             )}
             <div className="flex flex-wrap gap-2 mt-1">
-              {vehicle.plateNumber && (
-                <span className="text-xs font-mono text-slate-300 bg-slate-800 border border-slate-700 px-3 py-1 rounded-lg">
-                  🪪 {vehicle.plateNumber}
-                </span>
-              )}
-              {vehicle.totalSeats && (
-                <span className="text-xs text-slate-300 bg-slate-800 border border-slate-700 px-3 py-1 rounded-lg">
-                  💺 {vehicle.totalSeats} Seats
-                </span>
-              )}
+              <VehicleMetaBadges vehicle={vehicle} />
             </div>
           </div>
 
@@ -626,6 +644,15 @@ function VehicleDetailModal({ vehicle, onClose, onEdit }) {
                 Edit Vehicle
               </button>
             )}
+            {onDelete && (
+              <button type="button" onClick={onDelete}
+                className="flex-1 py-2.5 rounded-xl bg-red-900/40 hover:bg-red-900/60 border border-red-800/50 text-red-400 font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+              </button>
+            )}
             <button type="button" onClick={onClose}
               className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-colors">
               Close
@@ -639,7 +666,7 @@ function VehicleDetailModal({ vehicle, onClose, onEdit }) {
 }
 
 /* ─── VehicleCard ────────────────────────────────────────────────────────────── */
-function VehicleCard({ vehicle, onView, onEdit }) {
+function VehicleCard({ vehicle, onView, onEdit, onDelete }) {
   const [imgIdx,     setImgIdx]     = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const imgs     = vehicle.images || [];
@@ -715,49 +742,47 @@ function VehicleCard({ vehicle, onView, onEdit }) {
       )}
 
       <div className="p-4 space-y-3">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-3">
+        {/* Header row — stacks on narrow cards */}
+        <div className="flex flex-col gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              {imgs.length === 0 && <span className="text-xl">{icon}</span>}
-              <p className="font-bold text-white text-base truncate">{vehicle.name}</p>
+              {imgs.length === 0 && <span className="text-xl shrink-0">{icon}</span>}
+              <p className="font-bold text-white text-base sm:text-lg truncate">{vehicle.name}</p>
             </div>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              {imgs.length === 0 && (
-                <span className="text-[11px] text-slate-400">{typeLabel}</span>
-              )}
-              {vehicle.plateNumber && (
-                <span className="text-[11px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
-                  {vehicle.plateNumber}
-                </span>
-              )}
-              {vehicle.totalSeats && (
-                <span className="text-[11px] text-slate-500">{vehicle.totalSeats} seats</span>
-              )}
-            </div>
+            {imgs.length === 0 && typeLabel && (
+              <p className="text-[11px] text-slate-400 mt-0.5">{typeLabel}</p>
+            )}
+            <VehicleMetaBadges vehicle={vehicle} className="mt-2" />
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex flex-wrap gap-2 w-full">
             <button type="button" onClick={onView}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 text-xs font-medium transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              className={`${cardActionBtn} bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700`}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
               </svg>
-              View
+              <span>View</span>
             </button>
             <button type="button" onClick={onEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800/30 border border-emerald-700/40 text-emerald-400 hover:bg-emerald-800/50 text-xs font-medium transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              className={`${cardActionBtn} bg-emerald-800/30 border border-emerald-700/40 text-emerald-400 hover:bg-emerald-800/50`}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              Edit
+              <span>Edit</span>
+            </button>
+            <button type="button" onClick={onDelete}
+              className={`${cardActionBtn} bg-red-900/40 border border-red-800/50 text-red-400 hover:bg-red-900/60`}>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>Delete</span>
             </button>
           </div>
         </div>
 
         {/* Booking info */}
         {(vehicle.bookedDate || vehicle.advanceAmount || vehicle.totalAmount) && (
-          <div className="grid grid-cols-3 gap-2 bg-slate-800/50 rounded-xl p-3">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2 bg-slate-800/50 rounded-xl p-3">
             {vehicle.bookedDate && (
               <div>
                 <p className="text-[9px] text-slate-500 uppercase tracking-wide">Booked</p>
@@ -808,15 +833,11 @@ export default function AdminVehicles() {
   const [loading, setLoading] = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState("");
-  const [toast,    setToast]    = useState(null);
+  const { popup, showSuccess, showError } = useActionPopup();
+  const { confirmDelete, deleteModal } = useDeleteConfirm();
   const [viewVeh,  setViewVeh]  = useState(null);
   const [editVeh,  setEditVeh]  = useState(null);
   const [showForm, setShowForm] = useState(false);
-
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3500);
-  };
 
   const load = useCallback(async () => {
     if (!selectedTripId) return;
@@ -845,7 +866,7 @@ export default function AdminVehicles() {
         tripStartDate: form.tripStartDate || undefined,
         tripEndDate:   form.tripEndDate   || undefined,
       });
-      showToast("Vehicle added successfully.");
+      showSuccess("Vehicle added successfully.");
       setShowForm(false);
       load();
     } catch (err) {
@@ -855,19 +876,28 @@ export default function AdminVehicles() {
     }
   };
 
+  const handleDelete = (vehicle) => {
+    if (!selectedTripId) return;
+    confirmDelete({
+      recordLabel: vehicle.name || vehicle.plateNumber || "this vehicle",
+      onConfirm: async () => {
+        try {
+          await deleteVehicle(selectedTripId, vehicle._id);
+          setViewVeh(null);
+          setEditVeh(null);
+          load();
+          showSuccess("Vehicle deleted successfully.");
+        } catch (err) {
+          showError(err.message || "Failed to delete vehicle.");
+          throw err;
+        }
+      },
+    });
+  };
+
   return (
     <TripModuleShell title="Vehicles" description="Bus, van, car & booking details" loading={loading && !!selectedTripId}>
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-5 right-5 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-medium ${
-          toast.type === "error"
-            ? "bg-red-950 border-red-700 text-red-300"
-            : "bg-emerald-950 border-emerald-700 text-emerald-300"
-        }`}>
-          <span>{toast.type === "error" ? "✕" : "✓"}</span>
-          <span>{toast.message}</span>
-        </div>
-      )}
+      {popup}
 
       {selectedTripId && (
         <div className="space-y-4">
@@ -924,6 +954,7 @@ export default function AdminVehicles() {
                   vehicle={v}
                   onView={() => setViewVeh(v)}
                   onEdit={() => setEditVeh(v)}
+                  onDelete={() => handleDelete(v)}
                 />
               ))}
             </div>
@@ -937,6 +968,7 @@ export default function AdminVehicles() {
           vehicle={viewVeh}
           onClose={() => setViewVeh(null)}
           onEdit={() => { setViewVeh(null); setEditVeh(viewVeh); }}
+          onDelete={() => handleDelete(viewVeh)}
         />
       )}
 
@@ -946,9 +978,11 @@ export default function AdminVehicles() {
           vehicle={editVeh}
           tripId={selectedTripId}
           onClose={() => setEditVeh(null)}
-          onSaved={() => { load(); showToast("Vehicle updated."); }}
+          onSaved={() => { load(); showSuccess("Vehicle updated successfully."); }}
+          onDelete={() => handleDelete(editVeh)}
         />
       )}
+      {deleteModal}
     </TripModuleShell>
   );
 }

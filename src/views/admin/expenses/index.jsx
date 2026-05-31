@@ -5,7 +5,8 @@ import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getExpenses, addExpense, updateExpense, getTripHub } from "../../../services/trips";
 import { getAdminGroups } from "../../../services/groups";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
-import { SYNC_NATIVE_SELECT } from "../../../components/ui/formControlStyles";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -21,6 +22,12 @@ const CATEGORY_ICON = {
 };
 
 const CATEGORIES = ["Food", "Fuel", "Toll", "Stay", "Entertainment", "Shopping", "Medical", "Other"];
+
+const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({
+  value: c,
+  label: c,
+  icon: CATEGORY_ICON[c.toLowerCase()] || "💸",
+}));
 
 const inputCls = "w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:border-emerald-600/60 focus:outline-none transition-colors";
 
@@ -175,9 +182,13 @@ function EditModal({ expense, tripId, onClose, onSaved, onPreview }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Category</label>
-              <select value={form.category} onChange={(e) => set("category", e.target.value)} className={SYNC_NATIVE_SELECT}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
+              <SearchableSelect
+                value={form.category}
+                onChange={(v) => set("category", v)}
+                options={CATEGORY_OPTIONS}
+                searchable={false}
+                searchThreshold={99}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Amount (₹) <span className="text-red-400">*</span></label>
@@ -264,6 +275,7 @@ function ImagePreviewModal({ src, onClose }) {
 /* ─── AdminExpenses ──────────────────────────────────────────────────────────── */
 export default function AdminExpenses() {
   const { selectedTripId } = useTrip();
+  const { popup, showSuccess } = useActionPopup();
   const [hub,              setHub]              = useState(null);
   const [items,            setItems]            = useState([]);
   const [loading,          setLoading]          = useState(false);
@@ -305,6 +317,7 @@ export default function AdminExpenses() {
     });
     setForm({ category: "Food", amount: "", description: "", imageUrl: "" });
     load();
+    showSuccess("Expense added successfully.");
   };
 
   const s         = hub?.expenseSummary;
@@ -313,12 +326,13 @@ export default function AdminExpenses() {
 
   return (
     <TripModuleShell title="Expenses" description="Auto-calculated trip budget & splits" loading={loading && !!selectedTripId}>
+      {popup}
       {editExp && (
         <EditModal
           expense={editExp}
           tripId={selectedTripId}
           onClose={() => setEditExp(null)}
-          onSaved={load}
+          onSaved={() => { load(); showSuccess("Expense updated successfully."); }}
           onPreview={setPreviewImg}
         />
       )}
@@ -392,13 +406,13 @@ export default function AdminExpenses() {
           <form onSubmit={handleAdd} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 mb-4">
             <p className="text-xs text-slate-400 font-medium">Add Expense</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <select
+              <SearchableSelect
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className={SYNC_NATIVE_SELECT}
-              >
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
+                onChange={(v) => setForm({ ...form, category: v })}
+                options={CATEGORY_OPTIONS}
+                searchable={false}
+                searchThreshold={99}
+              />
               <input
                 type="number"
                 placeholder="Amount"

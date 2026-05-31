@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppSelector } from "../../../hooks";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { ChecklistThumb } from "../../../components/trip/ChecklistThumb";
@@ -117,7 +118,6 @@ function ChecklistImageField({ value, onChange, onPreview, onPickFile }) {
               src={value}
               alt="Item preview"
               className="max-w-full max-h-[240px] w-auto h-auto object-contain rounded-md shadow-lg"
-            />
             />
           </button>
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-800 bg-slate-900/90">
@@ -355,6 +355,7 @@ export default function AdminChecklist() {
   const [editItem, setEditItem] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
+  const { popup, showSuccess } = useActionPopup();
 
   const memberOptionIds = tripMembers.map((m) => String(m.id || m._id));
 
@@ -442,6 +443,7 @@ export default function AdminChecklist() {
       });
       setForm({ item: "", description: "", assignedTo: [], imageUrl: "" });
       reloadChecklists();
+      showSuccess("Checklist item added successfully.");
     } catch (err) {
       setImgError(err.message || "Failed to add item");
     } finally {
@@ -467,6 +469,7 @@ export default function AdminChecklist() {
 
   return (
     <TripModuleShell title="Checklist" description="Packing items with image, notes, and optional assignee" loading={loading && !!selectedTripId}>
+      {popup}
       {selectedTripId && (
         <>
           {isAdminUser && (
@@ -594,7 +597,7 @@ export default function AdminChecklist() {
           memberOptionIds={memberOptionIds}
           membersLoading={membersLoading}
           onClose={() => setEditItem(null)}
-          onSaved={reloadChecklists}
+          onSaved={() => { reloadChecklists(); showSuccess("Checklist item updated successfully."); }}
           onPreview={setPreviewImage}
         />
       )}

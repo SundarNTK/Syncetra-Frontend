@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import {
   getGroupById,
@@ -179,6 +180,7 @@ export default function GroupDetail() {
   const [editName, setEditName]     = useState("");
   const [editMobile, setEditMobile] = useState("");
   const { confirmDelete, deleteModal } = useDeleteConfirm();
+  const { popup, showSuccess } = useActionPopup();
 
   const load = async () => {
     const res = await getGroupById(id);
@@ -208,6 +210,7 @@ export default function GroupDetail() {
       await addGroupMember(id, { userId: selectedUser.id });
       setSelectedUser(null);
       load();
+      showSuccess("Member added to group successfully.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -228,6 +231,7 @@ export default function GroupDetail() {
       await updateGroupMember(id, memberId, { name: editName, mobileNumber: editMobile });
       cancelEdit();
       load();
+      showSuccess("Group member updated successfully.");
     } catch (err) {
       setError(err.message);
     }
@@ -261,6 +265,7 @@ export default function GroupDetail() {
 
   return (
     <div className="w-full max-w-none space-y-6">
+      {popup}
       {/* Breadcrumb */}
       <Link to="/admin/groups" className="text-sm text-slate-400 hover:text-white transition-colors">
         ← Groups

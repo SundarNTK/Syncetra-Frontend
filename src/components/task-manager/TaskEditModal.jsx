@@ -1,16 +1,104 @@
 import { useEffect, useState } from "react";
 import { updateTask } from "../../services/trips";
 import MemberMultiSelect from "../ui/MemberMultiSelect";
-import { SYNC_NATIVE_SELECT } from "../ui/formControlStyles";
 
 const IconClose   = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>;
 const IconSpinner = () => <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="60" strokeDashoffset="20" strokeLinecap="round"/></svg>;
 
-const STATUS_OPTS = [
-  { value: "pending",     label: "Pending" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "completed",   label: "Completed" },
-];
+const ACK_GLOW = {
+  accepted: {
+    label: "Accepted",
+    box: "border-emerald-400/60 bg-emerald-950/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.25)]",
+    dot: "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]",
+  },
+  refused: {
+    label: "Refused",
+    box: "border-red-400/60 bg-red-950/40 text-red-300 shadow-[0_0_20px_rgba(239,68,68,0.25)]",
+    dot: "bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.8)]",
+  },
+  pending: {
+    label: "Pending",
+    box: "border-amber-400/50 bg-amber-950/35 text-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.18)]",
+    dot: "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)]",
+  },
+  none: {
+    label: "Not Assigned",
+    box: "border-slate-600/50 bg-slate-900/60 text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
+    dot: "bg-slate-500",
+  },
+};
+
+function memberName(user, members) {
+  if (user && typeof user === "object") return user.name || user.email || "Member";
+  const m = members.find((x) => String(x.id || x._id) === String(user));
+  return m?.name || m?.email || "Member";
+}
+
+function TaskAcceptancePanel({ task, members }) {
+  const acks = task?.acknowledgments || [];
+  const assigned = task?.assignedTo || [];
+
+  if (!assigned.length) {
+    const meta = ACK_GLOW.none;
+    return (
+      <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${meta.box}`}>
+        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${meta.dot}`} />
+        <div>
+          <p className="text-xs uppercase tracking-widest opacity-80">Member response</p>
+          <p className="text-sm font-semibold">{meta.label}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const rows = assigned.map((u) => {
+    const uid = String(typeof u === "object" ? (u._id || u.id) : u);
+    const ack = acks.find((a) => String(a.userId?._id || a.userId) === uid);
+    const status = ack?.status || "pending";
+    return { uid, name: memberName(u, members), status };
+  });
+
+  const summary = rows.some((r) => r.status === "refused")
+    ? "refused"
+    : rows.every((r) => r.status === "accepted")
+    ? "accepted"
+    : "pending";
+
+  const summaryMeta = ACK_GLOW[summary];
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs text-slate-400 mb-1">Member response</label>
+      <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${summaryMeta.box}`}>
+        <span className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${summaryMeta.dot}`} />
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-widest opacity-80">Overall</p>
+          <p className="text-sm font-semibold">
+            {summary === "accepted"
+              ? "All members accepted"
+              : summary === "refused"
+              ? "Task refused by member"
+              : "Awaiting member acceptance"}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {rows.map((r) => {
+          const meta = ACK_GLOW[r.status] || ACK_GLOW.pending;
+          return (
+            <span
+              key={r.uid}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium ${meta.box}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+              {r.name} · {meta.label}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function taskAssignedIds(task) {
   return (task?.assignedTo || []).map((u) =>
@@ -22,7 +110,6 @@ export default function TaskEditModal({ task, tripId, members, onClose, onSaved 
   const [form, setForm] = useState({
     title: task.title || "",
     description: task.description || "",
-    status: task.status || "pending",
     assignedTo: taskAssignedIds(task),
   });
   const [saving, setSaving] = useState(false);
@@ -40,7 +127,11 @@ export default function TaskEditModal({ task, tripId, members, onClose, onSaved 
     if (!form.title.trim()) { setError("Task title is required"); return; }
     setSaving(true);
     try {
-      await updateTask(tripId, task._id, form);
+      await updateTask(tripId, task._id, {
+        title: form.title,
+        description: form.description,
+        assignedTo: form.assignedTo,
+      });
       onSaved();
       onClose();
     } catch (err) {
@@ -81,20 +172,9 @@ export default function TaskEditModal({ task, tripId, members, onClose, onSaved 
             value={form.description}
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
             className={`${inputCls} resize-none`}
-            rows={2}
+            rows={5}
           />
-          <div>
-            <label className="block text-xs text-slate-400 mb-1.5">Status</label>
-            <select
-              value={form.status}
-              onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
-              className={SYNC_NATIVE_SELECT}
-            >
-              {STATUS_OPTS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
+          <TaskAcceptancePanel task={task} members={members} />
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Assign to members</label>
             <MemberMultiSelect

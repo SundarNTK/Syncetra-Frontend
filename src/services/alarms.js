@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from "../utils/http";
+import { apiGet, apiPost, apiPut, apiDelete } from "../utils/http";
 import { API_SCOPE } from "../constants/enum";
 import EndPoints from "../constants/endPoints";
 
@@ -35,3 +35,6 @@ export const stopAlarm = (id, code) =>
 
 export const getUserAlarmHistory = () =>
   apiGet(API_SCOPE.USER, EndPoints.ALARMS_HISTORY);
+
+export const deleteAlarm = (id) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.ALARM(id));

@@ -4,6 +4,7 @@ import { getAdmins, updateUser } from "../../../services/users";
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 
 const INPUT_CLS =
   "w-full mt-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-600 " +
@@ -191,6 +192,7 @@ export default function AdminAdmins() {
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
   const [editAdmin, setEditAdmin] = useState(null);
+  const { popup, showSuccess } = useActionPopup();
 
   const fetchAdmins = () => {
     setLoading(true);
@@ -206,6 +208,7 @@ export default function AdminAdmins() {
       setAdmins((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
     }
     setEditAdmin(null);
+    showSuccess("Admin updated successfully.");
   };
 
   const filtered = admins.filter((a) => {
@@ -233,6 +236,7 @@ export default function AdminAdmins() {
         </button>
       }
     >
+      {popup}
       {editAdmin && (
         <EditAdminModal
           admin={editAdmin}

@@ -9,6 +9,7 @@ import SyncetraLoader from "../ui/SyncetraLoader";
 import MemberMultiSelect from "../ui/MemberMultiSelect";
 import TaskEditModal from "./TaskEditModal";
 import AssignedMemberChips from "./AssignedMemberChips";
+import { useActionPopup } from "../../hooks/useActionPopup";
 
 const IconClose   = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>;
 const IconTrash   = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>;
@@ -133,6 +134,7 @@ export default function AdminTaskManager({ trip, onClose }) {
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState("");
   const [editTask, setEditTask] = useState(null);
+  const { popup, showSuccess } = useActionPopup();
 
   const [form, setForm] = useState({
     title: "",
@@ -204,6 +206,7 @@ export default function AdminTaskManager({ trip, onClose }) {
       await addTask(tripId, form);
       setForm({ title: "", description: "", assignedTo: [] });
       await load();
+      showSuccess("Task created successfully.");
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to create task");
     } finally {
@@ -224,10 +227,12 @@ export default function AdminTaskManager({ trip, onClose }) {
   const inputCls = "w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:border-emerald-600/60 focus:outline-none transition-colors";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8"
-      onClick={onClose}
-    >
+    <>
+      {popup}
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8"
+        onClick={onClose}
+      >
       <div
         className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -323,9 +328,10 @@ export default function AdminTaskManager({ trip, onClose }) {
           tripId={tripId}
           members={members}
           onClose={() => setEditTask(null)}
-          onSaved={load}
+          onSaved={() => { load(); showSuccess("Task updated successfully."); }}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

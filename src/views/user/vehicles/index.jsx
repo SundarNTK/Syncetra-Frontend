@@ -4,6 +4,7 @@ import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getUserVehicles } from "../../../services/trips";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
+import VehicleMetaBadges from "../../../components/vehicles/VehicleMetaBadges";
 
 const VEHICLE_TYPES = [
   { value: "bus",             label: "Bus" },
@@ -248,16 +249,7 @@ function VehicleDetailModal({ vehicle, onClose }) {
               <h3 className="font-bold text-white text-lg mb-1">{vehicle.name || typeLabel}</h3>
             )}
             <div className="flex flex-wrap gap-2 mt-1">
-              {vehicle.plateNumber && (
-                <span className="text-xs font-mono text-slate-300 bg-slate-800 border border-slate-700 px-3 py-1 rounded-lg">
-                  🪪 {vehicle.plateNumber}
-                </span>
-              )}
-              {vehicle.totalSeats && (
-                <span className="text-xs text-slate-300 bg-slate-800 border border-slate-700 px-3 py-1 rounded-lg">
-                  💺 {vehicle.totalSeats} Seats
-                </span>
-              )}
+              <VehicleMetaBadges vehicle={vehicle} />
             </div>
           </div>
 
@@ -398,25 +390,16 @@ function VehicleCard({ vehicle, onView }) {
 
       <div className="p-4 space-y-3">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             {imgs.length === 0 && <span className="text-2xl shrink-0">{icon}</span>}
-            <div className="min-w-0">
-              <p className="font-bold text-white text-base truncate">{vehicle.name || typeLabel}</p>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                {vehicle.plateNumber && (
-                  <span className="text-[11px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
-                    {vehicle.plateNumber}
-                  </span>
-                )}
-                {vehicle.totalSeats && (
-                  <span className="text-[11px] text-slate-500">{vehicle.totalSeats} seats</span>
-                )}
-              </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-white text-base sm:text-lg truncate">{vehicle.name || typeLabel}</p>
+              <VehicleMetaBadges vehicle={vehicle} className="mt-2" />
             </div>
           </div>
           <button type="button" onClick={onView}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 text-xs font-medium transition-colors">
+            className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 text-xs font-medium transition-colors">
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
@@ -427,7 +410,7 @@ function VehicleCard({ vehicle, onView }) {
 
         {/* Booking info */}
         {(vehicle.bookedDate || vehicle.advanceAmount > 0 || vehicle.totalAmount > 0) && (
-          <div className="grid grid-cols-3 gap-2 bg-slate-800/50 rounded-xl p-3">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-2 bg-slate-800/50 rounded-xl p-3">
             {vehicle.bookedDate && (
               <div>
                 <p className="text-[9px] text-slate-500 uppercase tracking-wide">Booked</p>

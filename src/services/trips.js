@@ -39,6 +39,8 @@ export const addVehicle = (tripId, data) =>
   apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_VEHICLES(tripId), data);
 export const updateVehicle = (tripId, id, data) =>
   apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_VEHICLE(tripId, id), data);
+export const deleteVehicle = (tripId, id) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_VEHICLE(tripId, id));
 export const getUserVehicles = (tripId) =>
   apiGet(API_SCOPE.USER, EndPoints.TRIP_VEHICLES(tripId));
 

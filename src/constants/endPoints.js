@@ -38,6 +38,7 @@ const EndPoints = Object.freeze({
   TRIP_SCHEDULES: (id) => `/trips/${id}/schedules`,
   TRIP_SYNC: (id) => `/trips/${id}/sync`,
   ALARMS: "/alarms",
+  ALARM: (id) => `/alarms/${id}`,
   ALARMS_ACTIVE: "/alarms/active",
   ALARMS_EMERGENCY: "/alarms/emergency",
   ALARMS_TEST_TRIGGER: "/alarms/test-trigger",

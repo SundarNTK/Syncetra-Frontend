@@ -4,6 +4,7 @@ import { createGroup, getAdminGroups } from "../../../services/groups";
 import { getMembers } from "../../../services/users";
 import { useTrip } from "../../../context/TripContext";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 
 /* ─── MemberPickerDropdown ───────────────────────────────────────────────────
    Multi-select from existing registered members.
@@ -236,6 +237,7 @@ export default function CreateGroup() {
   const [linkedTripIds,   setLinkedTripIds]   = useState([]);
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
+  const { popup, showSuccess } = useActionPopup();
 
   /* ── load registered members + existing groups (to know which trips are taken) ── */
   useEffect(() => {
@@ -272,7 +274,7 @@ export default function CreateGroup() {
         };
       });
       await createGroup({ groupName: groupName.trim(), tripId: tripId || undefined, members });
-      navigate("/admin/groups");
+      showSuccess("Group created successfully.", { onDismiss: () => navigate("/admin/groups") });
     } catch (err) {
       setError(err.message || "Failed to create group.");
     } finally {
@@ -284,6 +286,7 @@ export default function CreateGroup() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
+      {popup}
       <div className="mb-6">
         <h2 className="text-xl sm:text-2xl font-bold text-white">Create Group</h2>
         <p className="text-slate-400 text-sm mt-1">

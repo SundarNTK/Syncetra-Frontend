@@ -7,6 +7,7 @@ import { forgotPassword } from "../../services/auth";
 import { ROLES } from "../../constants/enum";
 import ChangePasswordModal from "../../components/change-password/ChangePasswordModal";
 import ProfileImageUpload from "../../components/profile/ProfileImageUpload";
+import ActionPopup from "../../components/ui/ActionPopup";
 
 /* ─── Constants ────────────────────────────────────────────────────────────── */
 const INPUT_CLS =
@@ -23,50 +24,6 @@ const ROLE_LABELS = {
   [ROLES.ADMIN]: "Administrator",
   [ROLES.USER]: "Member",
 };
-
-/* ─── Center popup ──────────────────────────────────────────────────────────── */
-function CenterPopup({ toast, onClose }) {
-  if (!toast) return null;
-  const isSuccess = toast.type === "success";
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        aria-label="Close"
-        onClick={onClose}
-      />
-      <div
-        className={`relative w-full max-w-sm rounded-2xl border shadow-2xl px-6 py-8 text-center
-          ${isSuccess
-            ? "bg-slate-900 border-emerald-700/60"
-            : "bg-slate-900 border-red-700/60"
-          }`}
-      >
-        <div
-          className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full text-2xl font-bold
-            ${isSuccess ? "bg-emerald-950 text-emerald-400" : "bg-red-950 text-red-400"}`}
-        >
-          {isSuccess ? "✓" : "✕"}
-        </div>
-        <p className={`text-sm font-medium leading-relaxed ${isSuccess ? "text-emerald-100" : "text-red-200"}`}>
-          {toast.message}
-        </p>
-        <button
-          type="button"
-          onClick={onClose}
-          className={`mt-6 w-full rounded-xl px-4 py-2.5 text-sm font-medium transition-colors
-            ${isSuccess
-              ? "bg-emerald-600 hover:bg-emerald-500 text-white"
-              : "bg-slate-700 hover:bg-slate-600 text-white"
-            }`}
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  );
-}
 
 /* ─── UserProfile ───────────────────────────────────────────────────────────── */
 export default function UserProfile() {
@@ -177,7 +134,12 @@ export default function UserProfile() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
-      <CenterPopup toast={toast} onClose={closeToast} />
+      <ActionPopup
+        open={!!toast}
+        message={toast?.message || ""}
+        type={toast?.type || "success"}
+        onClose={closeToast}
+      />
 
       {/* ── Page header ── */}
       <div className="flex items-center gap-3">

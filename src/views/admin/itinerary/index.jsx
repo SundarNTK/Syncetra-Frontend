@@ -4,9 +4,11 @@ import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getSchedules, addSchedule } from "../../../services/trips";
 import DateTimePicker12h from "../../../components/ui/DateTimePicker12h";
 import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 
 export default function AdminItinerary() {
   const { selectedTripId } = useTrip();
+  const { popup, showSuccess } = useActionPopup();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -43,10 +45,12 @@ export default function AdminItinerary() {
     await addSchedule(selectedTripId, form);
     setForm({ title: "", checkpoint: "", scheduledAt: "", notes: "" });
     load();
+    showSuccess("Itinerary checkpoint added successfully.");
   };
 
   return (
     <TripModuleShell title="Itinerary" description="Trip checkpoints with date & 12-hour time" loading={loading && !!selectedTripId}>
+      {popup}
       {selectedTripId && (
         <>
           <form onSubmit={handleAdd} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 mb-4">

@@ -4,6 +4,7 @@ import { getMembers, createMember, updateUser } from "../../../services/users";
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 
 const INPUT_CLS =
   "w-full mt-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-600 " +
@@ -187,7 +188,6 @@ function CreateMemberForm({ onCreated, onCancel }) {
   const [form, setForm] = useState({ username: "", name: "", email: "", mobileNumber: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
-  const [created, setCreated] = useState(false);
 
   const set = (key) => (e) => {
     const val = key === "mobileNumber"
@@ -205,27 +205,14 @@ function CreateMemberForm({ onCreated, onCancel }) {
     setLoading(true);
     try {
       const res = await createMember(form);
-      setCreated(true);
       onCreated(res?.data?.user);
+      onCancel();
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-
-  if (created) {
-    return (
-      <div className="animate-slide-up text-center py-4 space-y-4">
-        <div className="text-4xl">✅</div>
-        <p className="font-semibold text-sm text-green-400">
-          Member created successfully!
-        </p>
-        <button type="button" onClick={onCancel}
-          className="text-orange-400 text-sm font-semibold hover:underline">Close</button>
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
@@ -283,6 +270,7 @@ export default function AdminMembers() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch]     = useState("");
   const [editMember, setEditMember] = useState(null);
+  const { popup, showSuccess } = useActionPopup();
 
   const load = async () => {
     setLoading(true);
@@ -296,7 +284,11 @@ export default function AdminMembers() {
 
   useEffect(() => { load(); }, []);
 
-  const handleCreated = () => { load(); };
+  const handleCreated = () => {
+    load();
+    setShowForm(false);
+    showSuccess("Member created successfully.");
+  };
 
   const handleSaved = (updated) => {
     if (updated) {
@@ -305,6 +297,7 @@ export default function AdminMembers() {
       load();
     }
     setEditMember(null);
+    showSuccess("Member updated successfully.");
   };
 
   const filtered = members.filter((m) => {
@@ -344,6 +337,7 @@ export default function AdminMembers() {
         </div>
       }
     >
+      {popup}
       {editMember && (
         <EditMemberModal
           member={editMember}

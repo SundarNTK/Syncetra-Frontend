@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useTrip } from "../../../context/TripContext";
 import { createTrip, deleteTrip, updateTrip } from "../../../services/trips";
 import useTripMemberCount from "../../../hooks/useTripMemberCount";
@@ -1492,6 +1493,7 @@ export default function AdminTrips() {
   const [saving, setSaving] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
+  const { popup, showSuccess, showError } = useActionPopup();
 
   // Inject global keyframes once
   useEffect(() => {
@@ -1523,6 +1525,7 @@ export default function AdminTrips() {
       await updateTrip(editTrip._id, data);
       setEditTrip(null);
       loadTrips();
+      showSuccess("Trip updated successfully.");
     } finally {
       setSaving(false);
     }
@@ -1546,8 +1549,9 @@ export default function AdminTrips() {
       const dataUrl = await coverImageToDataUrl(file);
       await updateTrip(tripId, { coverImage: dataUrl });
       loadTrips();
+      showSuccess("Trip cover image updated successfully.");
     } catch (err) {
-      alert(err.message);
+      showError(err.message);
     }
     e.target.value = "";
   };
@@ -1572,6 +1576,7 @@ export default function AdminTrips() {
         ) : null
       }
     >
+      {popup}
       {/* Create form (inline panel) */}
       {showCreate && (
         <div className="bg-slate-900/80 border border-emerald-800/60 rounded-2xl p-5">
