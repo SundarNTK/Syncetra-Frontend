@@ -1,6 +1,7 @@
 import { LOGO_ICON } from "../brand/SyncetraLogo";
 
 const SIZE_MAP = {
+  xs: { box: 28, logo: 12 },
   sm: { box: 56, logo: 24 },
   md: { box: 96, logo: 40 },
   lg: { box: 128, logo: 52 },

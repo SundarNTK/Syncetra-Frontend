@@ -6,6 +6,7 @@ import MasterPageShell, { MasterList, MasterListItem } from "../../../components
 import { useAppSelector } from "../../../hooks";
 import { ROLES } from "../../../constants/enum";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 
 const formatScheduleSummary = (schedules) => {
   if (!schedules?.length) return "—";
@@ -102,9 +103,17 @@ export default function AlarmList() {
   useEffect(() => { load(); }, []);
 
   const viewLogs = async (id) => {
-    const res = await getAlarmLogs(id);
-    setLogs({ alarmId: id, items: res?.data || [] });
+    setLogs({ alarmId: id, items: [], loading: true });
+    try {
+      const res = await getAlarmLogs(id);
+      setLogs({ alarmId: id, items: res?.data || [], loading: false });
+    } catch (err) {
+      setLogs(null);
+      alert(err.message || "Could not load alarm logs");
+    }
   };
+
+  const closeLogs = () => setLogs(null);
 
   const handleDelete = (alarm) => {
     confirmDelete({
@@ -133,6 +142,7 @@ export default function AlarmList() {
       <MasterList>
         {alarms.map((a) => {
           const theme = getAlarmTheme(a.status);
+          const logsLoading = logs?.alarmId === a._id && logs.loading;
           return (
             <MasterListItem
               key={a._id}
@@ -170,9 +180,17 @@ export default function AlarmList() {
                 <button
                   type="button"
                   onClick={() => viewLogs(a._id)}
-                  className="text-sm text-red-400 mt-2 hover:text-red-300 transition-colors"
+                  disabled={logsLoading}
+                  className="inline-flex items-center gap-2 text-sm text-red-400 mt-2 hover:text-red-300 transition-colors disabled:opacity-60 disabled:cursor-wait"
                 >
-                  View logs
+                  {logsLoading ? (
+                    <>
+                      <SyncetraLoader size="xs" />
+                      Loading logs…
+                    </>
+                  ) : (
+                    "View logs"
+                  )}
                 </button>
               </div>
             </MasterListItem>
@@ -185,7 +203,7 @@ export default function AlarmList() {
       {logs && (
         <div
           className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center p-4 z-50"
-          onClick={() => setLogs(null)}
+          onClick={logs.loading ? undefined : closeLogs}
         >
           <div
             className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden shadow-2xl"
@@ -195,35 +213,49 @@ export default function AlarmList() {
               <h3 className="font-bold text-white">Alarm Response Logs</h3>
               <button
                 type="button"
-                onClick={() => setLogs(null)}
-                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                onClick={closeLogs}
+                disabled={logs.loading}
+                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors disabled:opacity-50"
                 aria-label="Close"
               >
                 <IconClose />
               </button>
             </div>
-            <ul className="flex-1 overflow-auto px-4 py-2 text-sm">
-              {logs.items.map((l) => (
-                <li
-                  key={l._id}
-                  className="flex items-center justify-between gap-3 border-b border-slate-700 py-2.5"
-                >
-                  <span className="truncate text-slate-200">
-                    {l.user?.name || l.userId}
-                  </span>
-                  <LogStatusBadge status={l.status} />
-                </li>
-              ))}
-            </ul>
-            <div className="px-4 pb-4 pt-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setLogs(null)}
-                className="w-full py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors text-slate-200"
-              >
-                Close
-              </button>
-            </div>
+            {logs.loading ? (
+              <div className="flex flex-col items-center justify-center gap-3 px-4 py-10 text-slate-400">
+                <SyncetraLoader size="sm" />
+                <p className="text-sm">Loading response logs…</p>
+              </div>
+            ) : (
+              <>
+                <ul className="flex-1 overflow-auto px-4 py-2 text-sm">
+                  {logs.items.length === 0 ? (
+                    <li className="py-6 text-center text-slate-500">No response logs yet.</li>
+                  ) : (
+                    logs.items.map((l) => (
+                      <li
+                        key={l._id}
+                        className="flex items-center justify-between gap-3 border-b border-slate-700 py-2.5"
+                      >
+                        <span className="truncate text-slate-200">
+                          {l.user?.name || l.userId}
+                        </span>
+                        <LogStatusBadge status={l.status} />
+                      </li>
+                    ))
+                  )}
+                </ul>
+                <div className="px-4 pb-4 pt-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={closeLogs}
+                    className="w-full py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors text-slate-200"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

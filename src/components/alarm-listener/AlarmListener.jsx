@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { SET_ACTIVE_ALARM, CLEAR_ACTIVE_ALARM, ADD_TASK_NOTIFICATION } from "../../store/userSlice";
 import { connectSocket, joinGroupRooms } from "../../services/socketService";
@@ -8,11 +8,43 @@ import { requestNotificationPermission, showAlarmNotification } from "../../util
 import AlarmPopup from "../alarm-popup/AlarmPopup";
 import { ROLES } from "../../constants/enum";
 
+function ScheduledAlarmToast({ toasts, onDismiss }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="fixed top-4 right-4 z-[9990] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className="pointer-events-auto bg-slate-800 border border-blue-500/50 rounded-xl px-4 py-3 shadow-2xl flex items-start gap-3 animate-slide-in"
+          style={{ boxShadow: "0 0 24px rgba(59,130,246,0.25)" }}
+        >
+          <span className="text-2xl shrink-0">📅</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-blue-300">New Alarm Scheduled</p>
+            <p className="text-sm text-white font-medium truncate">{t.title}</p>
+            {t.description ? (
+              <p className="text-xs text-slate-400 mt-0.5 truncate">{t.description}</p>
+            ) : null}
+          </div>
+          <button
+            onClick={() => onDismiss(t.id)}
+            className="shrink-0 text-slate-500 hover:text-slate-300 text-lg leading-none mt-0.5"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AlarmListener({ children }) {
   const dispatch = useAppDispatch();
   const { userInfo, activeAlarm } = useAppSelector((s) => s.user);
   const token = userInfo?.token;
   const isUser = userInfo?.user?.role === ROLES.USER;
+  const [scheduledToasts, setScheduledToasts] = useState([]);
+  const toastTimers = useRef({});
 
   const syncAlarmState = useCallback(async () => {
     if (!isUser || !token) return;
@@ -27,6 +59,24 @@ export default function AlarmListener({ children }) {
       /* ignore */
     }
   }, [isUser, token, dispatch]);
+
+  const addScheduledToast = useCallback((payload) => {
+    const id = payload.alarmId || String(Date.now());
+    setScheduledToasts((prev) => {
+      if (prev.some((t) => t.id === id)) return prev;
+      return [...prev, { id, title: payload.title, description: payload.description }];
+    });
+    toastTimers.current[id] = setTimeout(() => {
+      setScheduledToasts((prev) => prev.filter((t) => t.id !== id));
+      delete toastTimers.current[id];
+    }, 6000);
+  }, []);
+
+  const dismissToast = useCallback((id) => {
+    clearTimeout(toastTimers.current[id]);
+    delete toastTimers.current[id];
+    setScheduledToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   const joinMemberGroups = useCallback(async () => {
     if (!isUser || !token) return;
@@ -101,6 +151,15 @@ export default function AlarmListener({ children }) {
       });
     });
 
+    socket.on("alarm:scheduled", (payload) => {
+      addScheduledToast(payload);
+      showAlarmNotification({
+        title: `📅 Alarm Scheduled: ${payload.title}`,
+        body: payload.description || "A new alarm has been scheduled for your group.",
+        alarmId: payload.alarmId,
+      });
+    });
+
     socket.on("alarm:cancelled", () => {
       dispatch(CLEAR_ACTIVE_ALARM());
     });
@@ -130,16 +189,19 @@ export default function AlarmListener({ children }) {
     return () => {
       socket.off("connect", bootstrap);
       socket.off("alarm:triggered");
+      socket.off("alarm:scheduled");
       socket.off("alarm:cancelled");
       socket.off("alarm:completed");
       socket.off("task:assigned");
       document.removeEventListener("visibilitychange", onVisible);
+      Object.values(toastTimers.current).forEach(clearTimeout);
     };
-  }, [isUser, token, userInfo, dispatch, syncAlarmState, joinMemberGroups]);
+  }, [isUser, token, userInfo, dispatch, syncAlarmState, joinMemberGroups, addScheduledToast]);
 
   return (
     <>
       {children}
+      <ScheduledAlarmToast toasts={scheduledToasts} onDismiss={dismissToast} />
       {activeAlarm && (
         <AlarmPopup
           alarm={activeAlarm}
