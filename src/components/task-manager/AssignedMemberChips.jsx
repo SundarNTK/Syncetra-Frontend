@@ -19,12 +19,12 @@ export default function AssignedMemberChips({ task, members = [] }) {
   if (!names.length) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-      <span className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold shrink-0">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-2">
+      <span className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold shrink-0 w-full sm:w-auto">
         Assigned
       </span>
       {names.map((name, i) => (
-        <span key={`${name}-${i}`} className="task-member-chip">
+        <span key={`${name}-${i}`} className="task-member-chip max-w-full truncate">
           {name}
         </span>
       ))}

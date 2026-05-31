@@ -260,7 +260,7 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
             {poll.title}
           </h3>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${TYPE_BADGE[poll.pollType]}`}>
               {poll.pollType === "trip" ? "Trip" : "General"}
             </span>
@@ -269,7 +269,7 @@ function PollCard({ poll, userId, onVoteConfirm, onViewDescription }) {
                 {poll.pollStatus}
               </span>
             )}
-            <span className="text-xs text-slate-500 shrink-0 sm:ml-auto">
+            <span className="text-xs text-slate-500 w-full sm:w-auto sm:ml-auto">
               {eligible > 0 ? (
                 <>{uniqueResponded}/{eligible} responded</>
               ) : (

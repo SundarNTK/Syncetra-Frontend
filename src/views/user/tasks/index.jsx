@@ -121,7 +121,7 @@ export default function UserTasks() {
 
       {/* ── Summary ── */}
       {items.length > 0 && (
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-slate-200">{items.length}</p>
             <p className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Total</p>
@@ -179,35 +179,39 @@ export default function UserTasks() {
               {/* Row header */}
               <button
                 onClick={() => toggleExpand(task._id)}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                className="w-full flex items-start gap-3 px-4 py-3 text-left"
               >
-                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                <span className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${
                   ackStatus === "accepted" ? "bg-emerald-500"
                   : ackStatus === "refused"  ? "bg-red-500"
                   : "bg-amber-500 animate-pulse"
                 }`} />
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium text-slate-200 text-sm truncate">{task.title}</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${ACK_BADGE[ackStatus] || ACK_BADGE.pending}`}>
-                      {ACK_LABEL[ackStatus] || "Pending to Accept"}
-                    </span>
-                    {isPending && (
-                      <span className="text-[10px] bg-amber-900/30 text-amber-500 border border-amber-700/30 px-2 py-0.5 rounded-full font-medium animate-pulse">
-                        Action Needed
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                    <p className="font-medium text-slate-200 text-sm sm:text-base leading-snug break-words min-w-0">
+                      {task.title}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border shrink-0 ${ACK_BADGE[ackStatus] || ACK_BADGE.pending}`}>
+                        {ACK_LABEL[ackStatus] || "Pending to Accept"}
                       </span>
-                    )}
+                      {isPending && (
+                        <span className="text-[10px] bg-amber-900/30 text-amber-500 border border-amber-700/30 px-2 py-0.5 rounded-full font-medium animate-pulse shrink-0">
+                          Action Needed
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {tripName && (
-                    <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
-                      <span>✈️</span> {tripName}
+                    <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 break-words">
+                      <span className="shrink-0">✈️</span> {tripName}
                     </p>
                   )}
                 </div>
 
                 <svg
-                  className={`w-4 h-4 text-slate-500 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 text-slate-500 shrink-0 mt-1 transition-transform ${isOpen ? "rotate-180" : ""}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

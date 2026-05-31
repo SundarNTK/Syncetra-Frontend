@@ -302,9 +302,9 @@ function ViewPollModal({ poll, trips, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8 overflow-y-auto" onClick={onClose}>
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
-          <div className="min-w-0 pr-2">
-            <h3 className="font-semibold text-emerald-400 truncate">{poll.title}</h3>
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-slate-800">
+          <div className="min-w-0 flex-1 pr-2">
+            <h3 className="font-semibold text-emerald-400 leading-snug break-words">{poll.title}</h3>
             <div className="flex flex-wrap gap-1.5 mt-1">
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[poll.pollType]}`}>
                 {poll.pollType === "trip" ? "Trip Poll" : "General"}
@@ -644,9 +644,9 @@ function CreatePollModal({ onClose, onCreated, trips }) {
 }
 
 // ─── PollCard ─────────────────────────────────────────────────────────────────
-function PollMemberStat({ label, value, variant }) {
+function PollMemberStat({ label, value, variant, className = "" }) {
   return (
-    <div className="poll-admin-stat-col">
+    <div className={`poll-admin-stat-col ${className}`}>
       <span className="poll-admin-stat-label">{label}</span>
       <div className={`poll-admin-stat-box poll-admin-stat-box--${variant}`}>{value}</div>
     </div>
@@ -667,23 +667,27 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
     <MasterListItem className="w-full min-w-0 !overflow-visible">
       <div className="flex w-full min-w-0 flex-col sm:flex-row sm:items-stretch gap-4 p-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-3 mb-0.5">
-            <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
-              <h3 className="font-semibold text-base sm:text-lg text-white truncate min-w-0">{poll.title}</h3>
-              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 border ${TYPE_BADGE[poll.pollType]}`}>
-                {poll.pollType === "trip" ? "Trip Poll" : "General"}
-              </span>
-              <StatusBadge status={status} className="shrink-0" />
+          <div className="flex flex-col gap-3 mb-2">
+            <div className="min-w-0">
+              <h3 className="font-semibold text-base sm:text-lg text-white leading-snug break-words">
+                {poll.title}
+              </h3>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 border ${TYPE_BADGE[poll.pollType]}`}>
+                  {poll.pollType === "trip" ? "Trip Poll" : "General"}
+                </span>
+                <StatusBadge status={status} className="shrink-0" />
+              </div>
             </div>
             {eligible > 0 && (
-              <div className="flex items-end gap-2 shrink-0">
-                <PollMemberStat label="Members" value={eligible} variant="members" />
-                <PollMemberStat label="Voted" value={uniqueResponded} variant="voted" />
+              <div className="flex gap-2 w-full sm:w-auto sm:ml-auto sm:justify-end">
+                <PollMemberStat label="Members" value={eligible} variant="members" className="flex-1 sm:flex-none" />
+                <PollMemberStat label="Voted" value={uniqueResponded} variant="voted" className="flex-1 sm:flex-none" />
               </div>
             )}
           </div>
 
-          <p className="text-base text-slate-300 mb-2.5 whitespace-pre-wrap break-words leading-relaxed">{poll.question}</p>
+          <p className="text-sm sm:text-base text-slate-300 mb-2.5 whitespace-pre-wrap break-words leading-relaxed">{poll.question}</p>
 
           <div className="mt-0.5">
             {leadingOpts.length > 0 && status === "open" && (
@@ -731,13 +735,13 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
                   className={`rounded-xl overflow-hidden ${pollOptionGlowClass(i)}`}
                 >
                   <div className="px-3 py-2.5 bg-slate-950/30">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className={`text-sm font-medium leading-snug min-w-0 ${isLeading ? "text-emerald-300" : "text-slate-200"}`}>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                      <span className={`text-sm font-medium leading-snug min-w-0 break-words ${isLeading ? "text-emerald-300" : "text-slate-200"}`}>
                         {isLeading && status === "open" && "⚡ "}
                         {isLeading && status === "completed" && "🏆 "}
                         {o.label}
                       </span>
-                      <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap">
+                      <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap sm:text-right">
                         {count} vote{count !== 1 ? "s" : ""} · {barPct}%
                       </span>
                     </div>
@@ -868,7 +872,7 @@ export default function AdminPolls() {
     >
       {popup}
       {/* Filter bar */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2 w-full">
         {[
           { value: "all",     label: "All Polls" },
           { value: "general", label: "General" },
@@ -879,7 +883,7 @@ export default function AdminPolls() {
             {f.label}
           </button>
         ))}
-        <span className="text-xs text-slate-500 ml-auto">{polls.length} poll{polls.length !== 1 ? "s" : ""}</span>
+        <span className="text-xs text-slate-500 w-full sm:w-auto sm:ml-auto pt-1 sm:pt-0">{polls.length} poll{polls.length !== 1 ? "s" : ""}</span>
       </div>
 
       {/* List */}

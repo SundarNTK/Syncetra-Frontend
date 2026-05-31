@@ -245,69 +245,72 @@ function TaskRow({ task, members, isSuperAdmin, onEdit, onDelete }) {
 
   return (
     <li className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-start gap-3 px-4 py-3">
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-200">{task.title}</p>
-          {task.description && (
-            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{task.description}</p>
-          )}
+      <div className="px-4 py-3 space-y-3">
+        {/* Title + actions — stack on mobile */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-slate-200 text-sm sm:text-base leading-snug break-words">
+              {task.title}
+            </p>
+            {task.description && (
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed break-words">{task.description}</p>
+            )}
+          </div>
 
-          <AssignedMemberChips task={task} members={members} />
-
-          {/* Ack summary pills */}
-          {total > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {accepted > 0 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-emerald-600/15 text-emerald-400 border-emerald-600/30">
-                  ✓ {accepted} Accepted
-                </span>
-              )}
-              {refused > 0 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-red-600/15 text-red-400 border-red-600/30">
-                  ✗ {refused} Refused
-                </span>
-              )}
-              {pending > 0 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-amber-600/15 text-amber-400 border-amber-600/30 animate-pulse">
-                  ⏳ {pending} Pending
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          {isSuperAdmin && (
-            <>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end shrink-0">
+            {isSuperAdmin && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onEdit(task)}
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-slate-300 hover:bg-slate-800 border border-slate-700/60 transition-colors"
+                  title="Edit task"
+                >
+                  <IconEdit />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(task)}
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-red-400 hover:bg-red-900/30 border border-red-800/40 transition-colors"
+                  title="Delete task"
+                >
+                  <IconTrash />
+                </button>
+              </>
+            )}
+            {total > 0 && (
               <button
                 type="button"
-                onClick={() => onEdit(task)}
-                className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-800 border border-slate-700/60 transition-colors"
-                title="Edit task"
+                onClick={() => setExpanded((p) => !p)}
+                className="inline-flex items-center justify-center min-h-9 px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] sm:text-xs font-medium transition-colors flex-1 sm:flex-none"
               >
-                <IconEdit />
+                {expanded ? "Hide" : `Responses (${total})`}
               </button>
-              <button
-                type="button"
-                onClick={() => onDelete(task)}
-                className="p-1.5 rounded-lg text-red-400 hover:bg-red-900/30 transition-colors"
-                title="Delete task"
-              >
-                <IconTrash />
-              </button>
-            </>
-          )}
-          {total > 0 && (
-            <button
-              onClick={() => setExpanded((p) => !p)}
-              className="text-[10px] px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors whitespace-nowrap"
-            >
-              {expanded ? "Hide" : `Responses (${total})`}
-            </button>
-          )}
+            )}
+          </div>
         </div>
+
+        <AssignedMemberChips task={task} members={members} />
+
+        {total > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {accepted > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-emerald-600/15 text-emerald-400 border-emerald-600/30">
+                ✓ {accepted} Accepted
+              </span>
+            )}
+            {refused > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-red-600/15 text-red-400 border-red-600/30">
+                ✗ {refused} Refused
+              </span>
+            )}
+            {pending > 0 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-amber-600/15 text-amber-400 border-amber-600/30 animate-pulse">
+                ⏳ {pending} Pending
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Member responses panel */}

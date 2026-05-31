@@ -77,42 +77,48 @@ function TaskRow({ task, members, isSuperAdmin, onEdit, onDelete }) {
 
   return (
     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-slate-200 text-sm truncate">{task.title}</p>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize font-medium ${TASK_STATUS_CLS[task.status] || TASK_STATUS_CLS.pending}`}>
-              {task.status?.replace("_", " ") || "pending"}
-            </span>
+      <div className="px-4 py-3 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium text-slate-200 text-sm sm:text-base leading-snug break-words">{task.title}</p>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize font-medium shrink-0 ${TASK_STATUS_CLS[task.status] || TASK_STATUS_CLS.pending}`}>
+                {task.status?.replace("_", " ") || "pending"}
+              </span>
+            </div>
+            {task.description && (
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed break-words">{task.description}</p>
+            )}
           </div>
-          {task.description && (
-            <p className="text-xs text-slate-500 mt-0.5 truncate">{task.description}</p>
-          )}
-          <AssignedMemberChips task={task} members={members} />
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={() => setExpanded((p) => !p)}
-            className="text-[10px] px-2.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
-          >
-            {expanded ? "Hide" : "Members"}
-          </button>
-          {isSuperAdmin && (
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:justify-end shrink-0">
             <button
-              onClick={() => onEdit(task)}
-              className="p-1.5 rounded-lg text-slate-300 hover:bg-slate-700 transition-colors"
-              title="Edit task"
+              type="button"
+              onClick={() => setExpanded((p) => !p)}
+              className="inline-flex items-center justify-center min-h-9 px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] sm:text-xs font-medium transition-colors flex-1 sm:flex-none"
             >
-              <IconEdit />
+              {expanded ? "Hide" : "Members"}
             </button>
-          )}
-          <button
-            onClick={() => onDelete(task._id)}
-            className="p-1.5 rounded-lg text-red-400 hover:bg-red-900/30 transition-colors"
-          >
-            <IconTrash />
-          </button>
+            {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={() => onEdit(task)}
+                className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-slate-300 hover:bg-slate-700 border border-slate-600/60 transition-colors"
+                title="Edit task"
+              >
+                <IconEdit />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onDelete(task._id)}
+              className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-red-400 hover:bg-red-900/30 border border-red-800/40 transition-colors"
+              title="Delete task"
+            >
+              <IconTrash />
+            </button>
+          </div>
         </div>
+        <AssignedMemberChips task={task} members={members} />
       </div>
       {expanded && (
         <div className="border-t border-slate-700/50 px-4 py-3 bg-slate-900/40">
