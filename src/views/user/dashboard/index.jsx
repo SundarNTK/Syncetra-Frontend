@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { getUserDashboard } from "../../../services/dashboard";
 import { getUserGroups } from "../../../services/groups";
+import { getExpenses } from "../../../services/trips";
 import { useTrip } from "../../../context/TripContext";
 import TripsMapSection from "../../../components/trip/TripsMapSection";
 import SelectedTripCard from "../../../components/trip/SelectedTripCard";
+import AlarmStatusPieChart from "../../../components/dashboard/AlarmStatusPieChart";
 import { tripPhase, phaseBadge } from "../../../components/trip/tripUtils";
 
 /* ── Trip stat card ───────────────────────────────────────────────────────── */
@@ -105,6 +106,7 @@ export default function UserDashboard() {
   const { trips, selectedTrip, selectedTripId, setSelectedTripId } = useTrip();
   const [data, setData] = useState(null);
   const [memberCount, setMemberCount] = useState(null);
+  const [expenses, setExpenses] = useState([]);
 
   useEffect(() => {
     getUserDashboard().then((r) => setData(r?.data)).catch(() => {});
@@ -121,6 +123,24 @@ export default function UserDashboard() {
       .catch(() => {});
   }, [selectedTripId]);
 
+  useEffect(() => {
+    if (!selectedTripId) {
+      setExpenses([]);
+      return undefined;
+    }
+    let ignore = false;
+    getExpenses(selectedTripId, false)
+      .then((r) => {
+        if (!ignore) setExpenses(r?.data || []);
+      })
+      .catch(() => {
+        if (!ignore) setExpenses([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [selectedTripId]);
+
   const tripStats = trips.reduce(
     (acc, t) => {
       acc.total++;
@@ -132,6 +152,10 @@ export default function UserDashboard() {
     { total: 0, active: 0, upcoming: 0, completed: 0 }
   );
 
+  const tripBudget = Number(selectedTrip?.budget || 0);
+  const tripSpent = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const tripBalance = tripBudget - tripSpent;
+
   const selectedTripStats = [
     {
       label: "Members",
@@ -141,13 +165,19 @@ export default function UserDashboard() {
     },
     {
       label: "Budget",
-      value: `₹${(selectedTrip?.budget || 0).toLocaleString()}`,
+      value: `₹${tripBudget.toLocaleString()}`,
       icon: "💰",
       accent: "amber",
     },
     {
-      label: "Collected",
-      value: `₹${(selectedTrip?.collectedAmount || 0).toLocaleString()}`,
+      label: "Spent",
+      value: selectedTripId ? `₹${tripSpent.toLocaleString()}` : "—",
+      icon: "💸",
+      accent: "slate",
+    },
+    {
+      label: "Balance",
+      value: selectedTripId ? `₹${tripBalance.toLocaleString()}` : "—",
       icon: "💳",
       accent: "emerald",
     },
@@ -250,10 +280,10 @@ export default function UserDashboard() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "My Groups",    value: data.totalGroups,    icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40" },
-              { label: "Total Alarms", value: data.totalAlarms,    icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40"  },
-              { label: "Active",       value: data.activeAlarms,   icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40"    },
-              { label: "Completed",    value: data.completedAlarms, icon: "✓", from: "from-slate-600/60", to: "to-slate-800/60",  border: "border-slate-600/40"  },
+              { label: "My Groups",    value: data.totalGroups ?? 0,    icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40" },
+              { label: "Total Alarms", value: data.totalAlarms ?? 0,    icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40"  },
+              { label: "Active",       value: data.activeAlarms ?? 0,   icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40"    },
+              { label: "Completed",    value: data.completedAlarms ?? 0, icon: "✓", from: "from-slate-600/60", to: "to-slate-800/60",  border: "border-slate-600/40"  },
             ].map((s) => (
               <div
                 key={s.label}
@@ -273,22 +303,7 @@ export default function UserDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="rounded-2xl border border-slate-800/80 p-4 sm:p-5" style={{ background: "rgba(15,23,42,0.8)" }}>
               <h3 className="font-bold text-sm mb-4 text-white">Alarm status</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={data.statusChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65}>
-                    {data.statusChart.map((e, i) => <Cell key={i} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-2 justify-center mt-1">
-                {data.statusChart.map((s) => (
-                  <span key={s.name} className="text-xs flex items-center gap-1.5 text-slate-400">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
-                    {s.name}: <span className="text-white font-semibold">{s.value}</span>
-                  </span>
-                ))}
-              </div>
+              <AlarmStatusPieChart statusChart={data.statusChart} innerRadius={0} outerRadius={65} />
             </div>
 
             <div className="rounded-2xl border border-slate-800/80 p-4 sm:p-5" style={{ background: "rgba(15,23,42,0.8)" }}>

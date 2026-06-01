@@ -7,6 +7,8 @@ import { useAppSelector } from "../../../hooks";
 import { ROLES } from "../../../constants/enum";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
+import AlarmStatusBadge, { getAlarmTheme } from "../../../components/alarms/AlarmStatusBadge";
+import { formatAlarmStatus } from "../../../utils/alarmUtils";
 
 const formatScheduleSummary = (schedules) => {
   if (!schedules?.length) return "—";
@@ -32,59 +34,24 @@ const IconTrash = () => (
   </svg>
 );
 
-const formatStatus = (status) => {
-  if (!status) return "Unknown";
-  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-};
-
-const ALARM_STATUS_THEME = {
-  active: {
-    glow: "239,68,68",
-    badge: "bg-red-600/25 text-red-300 border border-red-500/50",
-  },
-  scheduled: {
-    glow: "59,130,246",
-    badge: "bg-blue-600/25 text-blue-300 border border-blue-500/50",
-  },
-  completed: {
-    glow: "34,197,94",
-    badge: "bg-emerald-600/25 text-emerald-300 border border-emerald-500/50",
-  },
-  cancelled: {
-    glow: "100,116,139",
-    badge: "bg-slate-600/25 text-slate-300 border border-slate-500/50",
-  },
-};
-
-const getAlarmTheme = (status) =>
-  ALARM_STATUS_THEME[(status || "").toLowerCase()] || ALARM_STATUS_THEME.cancelled;
-
-function AlarmStatusBadge({ status }) {
-  const theme = getAlarmTheme(status);
-  return (
-    <span
-      className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-md shrink-0 ${theme.badge}`}
-      style={{ boxShadow: `0 0 10px rgba(${theme.glow}, 0.35)` }}
-    >
-      {formatStatus(status)}
-    </span>
-  );
-}
+const formatStatus = formatAlarmStatus;
 
 const LOG_STATUS_BADGE = {
-  pending: "bg-amber-600/20 text-amber-300 border border-amber-600/40",
-  stopped: "bg-emerald-600/20 text-emerald-300 border border-emerald-600/40",
-  failed: "bg-red-600/20 text-red-300 border border-red-600/40",
+  pending: { glow: "245,158,11", badge: "bg-amber-600/20 text-amber-300 border border-amber-600/40" },
+  stopped: { glow: "34,197,94", badge: "bg-emerald-600/20 text-emerald-300 border border-emerald-600/40" },
+  failed: { glow: "239,68,68", badge: "bg-red-600/20 text-red-300 border border-red-600/40" },
 };
 
 function LogStatusBadge({ status }) {
   const key = (status || "").toLowerCase();
-  const cls =
-    LOG_STATUS_BADGE[key] ||
-    "bg-slate-600/20 text-slate-300 border border-slate-600/40";
+  const theme = LOG_STATUS_BADGE[key] || {
+    glow: "100,116,139",
+    badge: "bg-slate-600/20 text-slate-300 border border-slate-600/40",
+  };
   return (
     <span
-      className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-md shrink-0 ${cls}`}
+      className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-1 rounded-md shrink-0 ${theme.badge}`}
+      style={{ boxShadow: `0 0 12px rgba(${theme.glow}, 0.45), inset 0 1px 0 rgba(255,255,255,0.06)` }}
     >
       {formatStatus(status)}
     </span>

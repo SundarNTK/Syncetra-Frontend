@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getUserAlarmHistory } from "../../../services/alarms";
+import AlarmStatusBadge from "../../../components/alarms/AlarmStatusBadge";
 
 export default function UserAlarmHistory() {
   const [alarms, setAlarms] = useState([]);
@@ -17,10 +18,13 @@ export default function UserAlarmHistory() {
         <ul className="space-y-3">
           {alarms.map((a) => (
             <li key={a._id} className="bg-slate-800 rounded-xl p-4">
-              <h3 className="font-semibold text-base sm:text-lg">{a.title}</h3>
+              <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                <h3 className="font-semibold text-base sm:text-lg">{a.title}</h3>
+                <AlarmStatusBadge status={a.status} />
+              </div>
               <p className="text-sm text-slate-400">{a.description}</p>
               <p className="text-xs text-slate-500 mt-2">
-                {new Date(a.alarmTime).toLocaleString()} · {a.status}
+                {new Date(a.alarmTime || a.createdAt).toLocaleString()}
               </p>
             </li>
           ))}

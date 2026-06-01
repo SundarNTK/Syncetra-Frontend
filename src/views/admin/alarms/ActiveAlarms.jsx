@@ -8,6 +8,7 @@ import {
 } from "../../../services/alarms";
 import { getAdminGroups } from "../../../services/groups";
 import MasterPageShell, { MasterList, MasterListItem } from "../../../components/layout/MasterPageShell";
+import AlarmStatusBadge from "../../../components/alarms/AlarmStatusBadge";
 import AlarmTargetFields, {
   alarmTargetLabel,
   buildAlarmTargetPayload,
@@ -134,7 +135,10 @@ export default function ActiveAlarms() {
               <div className="p-4 w-full">
                 <h3 className="font-bold text-base sm:text-lg">{a.title}</h3>
                 <p className="text-sm text-slate-300">{a.description}</p>
-                <p className="text-xs text-slate-400 mt-1">Status: {a.status}</p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="text-xs text-slate-400">Status:</span>
+                  <AlarmStatusBadge status={a.status} />
+                </div>
                 <p className="text-xs text-slate-400">
                   Recipients: {alarmTargetLabel(a.targetType)}
                   {a.targetType === "selected" && a.targetMemberIds?.length

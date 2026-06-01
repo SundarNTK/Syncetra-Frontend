@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-} from "recharts";
 import { getAdminDashboard } from "../../../services/dashboard";
 import { getTripHub } from "../../../services/trips";
 import { getAdminGroups } from "../../../services/groups";
 import { useTrip } from "../../../context/TripContext";
 import TripsMapSection from "../../../components/trip/TripsMapSection";
 import SelectedTripCard from "../../../components/trip/SelectedTripCard";
+import AlarmStatusPieChart from "../../../components/dashboard/AlarmStatusPieChart";
+import AlarmStatusBadge from "../../../components/alarms/AlarmStatusBadge";
 import { tripPhase, phaseBadge } from "../../../components/trip/tripUtils";
 
 /* ── Trip stat card ───────────────────────────────────────────────────────── */
@@ -117,14 +116,15 @@ export default function AdminDashboard() {
     { total: 0, active: 0, upcoming: 0, completed: 0 }
   );
 
-  const tripBudget = Number(hub?.totalBudget ?? selectedTrip?.budget ?? 0);
-  const tripSpent = Number(hub?.totalSpent ?? 0);
-  const tripBalance = tripBudget - tripSpent;
+  const expenseSummary = hub?.expenseSummary;
+  const tripBudget = Number(expenseSummary?.totalBudget ?? selectedTrip?.budget ?? 0);
+  const tripSpent = Number(expenseSummary?.totalSpent ?? 0);
+  const tripBalance = Number(expenseSummary?.remainingBalance ?? tripBudget - tripSpent);
 
   const selectedTripStats = [
     {
       label: "Members",
-      value: memberCount != null ? memberCount : (hub?.memberCount ?? "—"),
+      value: memberCount != null ? memberCount : (expenseSummary?.memberCount ?? "—"),
       icon: "👥",
       accent: "indigo",
     },
@@ -135,16 +135,16 @@ export default function AdminDashboard() {
       accent: "amber",
     },
     {
-      label: "Balance",
-      value: `₹${tripBalance.toLocaleString()}`,
-      icon: "💳",
-      accent: "emerald",
-    },
-    {
       label: "Spent",
       value: hub ? `₹${tripSpent.toLocaleString()}` : "—",
       icon: "💸",
       accent: "slate",
+    },
+    {
+      label: "Balance",
+      value: hub ? `₹${tripBalance.toLocaleString()}` : "—",
+      icon: "💳",
+      accent: "emerald",
     },
   ];
 
@@ -223,10 +223,10 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Active Groups", value: alarmData.activeGroups, icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40" },
-              { label: "Total Users",   value: alarmData.totalUsers,   icon: "📱", from: "from-blue-600/60",   to: "to-indigo-900/60", border: "border-blue-700/40"   },
-              { label: "Total Alarms",  value: alarmData.totalAlarms,  icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40"  },
-              { label: "Active Alarms", value: alarmData.activeAlarms, icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40"    },
+              { label: "Active Groups", value: alarmData.activeGroups ?? 0, icon: "👥", from: "from-violet-600/60", to: "to-purple-900/60", border: "border-violet-700/40" },
+              { label: "Total Users",   value: alarmData.totalUsers ?? 0,   icon: "📱", from: "from-blue-600/60",   to: "to-indigo-900/60", border: "border-blue-700/40"   },
+              { label: "Total Alarms",  value: alarmData.totalAlarms ?? 0,  icon: "⏰", from: "from-amber-600/60",  to: "to-orange-900/60", border: "border-amber-700/40"  },
+              { label: "Active Alarms", value: alarmData.activeAlarms ?? 0, icon: "🚨", from: "from-red-600/60",    to: "to-red-900/60",    border: "border-red-700/40"    },
             ].map((s) => (
               <div key={s.label} className={`rounded-2xl p-4 bg-gradient-to-br ${s.from} ${s.to} border ${s.border} relative overflow-hidden hover:scale-[1.02] transition-transform`}>
                 <div className="flex justify-between items-start">
@@ -243,22 +243,7 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="rounded-2xl border border-slate-800/80 p-5" style={{ background: "rgba(15,23,42,0.8)" }}>
               <h3 className="font-bold text-sm mb-4 text-white">Alarm status</h3>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={alarmData.statusChart} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={4}>
-                    {alarmData.statusChart.map((e, i) => <Cell key={i} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "#0f172a", border: "1px solid #334155", borderRadius: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-3 justify-center mt-1">
-                {alarmData.statusChart.map((s) => (
-                  <span key={s.name} className="text-xs flex items-center gap-1.5 text-slate-400">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
-                    {s.name}: <span className="text-white font-semibold">{s.value}</span>
-                  </span>
-                ))}
-              </div>
+              <AlarmStatusPieChart statusChart={alarmData.statusChart} />
             </div>
 
             <div className="rounded-2xl border border-slate-800/80 p-5" style={{ background: "rgba(15,23,42,0.8)" }}>
@@ -270,7 +255,7 @@ export default function AdminDashboard() {
                 {(alarmData.recentAlarms || []).slice(0, 6).map((a) => (
                   <li key={a._id} className="flex justify-between items-center py-2 border-b border-slate-800/80 last:border-0 group">
                     <span className="text-sm text-slate-300 group-hover:text-white transition-colors truncate flex-1 mr-2">{a.title}</span>
-                    <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold shrink-0 ${a.status === "active" ? "bg-red-600/80 text-white" : "bg-slate-700/80 text-slate-400"}`}>{a.status}</span>
+                    <AlarmStatusBadge status={a.status} />
                   </li>
                 ))}
                 {(!alarmData.recentAlarms || alarmData.recentAlarms.length === 0) && (
