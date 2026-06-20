@@ -4,7 +4,8 @@ import MasterActionPopup from "../components/ui/MasterActionPopup";
 
 function detectAction(message = "") {
   const m = message.toLowerCase();
-  if (m.includes("updated") || m.includes("deleted") || m.includes("removed") || m.includes("changed")) return "edit";
+  if (m.includes("deleted") || m.includes("removed")) return "delete";
+  if (m.includes("updated") || m.includes("changed")) return "edit";
   return "add";
 }
 

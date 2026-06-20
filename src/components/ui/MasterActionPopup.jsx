@@ -1052,6 +1052,75 @@ function AlarmsPopup({ action, onClose }) {
   );
 }
 
+function TrashSVG() {
+  return (
+    <svg width="70" height="80" viewBox="0 0 70 80">
+      <defs>
+        <linearGradient id="mpTrBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#dc2626"/>
+          <stop offset="60%"  stopColor="#b91c1c"/>
+          <stop offset="100%" stopColor="#7f1d1d"/>
+        </linearGradient>
+        <linearGradient id="mpTrLid" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#ef4444"/>
+          <stop offset="100%" stopColor="#dc2626"/>
+        </linearGradient>
+        <linearGradient id="mpTrShine" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stopColor="rgba(255,255,255,.18)"/>
+          <stop offset="60%"  stopColor="rgba(255,255,255,0)"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="35" cy="78" rx="22" ry="3" fill="rgba(0,0,0,.4)"/>
+      {/* Handle */}
+      <rect x="26" y="4" width="18" height="8" rx="3.5" fill="url(#mpTrLid)" stroke="rgba(255,255,255,.2)" strokeWidth="1"/>
+      {/* Lid */}
+      <rect x="8" y="12" width="54" height="11" rx="4" fill="url(#mpTrLid)"
+        style={{ filter:"drop-shadow(0 3px 8px rgba(239,68,68,.5))" }}/>
+      {/* Body */}
+      <path d="M12 23 L14 73 Q14 76 17 76 L53 76 Q56 76 56 73 L58 23 Z" fill="url(#mpTrBody)"
+        style={{ filter:"drop-shadow(0 4px 14px rgba(220,38,38,.5))" }}/>
+      <path d="M12 23 L14 73 Q14 76 17 76 L35 76 L35 23 Z" fill="url(#mpTrShine)" opacity=".5"/>
+      {/* Vertical stripes */}
+      {[30,42,54].map((x,i)=>(
+        <line key={i} x1={x} y1="32" x2={x} y2="68" stroke="rgba(255,255,255,.22)" strokeWidth="2.5" strokeLinecap="round"
+          style={{ animation:`mapKfFadeUp .4s ease ${.45+i*.12}s both`,opacity:0 }}/>
+      ))}
+    </svg>
+  );
+}
+
+function DeletePopup({ onClose }) {
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+      style={{ background:"rgba(10,2,2,.94)" }} onClick={onClose}>
+      <div className="absolute w-72 h-72 rounded-full pointer-events-none"
+        style={{ background:"radial-gradient(circle,rgba(239,68,68,.13),transparent 70%)" }}/>
+      {[18,32,46].map((r,i)=>(
+        <div key={i} className="absolute pointer-events-none" style={{
+          borderRadius:"50%",border:"1.5px solid rgba(239,68,68,.35)",inset:`calc(50% - ${r}px)`,
+          animation:`mapKfRipple 2.4s ease-out ${1.0+i*.4}s infinite` }}/>
+      ))}
+      <div className="relative w-full max-w-[338px] rounded-2xl overflow-hidden"
+        style={{ background:"linear-gradient(145deg,#1a0505,#200808)",border:"1px solid rgba(239,68,68,.38)",
+          boxShadow:"0 28px 70px rgba(0,0,0,.9),0 0 50px rgba(239,68,68,.18)",
+          animation:"mapKfCardSlide .7s cubic-bezier(.3,1.3,.6,1) both" }}
+        onClick={e=>e.stopPropagation()}>
+        <div style={{ height:3,background:"linear-gradient(90deg,#dc2626,#b91c1c,#ef4444)" }}/>
+        <div className="px-7 py-8 text-center">
+          <div className="mx-auto mb-5 flex items-center justify-center"
+            style={{ width:70,height:80,animation:"mapKfShieldDrop .7s cubic-bezier(.34,1.2,.64,1) .2s both",opacity:0 }}>
+            <TrashSVG/>
+          </div>
+          <FU delay={0.6}  size={10} color="#f87171" weight={700} lsp="0.3em" upper>Record Deleted</FU>
+          <FU delay={0.75} size={18} color="#fff" weight={800} mt={6} mb={4}>Deleted Successfully!</FU>
+          <FU delay={0.9}  color="rgba(252,165,165,.75)" mb={22}>The record has been permanently removed from the system.</FU>
+          <Btn delay={1.05} label="🗑️ Confirmed" bg="linear-gradient(90deg,#dc2626,#b91c1c)" shadow="0 8px 24px rgba(220,38,38,.46)" onClose={onClose}/>
+        </div>
+      </div>
+    </div>, document.body
+  );
+}
+
 /* ─── Master → Component map ──────────────────────────────── */
 const POPUP_MAP = {
   trip:       TripPopup,
@@ -1074,6 +1143,7 @@ const POPUP_MAP = {
 export default function MasterActionPopup({ master, action, open, onClose }) {
   useKF();
   if (!open || !master) return null;
+  if (action === "delete") return <DeletePopup onClose={onClose} />;
   const Component = POPUP_MAP[master];
   if (!Component) return null;
   return <Component action={action} onClose={onClose} />;

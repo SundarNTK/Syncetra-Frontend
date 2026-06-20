@@ -516,11 +516,169 @@ function ItineraryFormModal({ initial, onClose, onSave }) {
   );
 }
 
+/* ─── ItineraryViewModal ───────────────────────────────────────────────────── */
+function ItineraryViewModal({ item, onClose, onPreview }) {
+  const reached = !!item.isReached;
+
+  const endTime = useMemo(() => {
+    if (!item.visitTime || !item.duration) return null;
+    const { h, m } = parseDuration(item.duration);
+    return calcEndTime(item.visitTime, h, m);
+  }, [item.visitTime, item.duration]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-start justify-center bg-black/75 backdrop-blur-sm px-4 py-6 overflow-y-auto" onClick={onClose}>
+      <div className="bg-[#0d1117] border border-slate-700/50 rounded-2xl w-full max-w-[560px] shadow-[0_25px_60px_rgba(0,0,0,0.6)] overflow-hidden my-auto" onClick={(e) => e.stopPropagation()}>
+        <div className={`h-[3px] ${reached ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500" : "bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600"}`} />
+
+        {/* Header */}
+        <div className="flex items-start gap-3 px-5 py-4 border-b border-slate-800/80">
+          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm shrink-0 ${
+            reached ? "bg-emerald-600/20 border-emerald-500/60 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                    : "bg-slate-800/80 border-slate-600 text-slate-300"
+          }`}>
+            {item.orderNo ?? 0}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`font-bold text-lg leading-tight ${reached ? "line-through text-slate-400" : "text-white"}`}>{item.pointName}</p>
+            {item.locationName && <p className="text-xs text-slate-500 mt-0.5 truncate">📍 {item.locationName}</p>}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {reached && (
+              <span className="text-sm font-bold px-3 py-1 rounded-full bg-emerald-900/40 border border-emerald-600/50 text-emerald-400">✓ Reached</span>
+            )}
+            <button type="button" onClick={onClose}
+              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors">×</button>
+          </div>
+        </div>
+
+        {/* Glow chips */}
+        {(item.visitDate || item.visitTime || item.duration || endTime) && (
+          <div className="px-5 py-4 border-b border-slate-800/60">
+            <div className="flex items-end gap-2 flex-wrap">
+              {item.visitDate && (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-blue-500/70">Date</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-900/20 border border-blue-600/40 shadow-[0_0_10px_rgba(59,130,246,0.25)]">
+                    <svg className="w-3 h-3 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                    <span className="text-[11px] font-semibold text-blue-300 tabular-nums whitespace-nowrap">
+                      {new Date(item.visitDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                </div>
+              )}
+              {item.visitTime && (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-500/70">Start Time</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/20 border border-emerald-600/40 shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+                    <svg className="w-3 h-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5l3 3" />
+                    </svg>
+                    <span className="text-[11px] font-semibold text-emerald-300 tabular-nums">{fmt12h(item.visitTime)}</span>
+                  </div>
+                </div>
+              )}
+              {item.duration && (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500/80">Duration</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600/60 shadow-[0_0_8px_rgba(0,0,0,0.3)]">
+                    <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="12" cy="12" r="9" /><path strokeLinecap="round" d="M12 7v5" />
+                    </svg>
+                    <span className="text-[11px] font-semibold text-slate-300 tabular-nums">{item.duration}</span>
+                  </div>
+                </div>
+              )}
+              {endTime && (
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-teal-500/70">End Time</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-900/20 border border-teal-600/40 shadow-[0_0_10px_rgba(20,184,166,0.25)]">
+                    <svg className="w-3 h-3 text-teal-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 9l3 3-3 3m3-3H8" />
+                    </svg>
+                    <span className="text-[11px] font-semibold text-teal-300 tabular-nums">{endTime}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Description & Notes */}
+        {(item.description || item.notes) && (
+          <div className="px-5 py-4 space-y-3 border-b border-slate-800/60">
+            {item.description && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Description</p>
+                <p className="text-sm text-slate-300 leading-relaxed">{item.description}</p>
+              </div>
+            )}
+            {item.notes && (
+              <div className="px-3 py-2.5 rounded-xl bg-amber-900/10 border border-amber-700/20">
+                <p className="text-[10px] text-amber-400 uppercase tracking-wide font-bold mb-1">Notes</p>
+                <p className="text-xs text-slate-300">{item.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Photos */}
+        {item.images?.length > 0 && (
+          <div className="px-5 py-4 border-b border-slate-800/60">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">📸 Photos</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">{item.images.length}</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {item.images.map((src, i) => (
+                <button key={i} type="button" onClick={() => onPreview?.(src)}
+                  className="aspect-square rounded-xl overflow-hidden border border-slate-700 bg-slate-950 cursor-zoom-in hover:border-emerald-600/60 transition-colors">
+                  <ZoomableImage src={src} alt={`photo-${i}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Map */}
+        {item.location?.lat != null && (
+          <div className="px-5 py-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Location</p>
+            <SatelliteMapView lat={item.location.lat} lng={item.location.lng} name={item.location.name} />
+            <div className="flex items-center gap-3 mt-2">
+              <p className="text-[10px] text-slate-600 font-mono flex-1">
+                {item.location.lat.toFixed(5)}, {item.location.lng.toFixed(5)}
+              </p>
+              {item.location?.url && (
+                <a href={item.location.url} target="_blank" rel="noopener noreferrer"
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
+                  Open Maps ↗
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+        {!item.location?.lat && item.location?.url && (
+          <div className="px-5 py-4">
+            <a href={item.location.url} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+              📍 View on Google Maps ↗
+            </a>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* ─── ItineraryCard ────────────────────────────────────────────────────────── */
-function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
+function ItineraryCard({ item, index, total, onView, onEdit, onDelete, onPreview }) {
   const [expanded, setExpanded] = useState(false);
   const reached = !!item.isReached;
-  const hasDetail = item.description || item.notes || item.location?.lat != null;
+  const hasDetail = item.description || item.notes || item.location?.lat != null || item.location?.url;
 
   const endTime = useMemo(() => {
     if (!item.visitTime || !item.duration) return null;
@@ -529,24 +687,30 @@ function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
   }, [item.visitTime, item.duration]);
 
   return (
-    <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
-      reached
-        ? "border-emerald-600/50 shadow-[0_0_20px_rgba(16,185,129,0.15),0_2px_12px_rgba(0,0,0,0.4)] bg-emerald-950/10"
-        : "border-slate-800 bg-slate-900/80 shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
-    }`}>
+    <div className="relative flex gap-4">
+
+      {/* ── LEFT — timeline progress bar ── */}
+      <div className="flex flex-col items-center shrink-0">
+        <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center font-bold text-sm shrink-0 transition-all ${
+          reached
+            ? "bg-emerald-600/20 border-emerald-500/60 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.35)]"
+            : "bg-slate-800/80 border-slate-600 text-slate-400"
+        }`}>
+          {item.orderNo ?? 0}
+        </div>
+        {index < total - 1 && <div className="w-0.5 flex-1 bg-slate-700/60 mt-1" />}
+      </div>
+
+      {/* ── RIGHT — card ── */}
+      <div className="flex-1 min-w-0 pb-4">
+        <div className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
+          reached
+            ? "border-emerald-600/50 shadow-[0_0_20px_rgba(16,185,129,0.15),0_2px_12px_rgba(0,0,0,0.4)] bg-emerald-950/10"
+            : "border-slate-800 bg-slate-900/80 shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
+        }`}>
 
       {/* Card header */}
-      <div className="flex items-start gap-3 px-4 pt-4 pb-3">
-        {/* Stop number badge */}
-        <div className={`shrink-0 self-start w-10 h-10 rounded-xl flex flex-col items-center justify-center border font-black text-sm transition-all ${
-          reached
-            ? "bg-emerald-900/40 border-emerald-600/60 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
-            : "bg-slate-800 border-slate-700 text-slate-400"
-        }`}>
-          <span className="text-[10px] font-bold leading-none opacity-60">#</span>
-          <span className="leading-none">{item.orderNo ?? 0}</span>
-        </div>
-
+      <div className="px-4 pt-4 pb-3">
         {/* Content column — 2 rows: [name + buttons] then [glow chips] */}
         <div className="flex-1 min-w-0 flex flex-col gap-3">
 
@@ -569,6 +733,10 @@ function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
             </div>
             {/* Action buttons — self-stretch so height = left-side name+location area */}
             <div className="shrink-0 flex gap-1 self-stretch items-center">
+              <button type="button" onClick={onView}
+                className="w-9 self-stretch rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-blue-400 flex items-center justify-center transition-colors text-sm" title="View">
+                👁️
+              </button>
               <button type="button" onClick={onEdit}
                 className="w-9 self-stretch rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-emerald-400 flex items-center justify-center transition-colors text-sm" title="Edit">
                 ✏️
@@ -662,19 +830,24 @@ function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
         </div>
       )}
 
-      {/* Expand toggle */}
+      {/* ── Expand toggle — button style ── */}
       {hasDetail && (
-        <button type="button" onClick={() => setExpanded((v) => !v)}
-          className={`w-full flex items-center justify-between px-4 py-2.5 border-t text-xs transition-colors ${
-            reached
-              ? "border-emerald-800/30 text-emerald-600 hover:text-emerald-400 hover:bg-emerald-900/10"
-              : "border-slate-800 text-slate-600 hover:text-slate-400 hover:bg-slate-800/50"
-          }`}>
-          <span className="font-medium">{expanded ? "Hide details" : "Show details & map"}</span>
-          <svg className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        <div className="px-4 pb-3 pt-1">
+          <button type="button" onClick={() => setExpanded((v) => !v)}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+              reached
+                ? "bg-emerald-900/20 border-emerald-700/40 text-emerald-400 hover:bg-emerald-900/35 hover:border-emerald-600/60"
+                : "bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-slate-300"
+            }`}>
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0L9 7" />
+            </svg>
+            <span>{expanded ? "Hide details" : "Show details & map"}</span>
+            <svg className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
       )}
 
       {/* Expanded details */}
@@ -689,7 +862,6 @@ function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
               <p className="text-xs text-slate-300">{item.notes}</p>
             </div>
           )}
-
           {/* Satellite map */}
           {item.location?.lat != null && (
             <div>
@@ -708,7 +880,6 @@ function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
               </div>
             </div>
           )}
-          {/* location without lat (only URL) */}
           {!item.location?.lat && item.location?.url && (
             <a href={item.location.url} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
@@ -717,7 +888,10 @@ function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
           )}
         </div>
       )}
-    </div>
+
+        </div>{/* end card inner */}
+      </div>{/* end RIGHT */}
+    </div>  /* end timeline row */
   );
 }
 
@@ -725,11 +899,12 @@ function ItineraryCard({ item, onEdit, onDelete, onPreview }) {
 export default function AdminItinerary() {
   const { selectedTripId } = useTrip();
   const { popup, showSuccess, showError } = useActionPopup("itinerary");
-  const { confirmModal, ask } = useDeleteConfirm();
+  const { deleteModal, confirmDelete } = useDeleteConfirm();
   const [items,      setItems]      = useState([]);
   const [loading,    setLoading]    = useState(false);
   const [showForm,   setShowForm]   = useState(false);
   const [editItem,   setEditItem]   = useState(null);
+  const [viewItem,   setViewItem]   = useState(null);
   const [previewImg, setPreviewImg] = useState(null);
 
   const load = useCallback(async () => {
@@ -761,14 +936,18 @@ export default function AdminItinerary() {
     showSuccess("Itinerary point updated.");
   };
 
-  const handleDelete = async (item) => {
-    const confirmed = await ask(`Delete "${item.pointName}"?`);
-    if (!confirmed) return;
-    try {
-      await deleteItinerary(selectedTripId, item._id);
-      load();
-      showSuccess("Itinerary point deleted.");
-    } catch (e) { showError(e.message || "Delete failed."); }
+  const handleDelete = (item) => {
+    confirmDelete({
+      title: "Delete Itinerary Point",
+      recordLabel: item.pointName,
+      onConfirm: async () => {
+        try {
+          await deleteItinerary(selectedTripId, item._id);
+          load();
+          showSuccess("Itinerary point deleted.");
+        } catch (e) { showError(e.message || "Delete failed."); }
+      },
+    });
   };
 
   const reachedCount = items.filter((i) => i.isReached).length;
@@ -776,8 +955,9 @@ export default function AdminItinerary() {
   return (
     <TripModuleShell title="Itinerary" description="Trip route stops sorted by order number" loading={loading && !!selectedTripId}>
       {popup}
-      {confirmModal}
+      {deleteModal}
       {previewImg && <ImagePreview src={previewImg} onClose={() => setPreviewImg(null)} />}
+      {viewItem && <ItineraryViewModal item={viewItem} onClose={() => setViewItem(null)} onPreview={setPreviewImg} />}
       {showForm && <ItineraryFormModal onClose={() => setShowForm(false)} onSave={handleAdd} />}
       {editItem && (
         <ItineraryFormModal
@@ -830,11 +1010,14 @@ export default function AdminItinerary() {
               <p className="text-sm">Add the first stop to start building your route!</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {items.map((item) => (
+            <div className="space-y-0">
+              {items.map((item, idx) => (
                 <ItineraryCard
                   key={item._id}
                   item={item}
+                  index={idx}
+                  total={items.length}
+                  onView={() => setViewItem(item)}
                   onEdit={() => setEditItem(item)}
                   onDelete={() => handleDelete(item)}
                   onPreview={setPreviewImg}
