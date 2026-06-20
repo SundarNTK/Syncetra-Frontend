@@ -9,6 +9,8 @@ import IntroStylePreview from "../views/login-intro/styles";
 import CreatePassword from "../views/create-password";
 import CopyLink from "../views/copy-link";
 import SampleTestPage from "../views/test-alarm/SampleTestPage";
+import PopupStylesPreview from "../views/popup-styles";
+import PopupPreviewPage from "../views/popup-preview";
 import AdminDashboard from "../views/admin/dashboard";
 import AdminTrips from "../views/admin/trips";
 import AdminGroups from "../views/admin/groups";
@@ -24,7 +26,8 @@ import AdminTasks from "../views/admin/tasks";
 import AdminGallery from "../views/admin/gallery";
 import AdminChecklist from "../views/admin/checklist";
 import AdminPolls from "../views/admin/polls";
-// import AdminItinerary from "../views/admin/itinerary";
+import AdminItinerary from "../views/admin/itinerary";
+import AdminShareCollection from "../views/admin/share-collection";
 import AdminMembers from "../views/admin/members";
 import AdminAdmins from "../views/admin/admins";
 import UserDashboard from "../views/user/dashboard";
@@ -36,6 +39,8 @@ import UserExpenses from "../views/user/expenses";
 import UserGallery from "../views/user/gallery";
 import UserChecklist from "../views/user/checklist";
 import UserPolls from "../views/user/polls";
+import UserItinerary from "../views/user/itinerary";
+import UserShareCollection from "../views/user/share-collection";
 import UserAlarmHistory from "../views/user/history";
 import UserVehicles from "../views/user/vehicles";
 import { ROLES } from "../constants/enum";
@@ -51,9 +56,10 @@ const BASE_ADMIN_MENU = [
   { path: "/alarms/active", label: "Active Alarms", icon: "🚨" },
   { path: "/vehicles",      label: "Vehicles",      icon: "🚌" },
   { path: "/attendance",    label: "Attendance",    icon: "✅" },
-  { path: "/tasks",         label: "Tasks",         icon: "📋" },
-  // { path: "/itinerary",     label: "Itinerary",     icon: "📅" },
-  { path: "/expenses",      label: "Expenses",      icon: "💰" },
+  { path: "/tasks",            label: "Tasks",            icon: "📋" },
+  { path: "/itinerary",        label: "Itinerary",        icon: "📅" },
+  { path: "/share-collection", label: "Share Collection", icon: "💳" },
+  { path: "/expenses",         label: "Expenses",         icon: "💰" },
   { path: "/gallery",       label: "Gallery",       icon: "📷" },
   { path: "/checklist",     label: "Checklist",     icon: "🎒" },
   { path: "/polls",         label: "Polls",         icon: "🗳️" },
@@ -64,9 +70,10 @@ const userMenu = [
   { path: "/trips",      label: "My Trips",      icon: "🗺️" },
   { path: "/groups",     label: "Groups",        icon: "👥" },
   { path: "/attendance", label: "Attendance",    icon: "✅" },
-  { path: "/tasks",      label: "Tasks",         icon: "📋" },
-  // { path: "/itinerary",  label: "Itinerary",     icon: "📅" },
-  { path: "/vehicles",   label: "Vehicles",      icon: "🚌" },
+  { path: "/tasks",            label: "Tasks",            icon: "📋" },
+  { path: "/itinerary",        label: "Itinerary",        icon: "📅" },
+  { path: "/share-collection", label: "My Share",          icon: "💳" },
+  { path: "/vehicles",         label: "Vehicles",         icon: "🚌" },
   { path: "/expenses",   label: "Expenses",      icon: "💰" },
   { path: "/gallery",    label: "Gallery",       icon: "📷" },
   { path: "/checklist",  label: "Checklist",     icon: "🎒" },
@@ -113,6 +120,8 @@ export default function AppRoutes() {
     { path: "/create-password", element: <CreatePassword /> },
     { path: "/copy-link",       element: <CopyLink /> },
     { path: "/test-alarm",      element: <SampleTestPage /> },
+    { path: "/popup-styles",    element: <PopupStylesPreview /> },
+    { path: "/popup-preview",   element: <PopupPreviewPage /> },
     {
       path: "/admin",
       element: privateRoute(
@@ -131,9 +140,10 @@ export default function AppRoutes() {
         { path: "alarms/active",   element: <ActiveAlarms /> },
         { path: "vehicles",        element: <AdminVehicles /> },
         { path: "attendance",      element: <AdminAttendance /> },
-        { path: "tasks",           element: <AdminTasks /> },
-        // { path: "itinerary",       element: <AdminItinerary /> },
-        { path: "expenses",        element: <AdminExpenses /> },
+        { path: "tasks",            element: <AdminTasks /> },
+        { path: "itinerary",        element: <AdminItinerary /> },
+        { path: "share-collection", element: <AdminShareCollection /> },
+        { path: "expenses",         element: <AdminExpenses /> },
         { path: "gallery",         element: <AdminGallery /> },
         { path: "checklist",       element: <AdminChecklist /> },
         { path: "polls",           element: <AdminPolls /> },
@@ -154,8 +164,10 @@ export default function AppRoutes() {
         { path: "trips",      element: <UserTrips /> },
         { path: "groups",     element: <UserGroups /> },
         { path: "attendance", element: <UserAttendance /> },
-        { path: "tasks",      element: <UserTasks /> },
-        { path: "vehicles",   element: <UserVehicles /> },
+        { path: "tasks",            element: <UserTasks /> },
+        { path: "itinerary",        element: <UserItinerary /> },
+        { path: "share-collection", element: <UserShareCollection /> },
+        { path: "vehicles",         element: <UserVehicles /> },
         { path: "expenses",   element: <UserExpenses /> },
         { path: "gallery",    element: <UserGallery /> },
         { path: "checklist",  element: <UserChecklist /> },

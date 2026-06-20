@@ -343,7 +343,7 @@ export default function AdminTasks() {
   const [error,  setError]  = useState("");
   const [editTask, setEditTask] = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("tasks");
 
   const load = useCallback(() => {
     if (!selectedTripId) return;

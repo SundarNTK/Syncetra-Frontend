@@ -94,3 +94,29 @@ export const addSchedule = (tripId, data) =>
 
 export const getSyncStatus = (tripId) =>
   apiGet(API_SCOPE.ADMIN, EndPoints.TRIP_SYNC(tripId));
+
+export const getItinerary = (tripId, isAdmin = true) =>
+  apiGet(scope(isAdmin), EndPoints.TRIP_ITINERARY(tripId));
+export const addItinerary = (tripId, data) =>
+  apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_ITINERARY(tripId), data);
+export const updateItinerary = (tripId, id, data) =>
+  apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_ITINERARY_ITEM(tripId, id), data);
+export const deleteItinerary = (tripId, id) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_ITINERARY_ITEM(tripId, id));
+export const reorderItinerary = (tripId, order) =>
+  apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_ITINERARY_REORDER(tripId), { order });
+
+export const getShareCollections = (tripId) =>
+  apiGet(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTIONS(tripId));
+export const addShareCollection = (tripId, data) =>
+  apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTIONS(tripId), data);
+export const updateShareCollection = (tripId, id, data) =>
+  apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION(tripId, id), data);
+export const deleteShareCollection = (tripId, id) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION(tripId, id));
+export const addSharePayment = (tripId, id, data) =>
+  apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION_PAYMENT(tripId, id), data);
+export const deleteSharePayment = (tripId, id, paymentId) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION_PAYMENT_DEL(tripId, id, paymentId));
+export const getMyShareCollection = (tripId) =>
+  apiGet(API_SCOPE.USER, EndPoints.TRIP_SHARE_COLLECTION_ME(tripId));

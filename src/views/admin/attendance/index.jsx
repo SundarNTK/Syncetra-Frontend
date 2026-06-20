@@ -142,7 +142,7 @@ export default function AdminAttendance() {
   const [cpLoading, setCpLoading] = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [cpError,   setCpError]   = useState("");
-  const { popup, showSuccess, showError } = useActionPopup();
+  const { popup, showSuccess, showError } = useActionPopup("attendance");
 
   /* ── load members + checkpoints ── */
   const loadBase = useCallback(async () => {

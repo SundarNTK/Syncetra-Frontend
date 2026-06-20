@@ -180,7 +180,7 @@ export default function GroupDetail() {
   const [editName, setEditName]     = useState("");
   const [editMobile, setEditMobile] = useState("");
   const { confirmDelete, deleteModal } = useDeleteConfirm();
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("groups");
 
   const load = async () => {
     const res = await getGroupById(id);

@@ -8,6 +8,7 @@ import { getMedia, getMediaItem, addMedia, deleteMedia as deleteMediaApi } from 
 import { fileToDataUrl } from "../../../utils/fileToDataUrl";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
+import MasterActionPopup from "../../../components/ui/MasterActionPopup";
 
 const CATEGORY_TABS = ["all", "mine", "food", "travel", "moments", "other"];
 const CATEGORIES = ["food", "travel", "moments", "other"];
@@ -454,42 +455,9 @@ function ProcessingPopup({ current = 0, total = 0, message }) {
   );
 }
 
-function SuccessPopup({ tripName, category, caption, count, failed, onClose }) {
+function SuccessPopup({ onClose }) {
   return (
-    <Backdrop>
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="p-6 flex flex-col items-center text-center gap-3">
-          <div className="w-16 h-16 rounded-full bg-emerald-600/20 flex items-center justify-center">
-            <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-white">Uploaded Successfully!</h2>
-            <p className="text-sm text-slate-400 mt-1">
-              {count} file{count !== 1 ? "s" : ""} added to the gallery
-            </p>
-          </div>
-          <div className="w-full bg-slate-800 rounded-xl p-4 text-left space-y-2 mt-1">
-            <Row label="Trip" value={tripName} />
-            <Row label="Category" value={category} capitalize />
-            {caption && <Row label="Caption" value={caption} />}
-            <Row label="Uploaded" value={`${count} file${count !== 1 ? "s" : ""}`} />
-          </div>
-          {failed?.length > 0 && (
-            <div className="w-full rounded-xl border border-amber-700/40 bg-amber-950/30 px-3 py-2 text-left space-y-1">
-              <p className="text-xs font-medium text-amber-400">{failed.length} file(s) failed:</p>
-              {failed.map((msg) => (
-                <p key={msg} className="text-[11px] text-amber-200/80">{msg}</p>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="px-6 pb-6">
-          <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors">Done</button>
-        </div>
-      </div>
-    </Backdrop>
+    <MasterActionPopup master="gallery" action="add" open={true} onClose={onClose} />
   );
 }
 

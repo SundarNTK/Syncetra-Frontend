@@ -618,46 +618,63 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
   const inputCls =
     "w-full h-11 px-4 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:border-emerald-600/60 focus:outline-none transition-colors";
 
+  const labelCls = "block text-xs font-medium text-slate-400 mb-1.5";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <input
-        placeholder="Trip name *"
-        value={form.tripName}
-        onChange={f("tripName")}
-        className={inputCls}
-        required
-      />
-      <textarea
-        placeholder="Description"
-        value={form.description}
-        onChange={f("description")}
-        className={`${inputCls} h-auto py-2.5 resize-none`}
-        rows={2}
-      />
-
-      <div className={`grid grid-cols-1 gap-3 items-center ${isEdit ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-        <SearchableSelect
-          value={form.tripType}
-          onChange={(v) => setForm((p) => ({ ...p, tripType: v }))}
-          options={TRIP_TYPES.map((t) => ({
-            value: t.value,
-            label: t.label,
-            icon: t.icon,
-          }))}
-          placeholder="Trip type"
-          searchPlaceholder="Search trip types…"
-          aria-label="Trip type"
-        />
+      <div>
+        <label className={labelCls}>
+          Trip Name <span className="text-red-400">*</span>
+        </label>
         <input
-          type="number"
-          placeholder="Budget"
-          value={form.budget}
-          onChange={f("budget")}
+          placeholder="e.g. Yercaud Hill Trek"
+          value={form.tripName}
+          onChange={f("tripName")}
           className={inputCls}
+          required
         />
+      </div>
+
+      <div>
+        <label className={labelCls}>Description</label>
+        <textarea
+          placeholder="Brief description of the trip…"
+          value={form.description}
+          onChange={f("description")}
+          className={`${inputCls} h-auto py-2.5 resize-none`}
+          rows={2}
+        />
+      </div>
+
+      <div className={`grid grid-cols-1 gap-3 ${isEdit ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        <div>
+          <label className={labelCls}>Trip Type</label>
+          <SearchableSelect
+            value={form.tripType}
+            onChange={(v) => setForm((p) => ({ ...p, tripType: v }))}
+            options={TRIP_TYPES.map((t) => ({
+              value: t.value,
+              label: t.label,
+              icon: t.icon,
+            }))}
+            placeholder="Trip type"
+            searchPlaceholder="Search trip types…"
+            aria-label="Trip type"
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Budget (₹)</label>
+          <input
+            type="number"
+            placeholder="0"
+            value={form.budget}
+            onChange={f("budget")}
+            className={inputCls}
+          />
+        </div>
         {isEdit && (
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Collected</label>
+            <label className={labelCls}>Collected</label>
             <div
               className={`${inputCls} flex items-center bg-slate-900 text-slate-300`}
               aria-readonly="true"
@@ -1493,7 +1510,7 @@ export default function AdminTrips() {
   const [saving, setSaving] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
-  const { popup, showSuccess, showError } = useActionPopup();
+  const { popup, showSuccess, showError } = useActionPopup("trip");
 
   // Inject global keyframes once
   useEffect(() => {

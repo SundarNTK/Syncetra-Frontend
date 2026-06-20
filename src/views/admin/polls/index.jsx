@@ -823,7 +823,7 @@ export default function AdminPolls() {
   const [viewPoll, setViewPoll]       = useState(null);
   const [editPoll, setEditPoll]       = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
-  const { popup, showSuccess, showError } = useActionPopup();
+  const { popup, showSuccess, showError } = useActionPopup("polls");
 
   const load = useCallback(async () => {
     setLoading(true);

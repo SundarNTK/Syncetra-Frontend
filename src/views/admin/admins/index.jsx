@@ -192,7 +192,7 @@ export default function AdminAdmins() {
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
   const [editAdmin, setEditAdmin] = useState(null);
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("admins");
 
   const fetchAdmins = () => {
     setLoading(true);

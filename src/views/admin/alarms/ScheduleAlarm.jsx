@@ -61,7 +61,7 @@ export default function ScheduleAlarm() {
   const [dateBlocks, setDateBlocks] = useState([newDateBlock()]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("alarms");
 
   useEffect(() => {
     getAdminGroups().then((res) => setGroups(res?.data || []));

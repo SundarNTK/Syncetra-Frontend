@@ -270,7 +270,7 @@ export default function AdminMembers() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch]     = useState("");
   const [editMember, setEditMember] = useState(null);
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("members");
 
   const load = async () => {
     setLoading(true);

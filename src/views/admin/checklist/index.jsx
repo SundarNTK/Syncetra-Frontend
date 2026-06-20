@@ -355,7 +355,7 @@ export default function AdminChecklist() {
   const [editItem, setEditItem] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("checklist");
 
   const memberOptionIds = tripMembers.map((m) => String(m.id || m._id));
 

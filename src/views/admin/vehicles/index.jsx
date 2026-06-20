@@ -833,7 +833,7 @@ export default function AdminVehicles() {
   const [loading, setLoading] = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState("");
-  const { popup, showSuccess, showError } = useActionPopup();
+  const { popup, showSuccess, showError } = useActionPopup("vehicles");
   const { confirmDelete, deleteModal } = useDeleteConfirm();
   const [viewVeh,  setViewVeh]  = useState(null);
   const [editVeh,  setEditVeh]  = useState(null);

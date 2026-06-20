@@ -237,7 +237,7 @@ export default function CreateGroup() {
   const [linkedTripIds,   setLinkedTripIds]   = useState([]);
   const [error,   setError]   = useState("");
   const [loading, setLoading] = useState(false);
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("groups");
 
   /* ── load registered members + existing groups (to know which trips are taken) ── */
   useEffect(() => {

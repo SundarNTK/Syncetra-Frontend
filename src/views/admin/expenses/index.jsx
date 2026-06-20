@@ -275,7 +275,7 @@ function ImagePreviewModal({ src, onClose }) {
 /* ─── AdminExpenses ──────────────────────────────────────────────────────────── */
 export default function AdminExpenses() {
   const { selectedTripId } = useTrip();
-  const { popup, showSuccess } = useActionPopup();
+  const { popup, showSuccess } = useActionPopup("expenses");
   const [hub,              setHub]              = useState(null);
   const [items,            setItems]            = useState([]);
   const [loading,          setLoading]          = useState(false);
