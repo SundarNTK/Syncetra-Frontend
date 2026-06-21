@@ -39,9 +39,18 @@ const rebuildCache = (parsed, newArr) =>
 
 /* ── Patch helpers called from http.js when a write is queued offline ─── */
 
-/** Append a pending item (with _pending:true) to the cached collection list. */
+/** Append a pending item (with _pending:true) to the cached collection list.
+ *  If no cache exists yet, creates a minimal cache with just this pending item
+ *  so it still appears in the list on first offline add. */
 export const appendPendingToCache = async (userId, cacheKey, pendingItem) => {
   const cached = await getCache(userId, cacheKey);
+
+  if (cached === null) {
+    // No prior cache — bootstrap one so the pending item is visible
+    await setCache(userId, cacheKey, { data: [pendingItem] });
+    return;
+  }
+
   const parsed = getArray(cached);
   if (!parsed) return;
   await setCache(userId, cacheKey, rebuildCache(parsed, [...parsed.arr, pendingItem]));

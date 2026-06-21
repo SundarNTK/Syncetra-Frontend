@@ -225,7 +225,7 @@ export default function Login() {
   useEffect(() => {
     if (postLoginNavRef.current) return;
     if (isLogin && userInfo?.user?.name) {
-      const dest = isAdminRole(userInfo.user.role) ? "/admin/dashboard" : "/user/dashboard";
+      const dest = isAdminRole(userInfo?.user?.role) ? "/admin/dashboard" : "/user/dashboard";
       navigate(dest, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -247,7 +247,7 @@ export default function Login() {
       const session = res.data;
       postLoginNavRef.current = true;
       dispatch(SET_USER_INFO(session));
-      const dest = isAdminRole(session.user.role) ? "/admin/dashboard" : "/user/dashboard";
+      const dest = isAdminRole(session?.user?.role) ? "/admin/dashboard" : "/user/dashboard";
       navigate(INTRO_CINEMATIC, { replace: true, state: introAfterAuth(dest) });
     } catch (err) {
       setError(err.message);

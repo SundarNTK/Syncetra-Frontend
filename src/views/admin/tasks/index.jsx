@@ -348,7 +348,7 @@ export default function AdminTasks() {
 
   const load = useCallback(() => {
     if (!selectedTripId) return;
-    getTasks(selectedTripId).then((r) => setItems(r?.data || []));
+    getTasks(selectedTripId).then((r) => { if (r !== null) setItems(r?.data || []); });
   }, [selectedTripId]);
   useOnlineReload(load);
 

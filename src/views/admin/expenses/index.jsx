@@ -317,12 +317,16 @@ export default function AdminExpenses() {
         getExpenses(selectedTripId),
         getAdminGroups(),
       ]);
-      setHub(h?.data);
-      setItems(e?.data || []);
-      const linkedGroup = (g?.data || []).find(
-        (grp) => String(grp.tripId) === String(selectedTripId)
-      );
-      setGroupMemberCount(linkedGroup?.members?.length ?? null);
+      // Only overwrite state when we got real data — null means offline+no cache,
+      // so we keep whatever is currently in state (could be a pending item we just added).
+      if (h !== null) setHub(h?.data);
+      if (e !== null) setItems(e?.data || []);
+      if (g !== null) {
+        const linkedGroup = (g?.data || []).find(
+          (grp) => String(grp.tripId) === String(selectedTripId)
+        );
+        setGroupMemberCount(linkedGroup?.members?.length ?? null);
+      }
     } finally {
       setLoading(false);
     }

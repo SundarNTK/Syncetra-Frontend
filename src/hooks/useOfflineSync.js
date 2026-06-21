@@ -9,7 +9,7 @@ import http from '../utils/http';
 const SYNC_EVENT = 'syncetra:synced';
 
 export const useOfflineSync = () => {
-  const userId   = useAppSelector((s) => s.user.userInfo?.user?._id);
+  const userId   = useAppSelector((s) => s.user.userInfo?.user?._id ?? s.user.userInfo?.user?.id);
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing,    setIsSyncing]    = useState(false);
   const [isOnline,     setIsOnline]     = useState(navigator.onLine);
@@ -36,16 +36,19 @@ export const useOfflineSync = () => {
         await http.request({ method: item.method, url: item.url, data: item.data });
         await dequeue(item.id);
 
-        // Clean up the pending flag from the local cache for this item
-        const collectionUrl = item.method === 'POST'
+        // Clean up the pending flag from the local cache for this item.
+        // Cache keys use the `${url}|` format (matching apiGet's getInflightKey),
+        // so we must append '|' to make the lookup land on the right entry.
+        const baseUrl    = item.method === 'POST'
           ? item.url
           : item.url.replace(/\/[^/]+$/, '');
+        const cacheKey   = baseUrl + '|';
 
         if (item.method === 'POST') {
           // The server assigned a real _id — remove the offline placeholder
-          await removePendingFromCache(userId, collectionUrl, item.id).catch(() => {});
+          await removePendingFromCache(userId, cacheKey, item.id).catch(() => {});
         } else {
-          await clearPendingFlag(userId, collectionUrl, item.id).catch(() => {});
+          await clearPendingFlag(userId, cacheKey, item.id).catch(() => {});
         }
 
         synced++;

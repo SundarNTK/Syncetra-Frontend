@@ -102,7 +102,7 @@ export default function CreatePassword() {
 
       dispatch(SET_USER_INFO(session));
 
-      if (session.user.role === ROLES.USER) {
+      if (session?.user?.role === ROLES.USER) {
         await registerDeviceForPush(null, session.token);
       }
 
@@ -111,7 +111,7 @@ export default function CreatePassword() {
       // Small delay so the user sees the success message, then navigate
       setTimeout(() => {
         navigate(
-          isAdminRole(session.user.role) ? "/admin/dashboard" : "/user/dashboard",
+          isAdminRole(session?.user?.role) ? "/admin/dashboard" : "/user/dashboard",
           { replace: true }
         );
       }, 1800);

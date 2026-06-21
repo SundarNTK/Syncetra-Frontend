@@ -1,8 +1,6 @@
 import axios from "axios";
 import CONFIG from "../config";
 import { API_SCOPE } from "../constants/enum";
-import { CLEAR_USER } from "../store/userSlice";
-import { enqueue } from "./offlineQueue";
 import {
   getCache,
   setCache,
@@ -10,97 +8,137 @@ import {
   updatePendingInCache,
   markDeletePendingInCache,
 } from "./localStore";
+import { enqueue } from "./offlineQueue";
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-let storeRef = null;
+// ── Auth / userId helpers ─────────────────────────────────────────────────────
+// Reads directly from localStorage so these functions survive Vite HMR
+// (which replaces the http.js module and resets any storeRef to null).
 
-const getUserId = () => storeRef?.getState()?.user?.userInfo?.user?._id ?? null;
+const LS_USER_KEY = 'GROUP_ALARM_USER';
 
-export const setupHttpInterceptor = (store) => {
-  storeRef = store;
-
-  http.interceptors.request.use((config) => {
-    const token = storeRef?.getState()?.user?.userInfo?.token;
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  });
-
-  http.interceptors.response.use(
-    (res) => res.data,
-    async (error) => {
-      if (error.response?.status === 401) {
-        storeRef?.dispatch(CLEAR_USER());
-        window.location.hash = "#/login";
-      }
-
-      const method      = error.config?.method?.toUpperCase();
-      // Queue when:
-      //  a) browser is explicitly offline (navigator.onLine=false), OR
-      //  b) no HTTP response came back at all (pure network failure)
-      // This covers both production (no internet) and dev (Vite proxy reaches
-      // localhost but MongoDB/backend is unavailable and still returns responses).
-      const isOffline    = !navigator.onLine;
-      const isNetworkErr = !error.response;
-      const isWriteOp    = WRITE_METHODS.has(method);
-      const isFormData   = error.config?.data instanceof FormData;
-
-      if ((isOffline || isNetworkErr) && isWriteOp && !isFormData) {
-        const userId = getUserId();
-        if (userId) {
-          const rawData = error.config.data;
-          const data    = typeof rawData === 'string' ? JSON.parse(rawData) : (rawData ?? {});
-          const url     = error.config.url;
-
-          const queueId = await enqueue({ userId, method, url, data });
-
-          // Patch the local cache so the pending item appears in lists immediately
-          await _patchCacheForWrite(userId, method, url, data, queueId).catch(() => {});
-
-          const err    = new Error('Offline — saved locally and will sync when reconnected.');
-          err.offline  = true;
-          err.queued   = true;
-          err.queueId  = queueId;
-          return Promise.reject(err);
-        }
-      }
-
-      const message = error.response?.data?.message || error.message || 'Request failed';
-      return Promise.reject(new Error(message));
-    }
-  );
+const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem(LS_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 };
 
-/**
- * Patches the local cache to immediately reflect a write that was queued offline.
- * POST  → appends a pending item to the collection cache
- * PUT   → marks the item as pending in the collection cache
- * DELETE → marks the item as pending-delete in the collection cache
- */
-async function _patchCacheForWrite(userId, method, url, data, queueId) {
-  if (method === 'POST') {
-    const pendingItem = { ...data, _id: `offline_${queueId}`, _pending: true, _queueId: queueId };
-    await appendPendingToCache(userId, url, pendingItem);
-  } else if (method === 'PUT' || method === 'PATCH') {
-    const collectionUrl = url.replace(/\/[^/]+$/, '');
-    const itemId        = url.split('/').pop();
-    await updatePendingInCache(userId, collectionUrl, itemId, { ...data, _queueId: queueId });
-  } else if (method === 'DELETE') {
-    const collectionUrl = url.replace(/\/[^/]+$/, '');
-    const itemId        = url.split('/').pop();
-    await markDeletePendingInCache(userId, collectionUrl, itemId);
-  }
-}
+const getUserId   = () => {
+  const user = getStoredUser()?.user;
+  return user?._id ?? user?.id ?? null;
+};
+const getToken    = () => getStoredUser()?.token ?? null;
+
+// Callback invoked on confirmed 401 so the Redux store can clear user state.
+// Set once by main.jsx via setOnUnauthorized; survives as long as the module lives.
+let onUnauthorizedCb = null;
+export const setOnUnauthorized = (cb) => { onUnauthorizedCb = cb; };
+
+// ── Axios instance ────────────────────────────────────────────────────────────
 
 const http = axios.create({
   baseURL: CONFIG.apiBaseUrl,
   timeout: 30000,
 });
 
+// ── Request interceptor — attach Bearer token ─────────────────────────────────
+http.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// ── Response interceptor — unwrap data, handle errors ────────────────────────
+http.interceptors.response.use(
+  (res) => res.data,
+  async (error) => {
+    // ── 401 handler ──────────────────────────────────────────────────────────
+    if (error.response?.status === 401) {
+      // Only clear session when the 401 was sent with the current token.
+      // Stale in-flight requests (from before login) must not wipe a fresh session.
+      const currentToken  = getToken();
+      const requestToken  = error.config?.headers?.Authorization?.replace('Bearer ', '');
+      if (currentToken && requestToken === currentToken) {
+        localStorage.removeItem(LS_USER_KEY);
+        onUnauthorizedCb?.();
+        window.location.hash = '#/login';
+      }
+    }
+
+    // ── Offline write queue ───────────────────────────────────────────────────
+    const method      = error.config?.method?.toUpperCase();
+    // Queue when the request could not reach the database, which can happen in 3 ways:
+    //  a) browser is explicitly offline (navigator.onLine = false)
+    //  b) no HTTP response came back at all (pure network failure / CORS)
+    //  c) the local dev backend responded but MongoDB Atlas was unreachable —
+    //     the backend returns HTTP 400/500 with an ENOTFOUND/ECONNREFUSED body
+    const isOffline    = !navigator.onLine;
+    const isNetworkErr = !error.response;
+    const isDbConnErr  = /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|ECONNRESET/i
+      .test(error.response?.data?.message || '');
+    const isWriteOp    = WRITE_METHODS.has(method);
+    const isFormData   = error.config?.data instanceof FormData;
+
+    if ((isOffline || isNetworkErr || isDbConnErr) && isWriteOp && !isFormData) {
+      const userId = getUserId();
+      if (userId) {
+        const rawData = error.config.data;
+        const data    = typeof rawData === 'string' ? JSON.parse(rawData) : (rawData ?? {});
+        // Axios prepends baseURL to config.url before dispatching, so error.config.url
+        // is the fully-qualified URL (e.g. https://localhost:5173/api/v1/...).
+        // Strip the baseURL prefix so our cache keys stay consistent with apiGet,
+        // which always stores under the relative path (/api/v1/...).
+        const rawUrl  = error.config.url || '';
+        const base    = (error.config.baseURL || '').replace(/\/$/, '');
+        const url     = (base && rawUrl.startsWith(base)) ? rawUrl.slice(base.length) : rawUrl;
+
+        const queueId = await enqueue({ userId, method, url, data });
+        await _patchCacheForWrite(userId, method, url, data, queueId).catch(() => {});
+
+        const err    = new Error('Offline — saved locally and will sync when reconnected.');
+        err.offline  = true;
+        err.queued   = true;
+        err.queueId  = queueId;
+        return Promise.reject(err);
+      }
+    }
+
+    const message = error.response?.data?.message || error.message || 'Request failed';
+    return Promise.reject(new Error(message));
+  }
+);
+
+// ── Cache key helpers ─────────────────────────────────────────────────────────
+// apiGet stores entries under `${url}|${params}`. For param-less collection URLs
+// the key is `${url}|` (trailing pipe). Patch helpers must use the same format.
+const collectionCacheKey = (url) => url + '|';
+
+async function _patchCacheForWrite(userId, method, url, data, queueId) {
+  if (method === 'POST') {
+    const cacheKey    = collectionCacheKey(url);
+    const pendingItem = { ...data, _id: `offline_${queueId}`, _pending: true, _queueId: queueId };
+    await appendPendingToCache(userId, cacheKey, pendingItem);
+  } else if (method === 'PUT' || method === 'PATCH') {
+    const cacheKey = collectionCacheKey(url.replace(/\/[^/]+$/, ''));
+    const itemId   = url.split('/').pop();
+    await updatePendingInCache(userId, cacheKey, itemId, { ...data, _queueId: queueId });
+  } else if (method === 'DELETE') {
+    const cacheKey = collectionCacheKey(url.replace(/\/[^/]+$/, ''));
+    const itemId   = url.split('/').pop();
+    await markDeletePendingInCache(userId, cacheKey, itemId);
+  }
+}
+
+// ── Public API helpers ────────────────────────────────────────────────────────
+
 export const getApiPath = (scope) =>
   scope === API_SCOPE.ADMIN ? CONFIG.adminApiPath : CONFIG.userApiPath;
 
-/** Collapse duplicate in-flight GETs (React Strict Mode double-mount). */
+/** Collapse duplicate in-flight GETs (React Strict Mode / StrictMode double-mount). */
 const inflightGets = new Map();
 
 const getInflightKey = (url, config = {}) => {
@@ -113,8 +151,8 @@ const getInflightKey = (url, config = {}) => {
  * Online  → fetch from server, save to IndexedDB cache, return data.
  * Offline → return IndexedDB cached data (null if no cache yet).
  *
- * Returning null (not throwing) lets callers with ?. and || [] display
- * gracefully and lets the finally block in load() clear the spinner.
+ * Returning null (not throwing) lets callers guard with `if (result !== null)`
+ * and display stale UI gracefully.
  */
 export const apiGet = async (scope, path, config = {}) => {
   const url      = `${getApiPath(scope)}${path}`;
@@ -123,10 +161,10 @@ export const apiGet = async (scope, path, config = {}) => {
 
   if (!navigator.onLine) {
     if (!userId) return null;
-    return getCache(userId, cacheKey);   // null if nothing cached yet
+    return getCache(userId, cacheKey);
   }
 
-  // Online path: dedupe, cache on success, fall back to cache on any failure
+  // Online path: dedupe concurrent GETs, cache on success, fall back on failure
   const key = cacheKey;
   if (inflightGets.has(key)) return inflightGets.get(key);
 
@@ -136,12 +174,14 @@ export const apiGet = async (scope, path, config = {}) => {
       return data;
     })
     .catch(async (err) => {
-      // Server unreachable or returned a hard error — serve stale cache if available
       if (userId) {
         const cached = await getCache(userId, cacheKey);
         if (cached !== null) return cached;
       }
-      throw err; // Nothing in cache either — propagate so UI shows empty state
+      const isConnErr = !navigator.onLine ||
+        /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|ECONNRESET/i.test(err.message || '');
+      if (isConnErr) return null;
+      throw err;
     })
     .finally(() => inflightGets.delete(key));
 
@@ -157,5 +197,13 @@ export const apiPut = (scope, path, data, config = {}) =>
 
 export const apiDelete = (scope, path, config = {}) =>
   http.delete(`${getApiPath(scope)}${path}`, config);
+
+// ── Legacy export kept for callers that still import setupHttpInterceptor ─────
+// main.jsx now calls setOnUnauthorized instead, but this is kept so old imports
+// don't crash if any remain.
+export const setupHttpInterceptor = (_store) => {
+  // No-op: interceptors are set up at module load above.
+  // The store reference is no longer needed — token and userId come from localStorage.
+};
 
 export default http;
