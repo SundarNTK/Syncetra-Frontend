@@ -5,6 +5,7 @@ import { pollOptionGlowClass, OPT_COLORS, pollOptionHeaderStyle, pollOptionLabel
 import { useAppSelector } from "../../../hooks";
 import { getUserPolls, votePoll } from "../../../services/polls";
 import { useOnlineReload } from "../../../hooks/useOnlineReload";
+import { useTrip } from "../../../context/TripContext";
 
 // ─── Animation styles ─────────────────────────────────────────────────────────
 function PollAnimStyles() {
@@ -350,7 +351,7 @@ function FilterBar({ value, onChange }) {
 }
 
 // ─── Poll View Modal (full detail) ────────────────────────────────────────────
-function PollViewModal({ poll, userId, onClose }) {
+function PollViewModal({ poll, userId, trips, onClose }) {
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -404,6 +405,17 @@ function PollViewModal({ poll, userId, onClose }) {
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[poll.pollType]}`}>
                   {poll.pollType === "trip" ? "Trip Poll" : "General"}
                 </span>
+                {poll.pollType === "trip" && poll.tripId && (() => {
+                  const tripName = trips?.find((t) => String(t._id) === String(poll.tripId))?.tripName;
+                  return tripName ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
+                      style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 8px rgba(139,92,246,0.12)" }}>
+                      <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.65)" }}>Trip</span>
+                      <span className="w-px h-2.5 bg-violet-500/30" />
+                      <span className="text-[10px] font-semibold" style={{ color: "#c4b5fd" }}>{tripName}</span>
+                    </span>
+                  ) : null;
+                })()}
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border capitalize flex items-center gap-1 ${statusInfo.cls}`}>
                   {statusInfo.dot && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
                   {poll.pollStatus === "open" ? "Live" : poll.pollStatus}
@@ -442,11 +454,19 @@ function PollViewModal({ poll, userId, onClose }) {
 
         <div className="p-5 space-y-5">
           {/* ── Question ── */}
-          <div className="bg-slate-800/30 border border-slate-700/30 rounded-xl px-4 py-3">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Question</p>
-            <p className="text-sm sm:text-base text-slate-200 leading-relaxed whitespace-pre-wrap">
-              {poll.question}
-            </p>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(16,185,129,0.18)", background: "linear-gradient(135deg,rgba(16,185,129,0.05) 0%,rgba(2,6,23,0.6) 100%)" }}>
+            <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ background: "linear-gradient(90deg,rgba(16,185,129,0.14) 0%,rgba(16,185,129,0.03) 80%,transparent 100%)", borderBottom: "1px solid rgba(16,185,129,0.12)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8, flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/>
+              </svg>
+              <span className="text-[10px] font-black tracking-[0.28em] uppercase" style={{ background: "linear-gradient(90deg,#10b981,#34d399,#6ee7b7,#34d399,#10b981)", backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "pollOptLabelShimmer 3s linear infinite" }}>
+                Question
+              </span>
+            </div>
+            <div className="px-4 py-3.5 flex gap-3">
+              <div className="w-0.5 rounded-full shrink-0 mt-1 self-stretch" style={{ background: "linear-gradient(180deg,#10b981,#34d399,transparent)" }} />
+              <p className="text-sm sm:text-base text-slate-200 leading-relaxed whitespace-pre-wrap">{poll.question}</p>
+            </div>
           </div>
 
           {/* ── Leading / Winner banner ── */}
@@ -596,7 +616,7 @@ function PollViewModal({ poll, userId, onClose }) {
 }
 
 // ─── Poll Card ────────────────────────────────────────────────────────────────
-function PollCard({ poll, userId, onVoteConfirm, onView, index }) {
+function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
   const userVotedIndex = poll.options?.findIndex(
     (o) => (o.votes || []).some((v) => (typeof v === "object" ? v._id : v) === userId)
   );
@@ -640,6 +660,17 @@ function PollCard({ poll, userId, onVoteConfirm, onView, index }) {
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[poll.pollType]}`}>
                 {poll.pollType === "trip" ? "Trip Poll" : "General"}
               </span>
+              {poll.pollType === "trip" && poll.tripId && (() => {
+                const tripName = trips?.find((t) => String(t._id) === String(poll.tripId))?.tripName;
+                return tripName ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
+                    style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 8px rgba(139,92,246,0.12)" }}>
+                    <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.65)" }}>Trip</span>
+                    <span className="w-px h-2.5 bg-violet-500/30" />
+                    <span className="text-[10px] font-semibold" style={{ color: "#c4b5fd" }}>{tripName}</span>
+                  </span>
+                ) : null;
+              })()}
               {!isClosed ? (
                 <span className="flex items-center gap-1 text-[10px] bg-red-700/20 text-red-300 border border-red-700/40 px-2 py-0.5 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
@@ -831,6 +862,7 @@ function PollCard({ poll, userId, onVoteConfirm, onView, index }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UserPolls() {
   const { userInfo } = useAppSelector((s) => s.user);
+  const { trips }    = useTrip();
   const userId = userInfo?.user?.id || userInfo?.user?._id;
 
   const [polls, setPolls]             = useState([]);
@@ -890,6 +922,7 @@ export default function UserPolls() {
               key={p._id}
               poll={p}
               userId={String(userId)}
+              trips={trips}
               onVoteConfirm={handleVoteConfirm}
               onView={setViewPoll}
               index={index}
@@ -912,6 +945,7 @@ export default function UserPolls() {
         <PollViewModal
           poll={viewPoll}
           userId={String(userId)}
+          trips={trips}
           onClose={() => setViewPoll(null)}
         />
       )}

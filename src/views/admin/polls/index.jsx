@@ -27,6 +27,14 @@ function PollAnimStyles() {
         from { opacity: 0; transform: translateX(-8px); }
         to   { opacity: 1; transform: translateX(0); }
       }
+      @keyframes qLabelShimmer {
+        from { background-position: 0% center; }
+        to   { background-position: 200% center; }
+      }
+      @keyframes qBorderPulse {
+        0%,100% { opacity: 0.4; }
+        50%     { opacity: 1; }
+      }
     `}</style>
   );
 }
@@ -328,6 +336,14 @@ function ViewPollModal({ poll, trips, onClose }) {
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[poll.pollType]}`}>
                 {poll.pollType === "trip" ? "Trip Poll" : "General"}
               </span>
+              {poll.pollType === "trip" && trip && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full"
+                  style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 8px rgba(139,92,246,0.12)" }}>
+                  <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.65)" }}>Trip</span>
+                  <span className="w-px h-2.5 bg-violet-500/30" />
+                  <span className="text-[10px] font-semibold" style={{ color: "#c4b5fd" }}>{trip.tripName}</span>
+                </span>
+              )}
               <StatusBadge status={status} />
               {eligible > 0 && (
                 <span className="text-[10px] text-slate-400 border border-slate-700/50 bg-slate-800/50 px-2 py-0.5 rounded-full">
@@ -339,20 +355,23 @@ function ViewPollModal({ poll, trips, onClose }) {
           <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 shrink-0"><IconX /></button>
         </div>
         <div className="p-5 space-y-5">
-          <div>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Question</p>
-            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed pl-3 border-l-2 border-emerald-700/40">{poll.question}</p>
-          </div>
-          {poll.pollType === "trip" && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg"
-              style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 10px rgba(139,92,246,0.15)" }}>
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.7)" }}>Trip</span>
-              <span className="w-px h-3 bg-violet-500/30" />
-              <span className="text-xs font-semibold" style={{ color: "#c4b5fd", textShadow: "0 0 8px rgba(167,139,250,0.5)" }}>
-                {trip?.tripName || "—"}
+          {/* ── Question section ── */}
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(16,185,129,0.18)", background: "linear-gradient(135deg,rgba(16,185,129,0.05) 0%,rgba(2,6,23,0.6) 100%)" }}>
+            {/* Header strip */}
+            <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ background: "linear-gradient(90deg,rgba(16,185,129,0.14) 0%,rgba(16,185,129,0.03) 80%,transparent 100%)", borderBottom: "1px solid rgba(16,185,129,0.12)" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.8, flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/>
+              </svg>
+              <span className="text-[10px] font-black tracking-[0.28em] uppercase" style={{ background: "linear-gradient(90deg,#10b981,#34d399,#6ee7b7,#34d399,#10b981)", backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", animation: "qLabelShimmer 3s linear infinite" }}>
+                Question
               </span>
             </div>
-          )}
+            {/* Question text */}
+            <div className="px-4 py-3.5 flex gap-3">
+              <div className="w-0.5 rounded-full shrink-0 mt-1 self-stretch" style={{ background: "linear-gradient(180deg,#10b981,#34d399,transparent)", animation: "qBorderPulse 2.5s ease-in-out infinite" }} />
+              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{poll.question}</p>
+            </div>
+          </div>
           <div>
             <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-3">
               Options <span className="normal-case text-slate-600">({(poll.options || []).length})</span>
@@ -805,6 +824,17 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 border ${TYPE_BADGE[poll.pollType]}`}>
                   {poll.pollType === "trip" ? "Trip Poll" : "General"}
                 </span>
+                {poll.pollType === "trip" && poll.tripId && (() => {
+                  const tripName = trips?.find((t) => String(t._id) === String(poll.tripId))?.tripName;
+                  return tripName ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full shrink-0"
+                      style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 8px rgba(139,92,246,0.12)" }}>
+                      <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.65)" }}>Trip</span>
+                      <span className="w-px h-2.5 bg-violet-500/30" />
+                      <span className="text-[10px] font-semibold" style={{ color: "#c4b5fd" }}>{tripName}</span>
+                    </span>
+                  ) : null;
+                })()}
                 <StatusBadge status={status} className="shrink-0" />
                 {poll._pending && <PollPendingBadge />}
               </div>
@@ -925,16 +955,6 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
             <p className="text-xs text-slate-500 mt-2">
               {totalVotes} total vote{totalVotes !== 1 ? "s" : ""} recorded
             </p>
-          )}
-          {poll.pollType === "trip" && poll.tripId && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg mt-1"
-              style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 10px rgba(139,92,246,0.15)" }}>
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.7)" }}>Trip</span>
-              <span className="w-px h-3 bg-violet-500/30" />
-              <span className="text-xs font-semibold" style={{ color: "#c4b5fd", textShadow: "0 0 8px rgba(167,139,250,0.5)" }}>
-                {trips.find((t) => String(t._id) === String(poll.tripId))?.tripName || "—"}
-              </span>
-            </div>
           )}
         </div>
 
