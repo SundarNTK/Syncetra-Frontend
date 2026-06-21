@@ -500,13 +500,14 @@ function EditPollModal({ poll, trips, onClose, onSaved, isSuperAdmin }) {
     try {
       const payload = { title: form.title, question: form.question };
       if (canEditOptions) payload.options = filled;
-      if (isSuperAdmin) {
+      if (isSuperAdmin && canEditOptions) {
         payload.pollType = form.pollType;
         payload.tripId   = form.pollType === "trip" ? form.tripId || null : null;
       }
       await updatePoll(poll._id, payload);
-      onSaved();
+      onSaved(false);
     } catch (err) {
+      if (err.offline) { onSaved(true); return; }
       setError(err.message || "Failed to update poll");
     } finally {
       setSaving(false);
@@ -528,52 +529,47 @@ function EditPollModal({ poll, trips, onClose, onSaved, isSuperAdmin }) {
           <input placeholder="Poll title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputCls} required />
           <textarea placeholder="Question *" value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className={`${inputCls} resize-none`} rows={2} required />
 
-          {isSuperAdmin ? (
-            /* Super admin can change poll type */
-            <div className="space-y-3">
-              <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+          {isSuperAdmin && canEditOptions ? (
+            /* Super admin + no votes yet: can change poll type */
+            <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+              <div className="flex-1 min-w-[160px]">
+                <label className="text-xs text-slate-400 block mb-1">Poll Type</label>
+                <SearchableSelect
+                  value={form.pollType}
+                  onChange={(pollType) => setForm((f) => ({ ...f, pollType, tripId: "" }))}
+                  options={[
+                    { value: "general", label: "General (all members)" },
+                    { value: "trip",    label: "Trip-based" },
+                  ]}
+                  searchable={false}
+                  placeholder="Poll type"
+                />
+              </div>
+              {form.pollType === "trip" && (
                 <div className="flex-1 min-w-[160px]">
-                  <label className="text-xs text-slate-400 block mb-1">Poll Type</label>
+                  <label className="text-xs text-slate-400 block mb-1">Select Trip</label>
                   <SearchableSelect
-                    value={form.pollType}
-                    onChange={(pollType) => setForm((f) => ({ ...f, pollType, tripId: "" }))}
+                    value={form.tripId}
+                    onChange={(tripId) => setForm((f) => ({ ...f, tripId }))}
                     options={[
-                      { value: "general", label: "General (all members)" },
-                      { value: "trip",    label: "Trip-based" },
+                      { value: "", label: "— Choose trip —" },
+                      ...trips.map((t) => ({ value: t._id, label: t.tripName })),
                     ]}
-                    searchable={false}
-                    placeholder="Poll type"
+                    placeholder="— Choose trip —"
+                    searchPlaceholder="Search trips…"
                   />
                 </div>
-                {form.pollType === "trip" && (
-                  <div className="flex-1 min-w-[160px]">
-                    <label className="text-xs text-slate-400 block mb-1">Select Trip</label>
-                    <SearchableSelect
-                      value={form.tripId}
-                      onChange={(tripId) => setForm((f) => ({ ...f, tripId }))}
-                      options={[
-                        { value: "", label: "— Choose trip —" },
-                        ...trips.map((t) => ({ value: t._id, label: t.tripName })),
-                      ]}
-                      placeholder="— Choose trip —"
-                      searchPlaceholder="Search trips…"
-                    />
-                  </div>
-                )}
-              </div>
-              {!canEditOptions && (
-                <p className="text-xs text-amber-400/90 bg-amber-950/30 border border-amber-700/30 rounded-lg px-3 py-2">
-                  ⚠ Options are locked because votes have been recorded. You can still edit title, question, and poll type.
-                </p>
               )}
             </div>
           ) : (
-            /* Admin (non-super): read-only type display */
+            /* Read-only type display (admin, or super admin after votes cast) */
             <div className="rounded-lg bg-slate-800/40 border border-slate-700/60 px-3 py-2 text-xs text-slate-400">
               <span className="text-slate-300">Type:</span>{" "}
               {poll.pollType === "trip" ? `Trip poll${trip ? ` · ${trip.tripName}` : ""}` : "General (all members)"}
               {!canEditOptions && (
-                <span className="block mt-1 text-amber-400/90">Options are locked because votes have been recorded. You can still edit the title and question.</span>
+                <span className="block mt-1 text-amber-400/90">
+                  ⚠ Options and poll type are locked because votes have been recorded. You can still edit the title and question.
+                </span>
               )}
             </div>
           )}
@@ -1136,7 +1132,7 @@ export default function AdminPolls() {
           trips={trips}
           isSuperAdmin={isSuperAdmin}
           onClose={() => setEditPoll(null)}
-          onSaved={() => { setEditPoll(null); load(); showSuccess("Poll updated successfully."); }}
+          onSaved={(isOffline) => { setEditPoll(null); load(); showSuccess(isOffline ? "Saved offline — will sync when reconnected." : "Poll updated successfully."); }}
         />
       )}
       {deleteModal}

@@ -917,6 +917,8 @@ function TripCountdownFull({ trip }) {
 
 // ─── TripCreationSuccessPopup ─────────────────────────────────────────────────
 function TripCreationSuccessPopup({ data, onClose }) {
+  const isUpdated = data._mode === "updated";
+  const isOffline = data._offline === true;
   const [confettiActive, setConfettiActive] = useState(false);
   const [closing, setClosing] = useState(false);
   const progressRef = useRef(null);
@@ -1012,7 +1014,7 @@ function TripCreationSuccessPopup({ data, onClose }) {
                   filter: "drop-shadow(0 0 18px rgba(245,158,11,0.55))",
                 }}
               >
-                TRIP MODE ON
+                {isUpdated ? "TRIP UPDATED" : "TRIP MODE ON"}
               </p>
             </div>
 
@@ -1082,7 +1084,9 @@ function TripCreationSuccessPopup({ data, onClose }) {
 
             {/* ── Headline ── */}
             <div className="slide-up-2 text-center mb-1">
-              <h2 className="text-2xl font-bold text-white">Trip Created!</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {isUpdated ? (isOffline ? "Saved Offline! 📡" : "Trip Updated! ✨") : "Trip Created! 🚀"}
+              </h2>
             </div>
 
             {/* ── Trip name ── */}
@@ -1162,6 +1166,14 @@ function TripCreationSuccessPopup({ data, onClose }) {
               />
             </div>
 
+            {/* ── Offline badge (edit offline only) ── */}
+            {isOffline && (
+              <div className="mb-4 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs text-amber-300 font-medium">Saved locally — syncs when back online</span>
+              </div>
+            )}
+
             {/* ── Continue button ── */}
             <button
               onClick={handleClose}
@@ -1178,7 +1190,7 @@ function TripCreationSuccessPopup({ data, onClose }) {
                 e.currentTarget.style.background = `rgba(${tripType.glow}, 0.15)`;
               }}
             >
-              Continue Exploring ✈️
+              {isUpdated ? "Got it ✓" : "Continue Exploring ✈️"}
             </button>
           </div>
         </div>
@@ -1436,6 +1448,12 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
             >
               {trip.status}
             </span>
+            {trip._pending && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/50 text-amber-300 text-[10px] font-semibold tracking-wide shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_#fbbf24]" />
+                Not Synced
+              </span>
+            )}
             <span className="text-[10px] text-slate-500 shrink-0">
               {tripType.icon} {tripType.label}
             </span>
@@ -1525,7 +1543,15 @@ export default function AdminTrips() {
       await updateTrip(editTrip._id, data);
       setEditTrip(null);
       loadTrips();
-      showSuccess("Trip updated successfully.");
+      setSuccessData({ ...editTrip, ...data, _mode: "updated" });
+    } catch (err) {
+      if (err.offline) {
+        setEditTrip(null);
+        loadTrips();
+        setSuccessData({ ...editTrip, ...data, _mode: "updated", _offline: true });
+        return;
+      }
+      throw err;
     } finally {
       setSaving(false);
     }
