@@ -17,6 +17,8 @@ export const addExpense = (tripId, data) =>
   apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_EXPENSES(tripId), data);
 export const updateExpense = (tripId, id, data) =>
   apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_EXPENSE(tripId, id), data);
+export const deleteExpense = (tripId, id) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_EXPENSE(tripId, id));
 export const updateTripBudget = (tripId, data) =>
   apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_BUDGET(tripId), data);
 

@@ -11,6 +11,8 @@ import CopyLink from "../views/copy-link";
 import SampleTestPage from "../views/test-alarm/SampleTestPage";
 import PopupStylesPreview from "../views/popup-styles";
 import PopupPreviewPage from "../views/popup-preview";
+import ItineraryVariantsPreview from "../views/popup-preview/itinerary-variants";
+import ExpenseVariantsPreview from "../views/popup-preview/expense-variants";
 import AdminDashboard from "../views/admin/dashboard";
 import AdminTrips from "../views/admin/trips";
 import AdminGroups from "../views/admin/groups";
@@ -120,8 +122,10 @@ export default function AppRoutes() {
     { path: "/create-password", element: <CreatePassword /> },
     { path: "/copy-link",       element: <CopyLink /> },
     { path: "/test-alarm",      element: <SampleTestPage /> },
-    { path: "/popup-styles",    element: <PopupStylesPreview /> },
-    { path: "/popup-preview",   element: <PopupPreviewPage /> },
+    { path: "/popup-styles",              element: <PopupStylesPreview /> },
+    { path: "/popup-preview",             element: <PopupPreviewPage /> },
+    { path: "/itinerary-popup-variants",  element: <ItineraryVariantsPreview /> },
+    { path: "/expense-popup-variants",    element: <ExpenseVariantsPreview /> },
     {
       path: "/admin",
       element: privateRoute(

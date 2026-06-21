@@ -34,7 +34,11 @@ function TaskActionForm({ task, tripId, onDone }) {
       await acknowledgeTask(tripId, task._id, { comment: comment.trim(), action });
       onDone();
     } catch (err) {
-      setError(err?.message || "Failed to respond");
+      if (err.queued) {
+        onDone();
+      } else {
+        setError(err?.message || "Failed to respond");
+      }
     } finally {
       setSaving(false);
     }

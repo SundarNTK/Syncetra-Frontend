@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useAppSelector } from "../hooks";
+import { useOnlineReload } from "../hooks/useOnlineReload";
 import { getAdminTrips, getUserTrips } from "../services/trips";
 import { ROLES } from "../constants/enum";
 import { tripPhase } from "../components/trip/tripUtils";
@@ -74,6 +75,7 @@ export function TripProvider({ children }) {
   useEffect(() => {
     loadTrips();
   }, [loadTrips]);
+  useOnlineReload(loadTrips);
 
   const setSelectedTripId = (id) => {
     manualTripPickRef.current = true;

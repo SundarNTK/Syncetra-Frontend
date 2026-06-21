@@ -2,11 +2,24 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
-import { getExpenses, addExpense, updateExpense, getTripHub } from "../../../services/trips";
+import { getExpenses, addExpense, updateExpense, deleteExpense, getTripHub } from "../../../services/trips";
 import { getAdminGroups } from "../../../services/groups";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
 import { useActionPopup } from "../../../hooks/useActionPopup";
+import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useAppSelector } from "../../../hooks";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
+import { ROLES } from "../../../constants/enum";
+
+function PendingBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/50 text-amber-300 text-[10px] font-semibold tracking-wide uppercase">
+      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_#fbbf24]" />
+      Not Synced
+    </span>
+  );
+}
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -156,7 +169,12 @@ function EditModal({ expense, tripId, onClose, onSaved, onPreview }) {
       onSaved();
       onClose();
     } catch (err) {
-      setError(err.message || "Failed to update expense.");
+      if (err.queued) {
+        onSaved();
+        onClose();
+      } else {
+        setError(err.message || "Failed to update expense.");
+      }
     } finally {
       setSaving(false);
     }
@@ -275,10 +293,14 @@ function ImagePreviewModal({ src, onClose }) {
 /* ─── AdminExpenses ──────────────────────────────────────────────────────────── */
 export default function AdminExpenses() {
   const { selectedTripId } = useTrip();
-  const { popup, showSuccess } = useActionPopup("expenses");
+  const { popup, showSuccess, showError } = useActionPopup("expenses");
+  const { confirmDelete, deleteModal } = useDeleteConfirm();
+  const { userInfo } = useAppSelector((s) => s.user);
+  const isSuperAdmin = userInfo?.user?.role === ROLES.SUPER_ADMIN;
   const [hub,              setHub]              = useState(null);
   const [items,            setItems]            = useState([]);
   const [loading,          setLoading]          = useState(false);
+  const [saving,           setSaving]           = useState(false);
   const [groupMemberCount, setGroupMemberCount] = useState(null);
   const [form,    setForm]    = useState({
     category: "Food", amount: "", description: "", imageUrl: "",
@@ -307,17 +329,51 @@ export default function AdminExpenses() {
   }, [selectedTripId]);
 
   useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   const handleAdd = async (ev) => {
     ev.preventDefault();
-    await addExpense(selectedTripId, {
-      ...form,
-      amount:   Number(form.amount),
-      imageUrl: form.imageUrl || undefined,
+    setSaving(true);
+    try {
+      await addExpense(selectedTripId, {
+        ...form,
+        amount:   Number(form.amount),
+        imageUrl: form.imageUrl || undefined,
+      });
+      setForm({ category: "Food", amount: "", description: "", imageUrl: "" });
+      load();
+      showSuccess("Expense added successfully.");
+    } catch (err) {
+      if (err.queued) {
+        setForm({ category: "Food", amount: "", description: "", imageUrl: "" });
+        load(); // Re-reads from cache which now has the pending item
+        showSuccess("Saved offline — will sync automatically when reconnected.");
+      } else {
+        showError(err.message || "Failed to add expense.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = (x) => {
+    confirmDelete({
+      title: "Delete Expense",
+      recordLabel: `${x.category} — ₹${Number(x.amount || 0).toLocaleString("en-IN")}`,
+      onConfirm: async () => {
+        try {
+          await deleteExpense(selectedTripId, x._id);
+          load();
+          showSuccess("Expense deleted successfully.");
+        } catch (e) {
+          if (e.queued) {
+            showSuccess("Delete saved offline — will sync when reconnected.");
+          } else {
+            showError(e.message || "Delete failed.");
+          }
+        }
+      },
     });
-    setForm({ category: "Food", amount: "", description: "", imageUrl: "" });
-    load();
-    showSuccess("Expense added successfully.");
   };
 
   const s         = hub?.expenseSummary;
@@ -327,6 +383,7 @@ export default function AdminExpenses() {
   return (
     <TripModuleShell title="Expenses" description="Auto-calculated trip budget & splits" loading={loading && !!selectedTripId}>
       {popup}
+      {deleteModal}
       {editExp && (
         <EditModal
           expense={editExp}
@@ -433,9 +490,18 @@ export default function AdminExpenses() {
               onChange={(v) => setForm({ ...form, imageUrl: v })}
               onPreview={setPreviewImg}
             />
-            <button type="submit"
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors">
-              Add Expense
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              {saving && (
+                <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              )}
+              {saving ? (navigator.onLine ? "Saving…" : "Saving offline…") : "Add Expense"}
             </button>
           </form>
 
@@ -450,12 +516,22 @@ export default function AdminExpenses() {
               {items.map((x) => {
                 const icon = CATEGORY_ICON[x.category?.toLowerCase()] || "💸";
                 return (
-                  <li key={x._id} className="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+                  <li
+                key={x._id}
+                className={`border rounded-xl px-4 py-3 transition-all ${
+                  x._pending
+                    ? 'bg-amber-950/20 border-amber-600/40 shadow-[0_0_12px_rgba(251,191,36,0.12)]'
+                    : 'bg-slate-900/60 border-slate-800'
+                }`}
+              >
                     <div className="flex items-center gap-3">
                       {/* Category icon + info */}
                       <span className="text-xl shrink-0">{icon}</span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-200 capitalize">{x.category || "Other"}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-slate-200 capitalize">{x.category || "Other"}</p>
+                          {x._pending && <PendingBadge />}
+                        </div>
                         {x.description && (
                           <p className="text-xs text-slate-500 mt-0.5 leading-snug">{x.description}</p>
                         )}
@@ -479,16 +555,30 @@ export default function AdminExpenses() {
                       )}
                       {/* Amount + Edit */}
                       <p className="font-bold text-slate-200 font-mono shrink-0">{fmt(x.amount)}</p>
-                      <button
-                        type="button"
-                        onClick={() => setEditExp(x)}
-                        className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 text-xs font-medium transition-colors"
-                      >
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit
-                      </button>
+                      {!x._pending && (
+                        <button
+                          type="button"
+                          onClick={() => setEditExp(x)}
+                          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 text-xs font-medium transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+                      )}
+                      {isSuperAdmin && !x._pending && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(x)}
+                          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-950/40 border border-red-800/50 text-red-400 hover:bg-red-900/60 hover:text-red-300 text-xs font-medium transition-colors"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </li>
                 );

@@ -48,6 +48,14 @@ const KF = `
 @keyframes mapKfRocketLaunch{0%{transform:translateY(80vh);opacity:0;}6%{opacity:1;transform:translateY(70vh);}40%{transform:translateY(0)scale(1.05);}70%{transform:translateY(-40vh)scale(.9);opacity:1;}100%{transform:translateY(-110vh)scale(.4);opacity:0;}}
 @keyframes mapKfFlameDance{0%,100%{transform:scaleY(1)scaleX(1);}50%{transform:scaleY(1.35)scaleX(.78);}}
 @keyframes mapKfSpeedLine{0%{transform:translateY(0);opacity:0;}15%{opacity:.65;}100%{transform:translateY(110vh);opacity:0;}}
+@keyframes mapKfOceanWave{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+@keyframes mapKfSonar{0%{transform:scale(.15);opacity:.8;}100%{transform:scale(3.2);opacity:0;}}
+@keyframes mapKfShipBob{0%,100%{transform:translateY(0)rotate(-1.5deg);}50%{transform:translateY(-10px)rotate(2deg);}}
+@keyframes mapKfWakeLine{0%{width:0;opacity:0;}40%{opacity:.7;}100%{width:120px;opacity:0;}}
+@keyframes mapKfVaultOpen{0%{transform:perspective(600px)rotateY(-90deg);opacity:0;}60%{transform:perspective(600px)rotateY(8deg);opacity:1;}80%{transform:perspective(600px)rotateY(-4deg);}100%{transform:perspective(600px)rotateY(0);opacity:1;}}
+@keyframes mapKfWheelSpin{0%{transform:rotate(-720deg);}100%{transform:rotate(0);}}
+@keyframes mapKfCoinBlast{0%{transform:translate(var(--ox),var(--oy))scale(0)rotate(0deg);opacity:0;}35%{transform:translate(0,0)scale(1.3)rotate(var(--r));opacity:1;}52%{transform:translate(0,0)scale(.92)rotate(var(--r));}65%{transform:translate(0,0)scale(1)rotate(var(--r));}100%{transform:translate(0,0)scale(1)rotate(var(--r));opacity:.88;}}
+@keyframes mapKfCoinPulse{0%,100%{opacity:.75;transform:translate(0,0)rotate(var(--r));}50%{opacity:1;transform:translate(0,-7px)rotate(var(--r));}}
 `;
 
 function useKF() {
@@ -724,30 +732,109 @@ function ItineraryPopup({ action, onClose }) {
   const add = action !== "edit";
   return createPortal(
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
-      style={{ background:"rgba(3,8,16,.93)" }} onClick={onClose}>
-      <div className="absolute inset-0 pointer-events-none" style={{ opacity:.05,
-        backgroundImage:"linear-gradient(#10b981 1px,transparent 1px),linear-gradient(90deg,#10b981 1px,transparent 1px)",
-        backgroundSize:"36px 36px" }}/>
+      style={{ background:"linear-gradient(180deg,#010612 0%,#020d2e 45%,#010a22 100%)" }} onClick={onClose}>
+      {/* Night sky stars */}
+      {STARS.slice(0,14).map((s,i)=>(
+        <div key={i} className="absolute rounded-full bg-white pointer-events-none"
+          style={{ left:`${s.x}%`,top:`${s.y*.35}%`,width:s.size*.7,height:s.size*.7,
+            animation:`mapKfStarTwinkle ${s.dur} ease-in-out ${s.delay} infinite` }}/>
+      ))}
+      {/* Ocean wave layers */}
+      <div className="absolute pointer-events-none" style={{ bottom:0,left:0,right:0,height:"38%",overflow:"hidden" }}>
+        {[0,1,2].map(i=>(
+          <div key={i} className="absolute left-0" style={{ bottom:`${i*22}%`,width:"200%",height:"80px",
+            backgroundImage:`radial-gradient(ellipse 120px 40px at center,rgba(${i===0?"6,182,212":i===1?"3,105,161":"1,67,120"},.${i===0?"18":"12"}),transparent)`,
+            animation:`mapKfOceanWave ${3.5+i*.8}s linear ${i*.4}s infinite` }}/>
+        ))}
+        <div className="absolute inset-0" style={{ background:"linear-gradient(0deg,rgba(1,22,80,.8),rgba(2,20,62,.4))" }}/>
+      </div>
+      {/* Sonar rings */}
+      {[0,.6,1.2].map((d,i)=>(
+        <div key={i} className="absolute pointer-events-none" style={{
+          width:60,height:60,bottom:"35%",left:"50%",transform:"translate(-50%,50%)",
+          borderRadius:"50%",border:`1.5px solid rgba(6,182,212,${.55-i*.12})`,
+          animation:`mapKfSonar 2.5s ease-out ${d}s infinite` }}/>
+      ))}
+      {/* Ship */}
+      <div className="absolute pointer-events-none" style={{ bottom:"36%",left:"50%",
+        transform:"translateX(-50%)",animation:"mapKfShipBob 3s ease-in-out infinite" }}>
+        <svg width="90" height="48" viewBox="0 0 90 48">
+          <defs>
+            <linearGradient id="mpOcHull" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1e3a5f"/><stop offset="100%" stopColor="#0c1f3d"/>
+            </linearGradient>
+          </defs>
+          <path d="M8 28 L82 28 L74 44 L16 44 Z" fill="url(#mpOcHull)"/>
+          <path d="M8 28 L82 28 L78 36 L12 36 Z" fill="#0e7490" opacity=".5"/>
+          <rect x="18" y="20" width="54" height="10" rx="2" fill="#1e3a5f"/>
+          <rect x="30" y="10" width="30" height="12" rx="3" fill="#1e3a5f"/>
+          <rect x="33" y="12" width="8" height="6" rx="1" fill="rgba(186,230,253,.4)"/>
+          <rect x="49" y="12" width="8" height="6" rx="1" fill="rgba(186,230,253,.4)"/>
+          <line x1="45" y1="2" x2="45" y2="18" stroke="rgba(255,255,255,.5)" strokeWidth="2"/>
+          <line x1="36" y1="8" x2="54" y2="8" stroke="rgba(255,255,255,.35)" strokeWidth="1.5"/>
+          <path d="M45 2 L52 5 L45 8 Z" fill="#06b6d4"/>
+          <circle cx="82" cy="27" r="3" fill="rgba(253,224,71,.85)" style={{ filter:"blur(.8px)" }}/>
+        </svg>
+      </div>
+      {/* Ship wake trail */}
+      <div className="absolute pointer-events-none" style={{ bottom:"37%",left:"50%",height:4,
+        background:"linear-gradient(90deg,transparent,rgba(6,182,212,.5),transparent)",
+        animation:"mapKfWakeLine 2.5s ease-out .5s infinite",borderRadius:2 }}/>
       <div className="relative w-full max-w-[338px] rounded-2xl overflow-hidden"
-        style={{ background:"linear-gradient(145deg,#061510,#0b2018)",border:"1px solid rgba(16,185,129,.25)",
-          boxShadow:"0 28px 70px rgba(0,0,0,.88),0 0 45px rgba(16,185,129,.1)",
-          animation:"mapKfCardSlide .7s cubic-bezier(.3,1.3,.6,1) both" }}
+        style={{ background:"linear-gradient(145deg,#020d2e,#031540)",border:"1px solid rgba(6,182,212,.38)",
+          boxShadow:"0 28px 70px rgba(0,0,0,.92),0 0 55px rgba(6,182,212,.14)",
+          animation:"mapKfCardLand .8s cubic-bezier(.3,1.4,.6,1) .5s both",opacity:0 }}
         onClick={e=>e.stopPropagation()}>
-        <div style={{ height:3,background:"linear-gradient(90deg,#10b981,#059669,#0d9488)" }}/>
+        <div style={{ height:3,background:"linear-gradient(90deg,#0ea5e9,#06b6d4,#0891b2)" }}/>
         <div className="px-7 py-8 text-center">
-          <div className="relative mx-auto mb-5 w-20 h-20 flex items-center justify-center"
-            style={{ animation:"mapKfBounceIn .7s cubic-bezier(.34,1.5,.64,1) .2s both",opacity:0 }}>
-            <CompassSVG/>
+          {/* Nautical compass */}
+          <div className="mx-auto mb-5 flex items-center justify-center"
+            style={{ width:88,height:88,animation:"mapKfBounceIn .7s cubic-bezier(.34,1.5,.64,1) .6s both",opacity:0 }}>
+            <svg width="88" height="88" viewBox="0 0 88 88">
+              <defs>
+                <radialGradient id="mpOcFace" cx="50%" cy="40%" r="55%">
+                  <stop offset="0%" stopColor="#0c2a4a"/>
+                  <stop offset="100%" stopColor="#020d24"/>
+                </radialGradient>
+                <linearGradient id="mpOcNeedle" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0ea5e9"/>
+                  <stop offset="100%" stopColor="#0369a1"/>
+                </linearGradient>
+              </defs>
+              <circle cx="44" cy="44" r="43" fill="none" stroke="rgba(6,182,212,.2)" strokeWidth="1"/>
+              <circle cx="44" cy="44" r="41" fill="url(#mpOcFace)" style={{ filter:"drop-shadow(0 4px 16px rgba(0,0,0,.5))" }}/>
+              <circle cx="44" cy="44" r="38" fill="none" stroke="rgba(6,182,212,.15)" strokeWidth="1"/>
+              <circle cx="44" cy="44" r="30" fill="none" stroke="rgba(6,182,212,.1)" strokeWidth="1" strokeDasharray="4 4"/>
+              {Array.from({length:16},(_,i)=>{
+                const a=i*(360/16)*Math.PI/180;
+                const r1=i%4===0?28:i%2===0?32:35;
+                return <line key={i}
+                  x1={44+Math.cos(a)*r1} y1={44+Math.sin(a)*r1}
+                  x2={44+Math.cos(a)*39} y2={44+Math.sin(a)*39}
+                  stroke={i%4===0?"rgba(6,182,212,.7)":"rgba(255,255,255,.15)"}
+                  strokeWidth={i%4===0?2:.8}/>;
+              })}
+              {[{l:"N",a:-90},{l:"E",a:0},{l:"S",a:90},{l:"W",a:180}].map(({l,a})=>(
+                <text key={l} x={44+Math.cos(a*Math.PI/180)*24} y={44+Math.sin(a*Math.PI/180)*24+4}
+                  fontSize="8" fill="#7dd3fc" textAnchor="middle" fontWeight="bold">{l}</text>
+              ))}
+              <g style={{ transformOrigin:"44px 44px",animation:"mapKfCompassSpin .9s cubic-bezier(.34,1.2,.64,1) .7s both" }}>
+                <path d="M44 44 L40 22 L44 16 L48 22 Z" fill="url(#mpOcNeedle)" style={{ filter:"drop-shadow(0 0 6px rgba(6,182,212,.6))" }}/>
+                <path d="M44 44 L40 66 L44 72 L48 66 Z" fill="rgba(255,255,255,.45)"/>
+              </g>
+              <circle cx="44" cy="44" r="5" fill="#020d24" stroke="rgba(6,182,212,.6)" strokeWidth="1.5"/>
+              <circle cx="44" cy="44" r="2.5" fill="#0ea5e9"/>
+              {[0,.5,1].map((d,i)=>(
+                <circle key={i} cx="44" cy="44" r={14+i*8} fill="none"
+                  stroke="rgba(6,182,212,.2)" strokeWidth=".8"
+                  style={{ animation:`mapKfRipple 2s ease-out ${1.2+d}s infinite`,transformOrigin:"44px 44px" }}/>
+              ))}
+            </svg>
           </div>
-          {[0,.4,.8].map((d,i)=>(
-            <div key={i} className="absolute pointer-events-none" style={{
-              borderRadius:"50%",border:"2px solid rgba(16,185,129,.4)",inset:"calc(50% - 40px)",
-              animation:`mapKfRipple 2.2s ease-out ${1.2+d}s infinite` }}/>
-          ))}
-          <FU delay={0.6} size={10} color="#34d399" weight={700} lsp="0.3em" upper>Route {add?"Logged":"Updated"}</FU>
-          <FU delay={0.75} size={18} color="#fff" weight={800} mt={6} mb={4}>{add?"Stop Added!":"Stop Updated!"}</FU>
-          <FU delay={0.9} color="rgba(100,190,140,.75)" mb={22}>This stop is now {add?"marked on":"updated on"} your route map.</FU>
-          <Btn delay={1.05} label="📍 Next Stop!" bg="linear-gradient(90deg,#10b981,#059669)" shadow="0 8px 24px rgba(16,185,129,.44)" onClose={onClose}/>
+          <FU delay={1.1} size={10} color="#38bdf8" weight={700} lsp="0.3em" upper>Port {add?"Logged":"Updated"}</FU>
+          <FU delay={1.25} size={18} color="#fff" weight={800} mt={6} mb={4}>{add?"Anchors Away! ⚓":"Course Corrected! 🌊"}</FU>
+          <FU delay={1.4} color="rgba(125,211,252,.7)" mb={22}>{add?"A new stop has been charted on your voyage.":"The stop details have been updated in the ship's log."}</FU>
+          <Btn delay={1.55} label={add?"⚓ Set Sail!":"🧭 Aye Aye!"} bg="linear-gradient(90deg,#0284c7,#0369a1)" shadow="0 8px 26px rgba(2,132,199,.48)" onClose={onClose}/>
         </div>
       </div>
     </div>, document.body
@@ -892,26 +979,166 @@ function TasksPopup({ action, onClose }) {
 
 function ExpensesPopup({ action, onClose }) {
   const add = action !== "edit";
+  /* Coins spread across the full viewport — blast origin is 50vw/50vh */
+  const coins = [
+    { left:14, top:8,  size:22, delay:.04, r:30,  gold:true  },
+    { left:36, top:6,  size:16, delay:.10, r:-18, gold:true  },
+    { left:58, top:9,  size:20, delay:.07, r:14,  gold:false },
+    { left:80, top:11, size:18, delay:.12, r:-34, gold:true  },
+    { left:5,  top:30, size:20, delay:.06, r:46,  gold:true  },
+    { left:8,  top:56, size:16, delay:.14, r:-10, gold:false },
+    { left:88, top:28, size:22, delay:.09, r:26,  gold:true  },
+    { left:91, top:55, size:16, delay:.16, r:-42, gold:true  },
+    { left:20, top:80, size:20, delay:.11, r:20,  gold:false },
+    { left:50, top:84, size:18, delay:.08, r:-24, gold:true  },
+    { left:76, top:78, size:22, delay:.13, r:36,  gold:true  },
+    { left:3,  top:14, size:14, delay:.17, r:-16, gold:true  },
+    { left:93, top:15, size:14, delay:.19, r:22,  gold:false },
+    { left:44, top:3,  size:12, delay:.21, r:10,  gold:true  },
+    { left:28, top:52, size:16, delay:.05, r:-28, gold:true  },
+    { left:70, top:48, size:14, delay:.15, r:42,  gold:false },
+  ].map(c => ({ ...c, ox:`${50-c.left}vw`, oy:`${50-c.top}vh` }));
+
   return createPortal(
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
-      style={{ background:"rgba(2,8,4,.93)" }} onClick={onClose}>
-      <div className="absolute w-72 h-72 rounded-full pointer-events-none"
-        style={{ background:"radial-gradient(circle,rgba(5,150,105,.12),transparent 70%)" }}/>
-      <div className="relative w-full max-w-[338px] rounded-2xl overflow-hidden"
-        style={{ background:"linear-gradient(145deg,#062d20,#083d2c)",border:"1px solid rgba(5,150,105,.3)",
-          boxShadow:"0 28px 70px rgba(0,0,0,.85),0 0 40px rgba(5,150,105,.1)",
-          animation:"mapKfCardLand .75s cubic-bezier(.3,1.4,.6,1) both" }}
-        onClick={e=>e.stopPropagation()}>
-        <div style={{ height:3,background:"linear-gradient(90deg,#059669,#047857,#10b981)" }}/>
-        <div className="px-7 py-8 text-center">
-          <div className="mx-auto mb-5 flex items-center justify-center"
-            style={{ height:80,animation:"mapKfWalletOpen .7s cubic-bezier(.34,1.3,.64,1) .1s both",opacity:0 }}>
-            <WalletSVG/>
+    <div className="fixed inset-0 z-[300]"
+      style={{ background:"linear-gradient(160deg,#0c0700,#1a0e00,#0f0900)" }}
+      onClick={onClose}>
+      {/* Central gold radial glow */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background:"radial-gradient(ellipse at 50% 50%,rgba(251,191,36,.07),transparent 62%)" }}/>
+      {/* Coins blast from center to their viewport positions */}
+      {coins.map((c,i) => (
+        <div key={i} className="absolute pointer-events-none"
+          style={{ left:`${c.left}%`, top:`${c.top}%`,
+            '--ox':c.ox, '--oy':c.oy, '--r':`${c.r}deg`,
+            animation:`mapKfCoinBlast .72s cubic-bezier(.34,1.55,.64,1) ${c.delay}s both,
+                       mapKfCoinPulse 2.4s ease-in-out ${(c.delay+.72).toFixed(2)}s infinite` }}>
+          <svg width={c.size} height={Math.round(c.size*.58)} viewBox="0 0 24 14">
+            <defs>
+              <linearGradient id={`mpEc${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={c.gold?"#fef08a":"#fde68a"}/>
+                <stop offset="50%"  stopColor={c.gold?"#fbbf24":"#f59e0b"}/>
+                <stop offset="100%" stopColor={c.gold?"#d97706":"#b45309"}/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="12" cy="7"   rx="12" ry="7" fill={`url(#mpEc${i})`}/>
+            <ellipse cx="12" cy="6"   rx="12" ry="7" fill={`url(#mpEc${i})`}
+              style={{ filter:"drop-shadow(0 0 4px rgba(251,191,36,.55))" }}/>
+            <ellipse cx="12" cy="5.5" rx="8"  ry="4" fill="rgba(255,255,255,.22)"/>
+            <text x="12" y="9.5" fontSize="6" fill="rgba(255,255,255,.75)"
+              textAnchor="middle" fontWeight="bold">$</text>
+          </svg>
+        </div>
+      ))}
+      {/* Click-away */}
+      <button className="absolute inset-0 z-0" onClick={onClose}/>
+      {/* Centred card */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-4">
+        <div className="pointer-events-auto w-full max-w-[338px] rounded-2xl overflow-hidden relative z-10"
+          style={{ background:"linear-gradient(145deg,#1a0e02,#241404)",
+            border:"1px solid rgba(251,191,36,.42)",
+            boxShadow:"0 28px 70px rgba(0,0,0,.92),0 0 55px rgba(251,191,36,.16)",
+            animation:"mapKfCardLand .85s cubic-bezier(.3,1.4,.6,1) .22s both",opacity:0 }}
+          onClick={e=>e.stopPropagation()}>
+          <div style={{ height:3,background:"linear-gradient(90deg,#92400e,#b45309,#d97706,#fbbf24,#f59e0b)" }}/>
+          <div className="px-7 py-8 text-center">
+            {/* Vault door */}
+            <div className="mx-auto mb-5 flex items-center justify-center"
+              style={{ width:88,height:88,
+                animation:"mapKfVaultOpen .75s cubic-bezier(.34,1.2,.64,1) .38s both",opacity:0 }}>
+              <svg width="88" height="88" viewBox="0 0 88 88">
+                <defs>
+                  <radialGradient id="mpVface" cx="50%" cy="42%" r="55%">
+                    <stop offset="0%"   stopColor="#2e2408"/>
+                    <stop offset="100%" stopColor="#120f04"/>
+                  </radialGradient>
+                  <linearGradient id="mpVring" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"   stopColor="#fef08a"/>
+                    <stop offset="40%"  stopColor="#fbbf24"/>
+                    <stop offset="100%" stopColor="#92400e"/>
+                  </linearGradient>
+                  <radialGradient id="mpVglow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%"   stopColor="rgba(251,191,36,.35)"/>
+                    <stop offset="100%" stopColor="transparent"/>
+                  </radialGradient>
+                </defs>
+                {/* Outer glow halo */}
+                <circle cx="44" cy="44" r="44" fill="url(#mpVglow)"/>
+                {/* Rim ring */}
+                <circle cx="44" cy="44" r="43" fill="url(#mpVring)"
+                  style={{ filter:"drop-shadow(0 0 16px rgba(251,191,36,.5))" }}/>
+                {/* Face */}
+                <circle cx="44" cy="44" r="39" fill="url(#mpVface)"/>
+                {/* Inner groove ring */}
+                <circle cx="44" cy="44" r="35" fill="none"
+                  stroke="rgba(251,191,36,.3)" strokeWidth="1.5"/>
+                {/* Bolt heads around rim */}
+                {Array.from({length:8},(_,i)=>{
+                  const a=i*45*Math.PI/180;
+                  return (
+                    <g key={i}>
+                      <circle cx={44+Math.cos(a)*40} cy={44+Math.sin(a)*40} r="3.5" fill="url(#mpVring)"/>
+                      <circle cx={44+Math.cos(a)*40} cy={44+Math.sin(a)*40} r="1.5" fill="rgba(0,0,0,.4)"/>
+                    </g>
+                  );
+                })}
+                {/* Spinning lock wheel */}
+                <g style={{ transformOrigin:"44px 44px",
+                  animation:"mapKfWheelSpin .9s cubic-bezier(.34,1.2,.64,1) .32s both" }}>
+                  {Array.from({length:6},(_,i)=>{
+                    const a=i*60*Math.PI/180;
+                    return (
+                      <line key={i} x1="44" y1="44"
+                        x2={44+Math.cos(a)*27} y2={44+Math.sin(a)*27}
+                        stroke="rgba(251,191,36,.75)" strokeWidth="3.5" strokeLinecap="round"/>
+                    );
+                  })}
+                  {/* Wheel rim */}
+                  <circle cx="44" cy="44" r="10" fill="none"
+                    stroke="rgba(251,191,36,.5)" strokeWidth="2"/>
+                  {/* Hub */}
+                  <circle cx="44" cy="44" r="7" fill="url(#mpVring)"
+                    stroke="rgba(255,255,255,.2)" strokeWidth="1"/>
+                </g>
+                {/* Center lock indicator */}
+                <circle cx="44" cy="44" r="4" fill="#fbbf24"
+                  style={{ filter:"drop-shadow(0 0 10px rgba(251,191,36,1))" }}/>
+                <text x="44" y="48" fontSize="7" fill="rgba(0,0,0,.55)"
+                  textAnchor="middle" fontWeight="900">$</text>
+                {/* Left hinge bars */}
+                <rect x="1" y="27" width="7" height="11" rx="2.5" fill="url(#mpVring)"/>
+                <rect x="1" y="50" width="7" height="11" rx="2.5" fill="url(#mpVring)"/>
+                <rect x="2" y="29" width="5" height="7"  rx="1.5" fill="rgba(0,0,0,.3)"/>
+                <rect x="2" y="52" width="5" height="7"  rx="1.5" fill="rgba(0,0,0,.3)"/>
+                {/* Right handle */}
+                <circle cx="77" cy="44" r="8" fill="none"
+                  stroke="url(#mpVring)" strokeWidth="3.5"/>
+                <circle cx="77" cy="44" r="3.5" fill="url(#mpVring)"/>
+              </svg>
+            </div>
+            {/* Ripple rings */}
+            {[0,.45,.9].map((d,i)=>(
+              <div key={i} className="absolute pointer-events-none" style={{
+                borderRadius:"50%",border:`1.5px solid rgba(251,191,36,${.38-i*.1})`,
+                inset:`calc(50% - ${32+i*9}px)`,
+                animation:`mapKfRipple 2.4s ease-out ${1.05+d}s infinite` }}/>
+            ))}
+            <FU delay={1.0}  size={10} color="#fbbf24" weight={700} lsp="0.3em" upper>
+              Vault {add?"Logged":"Updated"}
+            </FU>
+            <FU delay={1.15} size={18} color="#fff" weight={800} mt={6} mb={4}>
+              {add?"Expense Recorded! 💰":"Amount Updated! 🏦"}
+            </FU>
+            <FU delay={1.3}  color="rgba(253,230,138,.72)" mb={22}>
+              {add?"Your expense has been deposited into the ledger."
+                  :"The expense record has been revised and saved."}
+            </FU>
+            <Btn delay={1.45}
+              label={add?"🪙 Vaulted!":"💰 Confirmed!"}
+              bg="linear-gradient(90deg,#92400e,#b45309,#d97706,#f59e0b)"
+              shadow="0 8px 26px rgba(217,119,6,.48)"
+              onClose={onClose}/>
           </div>
-          <FU delay={0.55} size={10} color="#34d399" weight={700} lsp="0.3em" upper>Expense {add?"Logged":"Updated"}</FU>
-          <FU delay={0.7} size={18} color="#fff" weight={800} mt={6} mb={4}>{add?"Expense Recorded!":"Expense Updated!"}</FU>
-          <FU delay={0.85} color="rgba(110,231,183,.7)" mb={22}>Amount has been {add?"added to":"updated in"} the trip ledger.</FU>
-          <Btn delay={1.0} label="💰 Got It!" bg="linear-gradient(90deg,#059669,#047857)" shadow="0 8px 24px rgba(5,150,105,.44)" onClose={onClose}/>
         </div>
       </div>
     </div>, document.body

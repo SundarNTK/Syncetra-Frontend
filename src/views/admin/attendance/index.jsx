@@ -3,6 +3,7 @@ import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { useActionPopup } from "../../../hooks/useActionPopup";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import {
   getAttendance,
   getAttendanceCheckpoints,
@@ -165,6 +166,7 @@ export default function AdminAttendance() {
     setIsNew(false);
     loadBase();
   }, [loadBase]);
+  useOnlineReload(loadBase);
 
   /* ── build default draft (all present) ── */
   const defaultDraft = useCallback((memberList) => {
@@ -259,7 +261,13 @@ export default function AdminAttendance() {
       await loadBase();
       goBack();
     } catch (err) {
-      showError(err.message || "Failed to save attendance.");
+      if (err.queued) {
+        showSuccess(`Attendance saved offline — will sync when reconnected.`);
+        await loadBase();
+        goBack();
+      } else {
+        showError(err.message || "Failed to save attendance.");
+      }
     } finally {
       setSaving(false);
     }

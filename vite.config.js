@@ -81,6 +81,36 @@ export default defineConfig(({ mode }) => {
               expiration: { maxEntries: 20, maxAgeSeconds: 300 },
             },
           },
+          {
+            // Trips list — cache so users can see their trips offline
+            urlPattern: /\/api\/v1\/alarm\/(admin|user)\/trips$/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "trips-cache",
+              expiration: { maxEntries: 10, maxAgeSeconds: 3600 },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            // Trip detail pages: expenses, attendance, tasks, checklists, members, etc.
+            urlPattern: /\/api\/v1\/alarm\/(admin|user)\/trips\/[^/]+\/(expenses|attendance|tasks|vehicles|checklists|members|polls|itinerary|schedules|share-collections|media)(\?.*)?$/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "trip-detail-cache",
+              expiration: { maxEntries: 100, maxAgeSeconds: 3600 },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            // Trip hub and individual trip
+            urlPattern: /\/api\/v1\/alarm\/(admin|user)\/trips\/[^/]+(\/hub)?$/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "trip-hub-cache",
+              expiration: { maxEntries: 20, maxAgeSeconds: 3600 },
+              networkTimeoutSeconds: 5,
+            },
+          },
         ],
       },
       // Avoid registering dev-sw.js on https://localhost with a self-signed cert (often fails and spams the console).

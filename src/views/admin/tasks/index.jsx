@@ -11,6 +11,7 @@ import TaskEditModal from "../../../components/task-manager/TaskEditModal";
 import AssignedMemberChips from "../../../components/task-manager/AssignedMemberChips";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useActionPopup } from "../../../hooks/useActionPopup";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 
 const IconEdit = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -349,6 +350,7 @@ export default function AdminTasks() {
     if (!selectedTripId) return;
     getTasks(selectedTripId).then((r) => setItems(r?.data || []));
   }, [selectedTripId]);
+  useOnlineReload(load);
 
   const loadMembers = useCallback(async () => {
     if (!selectedTripId) { setMembers([]); return; }
@@ -430,7 +432,12 @@ export default function AdminTasks() {
       load();
       showSuccess("Task created successfully.");
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || "Failed to create task");
+      if (err.queued) {
+        setForm({ title: "", description: "", assignedTo: [] });
+        showSuccess("Saved offline — will sync when reconnected.");
+      } else {
+        setError(err?.response?.data?.message || err.message || "Failed to create task");
+      }
     } finally {
       setSaving(false);
     }
