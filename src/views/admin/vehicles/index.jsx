@@ -3,12 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getVehicles, addVehicle, updateVehicle, deleteVehicle } from "../../../services/trips";
+import { deletePendingItem, updatePendingItem } from "../../../utils/offlinePendingOps";
 import DatePickerField from "../../../components/ui/DatePickerField";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import VehicleMetaBadges from "../../../components/vehicles/VehicleMetaBadges";
 import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
 const VEHICLE_TYPES = [
@@ -299,7 +301,7 @@ function EditModal({ vehicle, tripId, onClose, onSaved, onDelete }) {
     setSaving(true);
     setError("");
     try {
-      await updateVehicle(tripId, vehicle._id, {
+      const payload = {
         ...form,
         totalSeats:    Number(form.totalSeats)    || vehicle.totalSeats,
         advanceAmount: Number(form.advanceAmount) || 0,
@@ -307,11 +309,19 @@ function EditModal({ vehicle, tripId, onClose, onSaved, onDelete }) {
         bookedDate:    form.bookedDate    || undefined,
         tripStartDate: form.tripStartDate || undefined,
         tripEndDate:   form.tripEndDate   || undefined,
-      });
+      };
+      if (vehicle._pending && vehicle._queueId) {
+        await updatePendingItem(vehicle, payload);
+        onSaved();
+        onClose();
+        return;
+      }
+      await updateVehicle(tripId, vehicle._id, payload);
       onSaved();
       onClose();
     } catch (err) {
-      setError(err.message || "Failed to update vehicle.");
+      if (err.queued) { onSaved(); onClose(); }
+      else { setError(err.message || "Failed to update vehicle."); }
     } finally {
       setSaving(false);
     }
@@ -665,6 +675,16 @@ function VehicleDetailModal({ vehicle, onClose, onEdit, onDelete }) {
   );
 }
 
+/* ─── PendingBadge ───────────────────────────────────────────────────────────── */
+function PendingBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/50 text-amber-300 text-[10px] font-semibold tracking-wide uppercase">
+      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_#fbbf24]" />
+      Not Synced
+    </span>
+  );
+}
+
 /* ─── VehicleCard ────────────────────────────────────────────────────────────── */
 function VehicleCard({ vehicle, onView, onEdit, onDelete }) {
   const [imgIdx,     setImgIdx]     = useState(0);
@@ -675,7 +695,7 @@ function VehicleCard({ vehicle, onView, onEdit, onDelete }) {
   const typeLabel = VEHICLE_TYPES.find((t) => t.value === vehicle.type)?.label || vehicle.type;
 
   return (
-    <div className="bg-slate-900/80 border border-slate-700/60 rounded-2xl overflow-hidden">
+    <div className={`border rounded-2xl overflow-hidden ${vehicle._pending ? "bg-amber-950/20 border-amber-600/40 shadow-[0_0_12px_rgba(251,191,36,0.12)]" : "bg-slate-900/80 border-slate-700/60"}`}>
       {/* Images */}
       {imgs.length > 0 && (
         <div className="relative">
@@ -745,9 +765,10 @@ function VehicleCard({ vehicle, onView, onEdit, onDelete }) {
         {/* Header row — stacks on narrow cards */}
         <div className="flex flex-col gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {imgs.length === 0 && <span className="text-xl shrink-0">{icon}</span>}
               <p className="font-bold text-white text-base sm:text-lg truncate">{vehicle.name}</p>
+              {vehicle._pending && <PendingBadge />}
             </div>
             {imgs.length === 0 && typeLabel && (
               <p className="text-[11px] text-slate-400 mt-0.5">{typeLabel}</p>
@@ -844,13 +865,14 @@ export default function AdminVehicles() {
     setLoading(true);
     try {
       const r = await getVehicles(selectedTripId);
-      setItems(r?.data || []);
+      if (r !== null) setItems(r?.data || []);
     } finally {
       setLoading(false);
     }
   }, [selectedTripId]);
 
   useEffect(() => { load(); setShowForm(false); }, [load]);
+  useOnlineReload(load);
 
   const handleAdd = async (form) => {
     if (!form.name.trim()) { setError("Vehicle name is required."); return; }
@@ -870,7 +892,13 @@ export default function AdminVehicles() {
       setShowForm(false);
       load();
     } catch (err) {
-      setError(err.message || "Failed to add vehicle.");
+      if (err.queued) {
+        showSuccess("Vehicle saved offline — will sync when reconnected.");
+        setShowForm(false);
+        load();
+      } else {
+        setError(err.message || "Failed to add vehicle.");
+      }
     } finally {
       setSaving(false);
     }
@@ -882,14 +910,24 @@ export default function AdminVehicles() {
       recordLabel: vehicle.name || vehicle.plateNumber || "this vehicle",
       onConfirm: async () => {
         try {
-          await deleteVehicle(selectedTripId, vehicle._id);
           setViewVeh(null);
           setEditVeh(null);
+          if (vehicle._pending && vehicle._queueId) {
+            await deletePendingItem(vehicle);
+            load();
+            showSuccess("Unsaved vehicle removed.");
+            return;
+          }
+          await deleteVehicle(selectedTripId, vehicle._id);
           load();
           showSuccess("Vehicle deleted successfully.");
         } catch (err) {
-          showError(err.message || "Failed to delete vehicle.");
-          throw err;
+          if (err.queued) {
+            load();
+            showSuccess("Delete queued offline — will sync when reconnected.");
+          } else {
+            showError(err.message || "Failed to delete vehicle.");
+          }
         }
       },
     });

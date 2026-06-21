@@ -87,6 +87,17 @@ export const removePendingFromCache = async (userId, cacheKey, queueId) => {
   await setCache(userId, cacheKey, rebuildCache(parsed, newArr));
 };
 
+/** Update a locally-created pending item in the cache by its _queueId (for offline edits). */
+export const updateItemByQueueId = async (userId, cacheKey, queueId, updates) => {
+  const cached = await getCache(userId, cacheKey);
+  const parsed = getArray(cached);
+  if (!parsed) return;
+  const newArr = parsed.arr.map((item) =>
+    item._queueId === queueId ? { ...item, ...updates } : item
+  );
+  await setCache(userId, cacheKey, rebuildCache(parsed, newArr));
+};
+
 /** Remove the _pending flag from an item (restore it to normal after sync). */
 export const clearPendingFlag = async (userId, cacheKey, queueId) => {
   const cached = await getCache(userId, cacheKey);

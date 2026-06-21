@@ -1,18 +1,29 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getUserAlarmHistory } from "../../../services/alarms";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import AlarmStatusBadge from "../../../components/alarms/AlarmStatusBadge";
 
 export default function UserAlarmHistory() {
-  const [alarms, setAlarms] = useState([]);
+  const [alarms,  setAlarms]  = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    getUserAlarmHistory().then((res) => setAlarms(res?.data || []));
+  const load = useCallback(() => {
+    setLoading(true);
+    getUserAlarmHistory()
+      .then((res) => { if (res !== null) setAlarms(res?.data || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   return (
     <div className="w-full">
       <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Alarm History</h2>
-      {alarms.length === 0 ? (
+      {loading ? (
+        <p className="text-slate-400 text-sm">Loading...</p>
+      ) : alarms.length === 0 ? (
         <p className="text-slate-400">No past alarms.</p>
       ) : (
         <ul className="space-y-3">

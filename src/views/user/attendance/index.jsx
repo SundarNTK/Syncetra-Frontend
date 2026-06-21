@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getUserAttendance } from "../../../services/trips";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import { TripDateRangeBoxes } from "../../../components/trip/TripStatBox";
 import { fmtTripDate, tripPhase, phaseBadge } from "../../../components/trip/tripUtils";
 
@@ -265,17 +266,17 @@ export default function UserAttendance() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
     if (!selectedTripId) return;
     setLoading(true);
-    try {
-      const res = await getUserAttendance(selectedTripId);
-      setRecords(res?.data || []);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    getUserAttendance(selectedTripId)
+      .then((res) => { if (res !== null) setRecords(res?.data || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [selectedTripId]);
 
   useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   const grouped = records.reduce((acc, r) => {
     const key = r.checkpoint || "Trip Start";

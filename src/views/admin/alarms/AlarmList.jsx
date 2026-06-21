@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getAdminAlarms, getAlarmLogs, deleteAlarm } from "../../../services/alarms";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import { formatDateTimeDisplay, formatTime12hDisplay } from "../../../utils/dateTimeUtils";
 import MasterPageShell, { MasterList, MasterListItem } from "../../../components/layout/MasterPageShell";
 import { useAppSelector } from "../../../hooks";
@@ -65,9 +66,14 @@ export default function AlarmList() {
   const isSuperAdmin = userInfo?.user?.role === ROLES.SUPER_ADMIN;
   const { confirmDelete, deleteModal } = useDeleteConfirm();
 
-  const load = () => getAdminAlarms().then((res) => setAlarms(res?.data || []));
+  const load = useCallback(() => {
+    getAdminAlarms()
+      .then((res) => { if (res !== null) setAlarms(res?.data || []); })
+      .catch(() => {});
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   const viewLogs = async (id) => {
     setLogs({ alarmId: id, items: [], loading: true });

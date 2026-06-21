@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getMyShareCollection } from "../../../services/trips";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -23,17 +24,18 @@ export default function UserShareCollection() {
   const load = useCallback(async () => {
     if (!selectedTripId) return;
     setLoading(true);
-    try {
-      const r = await getMyShareCollection(selectedTripId);
-      setRecord(r?.data || null);
-    } catch { setRecord(null); }
-    finally { setLoading(false); }
+    getMyShareCollection(selectedTripId)
+      .then((r) => { if (r !== null) setRecord(r?.data || null); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [selectedTripId]);
 
   useEffect(() => {
     if (!selectedTripId) { setRecord(null); return; }
     load();
   }, [selectedTripId, load]);
+
+  useOnlineReload(load);
 
   const pct = record?.totalShareAmount > 0
     ? Math.min(100, Math.round((record.paidAmount / record.totalShareAmount) * 100))

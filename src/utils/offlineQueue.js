@@ -36,6 +36,22 @@ export const dequeue = async (id) => {
   });
 };
 
+/** Update the data payload of a queued request (for offline edits of pending items). */
+export const updateQueueData = async (id, newData) => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx    = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req   = store.get(id);
+    req.onsuccess = (e) => {
+      const item = e.target.result;
+      if (item) store.put({ ...item, data: newData });
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror    = (e) => reject(e.target.error);
+  });
+};
+
 /** Count pending requests for a user. */
 export const countForUser = async (userId) => {
   const items = await getQueueForUser(userId);

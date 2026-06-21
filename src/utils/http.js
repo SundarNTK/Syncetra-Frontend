@@ -120,12 +120,12 @@ const collectionCacheKey = (url) => url + '|';
 async function _patchCacheForWrite(userId, method, url, data, queueId) {
   if (method === 'POST') {
     const cacheKey    = collectionCacheKey(url);
-    const pendingItem = { ...data, _id: `offline_${queueId}`, _pending: true, _queueId: queueId };
+    const pendingItem = { ...data, _id: `offline_${queueId}`, _pending: true, _queueId: queueId, _cacheKey: cacheKey };
     await appendPendingToCache(userId, cacheKey, pendingItem);
   } else if (method === 'PUT' || method === 'PATCH') {
     const cacheKey = collectionCacheKey(url.replace(/\/[^/]+$/, ''));
     const itemId   = url.split('/').pop();
-    await updatePendingInCache(userId, cacheKey, itemId, { ...data, _queueId: queueId });
+    await updatePendingInCache(userId, cacheKey, itemId, { ...data, _queueId: queueId, _cacheKey: cacheKey });
   } else if (method === 'DELETE') {
     const cacheKey = collectionCacheKey(url.replace(/\/[^/]+$/, ''));
     const itemId   = url.split('/').pop();

@@ -3,6 +3,7 @@ import AlarmListener from "./components/alarm-listener/AlarmListener";
 import FcmBootstrap from "./components/fcm-bootstrap/FcmBootstrap";
 import OfflineBanner from "./components/offline/OfflineBanner";
 import { TripProvider } from "./context/TripContext";
+import { OfflineProvider } from "./context/OfflineContext";
 import { usePrefetchOnLogin } from "./hooks/usePrefetchOnLogin";
 
 function AppInner() {
@@ -19,9 +20,11 @@ function AppInner() {
 export default function App() {
   return (
     <TripProvider>
-      <AlarmListener>
-        <AppInner />
-      </AlarmListener>
+      <OfflineProvider>
+        <AlarmListener>
+          <AppInner />
+        </AlarmListener>
+      </OfflineProvider>
     </TripProvider>
   );
 }

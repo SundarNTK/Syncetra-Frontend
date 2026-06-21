@@ -1,7 +1,7 @@
-import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { useOffline } from '../../context/OfflineContext';
 
 export default function OfflineBanner() {
-  const { isOnline, pendingCount, isSyncing } = useOfflineSync();
+  const { isOnline, pendingCount, isSyncing } = useOffline();
 
   if (isOnline && pendingCount === 0 && !isSyncing) return null;
 

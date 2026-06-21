@@ -11,6 +11,7 @@ import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useAppSelector } from "../../../hooks";
 import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import { ROLES } from "../../../constants/enum";
+import { deletePendingItem, updatePendingItem } from "../../../utils/offlinePendingOps";
 
 function PendingBadge() {
   return (
@@ -161,11 +162,14 @@ function EditModal({ expense, tripId, onClose, onSaved, onPreview }) {
     setSaving(true);
     setError("");
     try {
-      await updateExpense(tripId, expense._id, {
-        ...form,
-        amount:   Number(form.amount),
-        imageUrl: form.imageUrl || undefined,
-      });
+      const payload = { ...form, amount: Number(form.amount), imageUrl: form.imageUrl || undefined };
+      if (expense._pending && expense._queueId) {
+        await updatePendingItem(expense, payload);
+        onSaved();
+        onClose();
+        return;
+      }
+      await updateExpense(tripId, expense._id, payload);
       onSaved();
       onClose();
     } catch (err) {
@@ -366,6 +370,12 @@ export default function AdminExpenses() {
       recordLabel: `${x.category} — ₹${Number(x.amount || 0).toLocaleString("en-IN")}`,
       onConfirm: async () => {
         try {
+          if (x._pending && x._queueId) {
+            await deletePendingItem(x);
+            load();
+            showSuccess("Unsaved expense removed.");
+            return;
+          }
           await deleteExpense(selectedTripId, x._id);
           load();
           showSuccess("Expense deleted successfully.");
@@ -559,19 +569,17 @@ export default function AdminExpenses() {
                       )}
                       {/* Amount + Edit */}
                       <p className="font-bold text-slate-200 font-mono shrink-0">{fmt(x.amount)}</p>
-                      {!x._pending && (
-                        <button
-                          type="button"
-                          onClick={() => setEditExp(x)}
-                          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 text-xs font-medium transition-colors"
-                        >
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Edit
-                        </button>
-                      )}
-                      {isSuperAdmin && !x._pending && (
+                      <button
+                        type="button"
+                        onClick={() => setEditExp(x)}
+                        className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 text-xs font-medium transition-colors"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
+                      {isSuperAdmin && (
                         <button
                           type="button"
                           onClick={() => handleDelete(x)}

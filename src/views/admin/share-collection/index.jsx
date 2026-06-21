@@ -11,6 +11,8 @@ import {
 } from "../../../services/trips";
 import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
+import { updatePendingItem } from "../../../utils/offlinePendingOps";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -58,6 +60,13 @@ function MemberCard({ member, record, tripId, onRefresh, onSuccess, onError, ask
     if (!amt || amt < 0) { onError("Enter a valid amount."); return; }
     setSaving(true);
     try {
+      if (record?._pending && record._queueId) {
+        await updatePendingItem(record, { totalShareAmount: amt });
+        onSuccess("Share amount updated locally — will sync when reconnected.");
+        setEditShare(false);
+        onRefresh();
+        return;
+      }
       if (record) {
         await updateShareCollection(tripId, record._id, { totalShareAmount: amt });
         onSuccess("Share amount updated.");
@@ -67,7 +76,15 @@ function MemberCard({ member, record, tripId, onRefresh, onSuccess, onError, ask
         onSuccess("Share amount set.");
       }
       onRefresh();
-    } catch (err) { onError(err.message || "Failed."); }
+    } catch (err) {
+      if (err.queued) {
+        onSuccess("Saved offline — will sync when reconnected.");
+        setEditShare(false);
+        onRefresh();
+      } else {
+        onError(err.message || "Failed.");
+      }
+    }
     finally { setSaving(false); }
   };
 
@@ -86,7 +103,15 @@ function MemberCard({ member, record, tripId, onRefresh, onSuccess, onError, ask
       onSuccess("Payment recorded.");
       setPayAmt("");
       onRefresh();
-    } catch (err) { onError(err.message || "Payment failed."); }
+    } catch (err) {
+      if (err.queued) {
+        onSuccess("Payment saved offline — will sync when reconnected.");
+        setPayAmt("");
+        onRefresh();
+      } else {
+        onError(err.message || "Payment failed.");
+      }
+    }
     finally { setSaving(false); }
   };
 
@@ -98,7 +123,14 @@ function MemberCard({ member, record, tripId, onRefresh, onSuccess, onError, ask
       await deleteSharePayment(tripId, record._id, txId);
       onSuccess("Payment deleted.");
       onRefresh();
-    } catch (err) { onError(err.message || "Failed."); }
+    } catch (err) {
+      if (err.queued) {
+        onSuccess("Delete queued offline — will sync when reconnected.");
+        onRefresh();
+      } else {
+        onError(err.message || "Failed.");
+      }
+    }
   };
 
   /* ── mode toggle ── */
@@ -159,8 +191,14 @@ function MemberCard({ member, record, tripId, onRefresh, onSuccess, onError, ask
           }
         </div>
 
-        {/* Status badge + chevron */}
+        {/* Status badge + pending badge + chevron */}
         <div className="flex items-center gap-2 shrink-0">
+          {record?._pending && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/50 text-amber-300 text-[10px] font-semibold tracking-wide uppercase shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              Not Synced
+            </span>
+          )}
           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide ${STATUS_STYLE[status]}`}>
             {STATUS_LABEL[status]}
           </span>
@@ -254,8 +292,12 @@ function MemberCard({ member, record, tripId, onRefresh, onSuccess, onError, ask
                 </div>
               </div>
 
-              {/* Inline payment entry */}
-              {maxPayable > 0 ? (
+              {/* Inline payment entry — disabled until share record syncs */}
+              {record._pending ? (
+                <div className="px-4 py-3 border-t border-slate-800/60 bg-amber-950/20">
+                  <p className="text-xs text-amber-400 text-center">Payments available after sync</p>
+                </div>
+              ) : maxPayable > 0 ? (
                 <div className="px-4 py-3 border-t border-slate-800/60 bg-slate-950/40 space-y-2">
                   <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                     Record Payment · Balance {fmt(maxPayable)}
@@ -385,9 +427,9 @@ export default function AdminShareCollection() {
         getTripMembers(selectedTripId),
         getShareCollections(selectedTripId),
       ]);
-      setMembers(memRes?.data || []);
-      setRecords(recRes?.data || []);
-    } catch { setMembers([]); setRecords([]); }
+      if (memRes !== null) setMembers(memRes?.data || []);
+      if (recRes !== null) setRecords(recRes?.data || []);
+    } catch { /* ignore */ }
     finally  { setLoading(false); }
   }, [selectedTripId]);
 
@@ -395,6 +437,8 @@ export default function AdminShareCollection() {
     if (!selectedTripId) { setMembers([]); setRecords([]); return; }
     load();
   }, [selectedTripId, load]);
+
+  useOnlineReload(load);
 
   /* ── build record lookup ── */
   const recordByUserId = Object.fromEntries(

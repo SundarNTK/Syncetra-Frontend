@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppSelector } from "../../../hooks";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useTrip } from "../../../context/TripContext";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { getMedia, getMediaItem, addMedia, deleteMedia as deleteMediaApi } from "../../../services/trips";
@@ -484,8 +485,8 @@ export default function TripGallery() {
     if (!selectedTripId) return;
     setLoading(true);
     getMedia(selectedTripId, {}, isAdmin)
-      .then((r) => setItems(r?.data || []))
-      .catch(() => setItems([]))
+      .then((r) => { if (r !== null) setItems(r?.data || []); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedTripId, isAdmin]);
 
@@ -498,11 +499,9 @@ export default function TripGallery() {
     setLoading(true);
     getMedia(selectedTripId, {}, isAdmin)
       .then((r) => {
-        if (!ignore) setItems(r?.data || []);
+        if (!ignore && r !== null) setItems(r?.data || []);
       })
-      .catch(() => {
-        if (!ignore) setItems([]);
-      })
+      .catch(() => {})
       .finally(() => {
         if (!ignore) setLoading(false);
       });
@@ -510,6 +509,7 @@ export default function TripGallery() {
       ignore = true;
     };
   }, [selectedTripId, isAdmin]);
+  useOnlineReload(reloadMedia);
 
   // Derived filtered list (used by both grid and viewer)
   const filtered = items.filter((m) => {

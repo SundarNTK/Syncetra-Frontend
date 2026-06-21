@@ -3,9 +3,11 @@ import { useAppSelector } from "../../../hooks";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useTrip } from "../../../context/TripContext";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import {
   getPolls, createPoll, updatePoll, deletePoll, getPollAnalytics,
 } from "../../../services/polls";
+import { deletePendingItem } from "../../../utils/offlinePendingOps";
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell, { MasterList, MasterListItem, MasterListEmpty } from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
@@ -545,7 +547,11 @@ function CreatePollModal({ onClose, onCreated, trips }) {
       await createPoll({ ...form, tripId: form.pollType === "trip" ? form.tripId : null, options: filled });
       onCreated();
     } catch (err) {
-      setError(err.message || "Failed to create poll");
+      if (err.queued) {
+        onCreated();
+      } else {
+        setError(err.message || "Failed to create poll");
+      }
     } finally {
       setSaving(false);
     }
@@ -653,6 +659,15 @@ function PollMemberStat({ label, value, variant, className = "" }) {
   );
 }
 
+function PollPendingBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/50 text-amber-300 text-[10px] font-semibold tracking-wide uppercase">
+      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_6px_#fbbf24]" />
+      Not Synced
+    </span>
+  );
+}
+
 function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAnalytics, onStatusChange, onDelete }) {
   const status     = poll.pollStatus || "open";
   const statusMeta = STATUS_META[status] || STATUS_META.open;
@@ -678,6 +693,7 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
                   {poll.pollType === "trip" ? "Trip Poll" : "General"}
                 </span>
                 <StatusBadge status={status} className="shrink-0" />
+                {poll._pending && <PollPendingBadge />}
               </div>
             </div>
             {eligible > 0 && (
@@ -831,13 +847,14 @@ export default function AdminPolls() {
       const params = {};
       if (typeFilter !== "all") params.type = typeFilter;
       const res = await getPolls(params);
-      setPolls(res?.data || []);
+      if (res !== null) setPolls(res?.data || []);
     } finally {
       setLoading(false);
     }
   }, [typeFilter]);
 
   useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   const handleStatusChange = async (pollId, newStatus) => {
     try {
@@ -855,6 +872,11 @@ export default function AdminPolls() {
       recordLabel: poll?.title || poll?.question,
       onConfirm: async () => {
         try {
+          if (poll?._pending && poll._queueId) {
+            await deletePendingItem(poll);
+            load();
+            return;
+          }
           await deletePoll(id);
           load();
         } catch (err) {

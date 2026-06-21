@@ -5,6 +5,7 @@ import { ROLES } from "../../constants/enum";
 import { SyncetraBrand, LOGO_ICON } from "../brand/SyncetraLogo";
 import ProfileDropdown from "../profile/ProfileDropdown";
 import TaskNotificationPopup from "../task-notification/TaskNotificationPopup";
+import { useOffline } from "../../context/OfflineContext";
 
 function ChevronLeft() {
   return (
@@ -35,6 +36,8 @@ export default function SidebarLayout({ menuItems = [], title = "Syncetra" }) {
   const isSuperAdmin = role === ROLES.SUPER_ADMIN;
   const isAdminSide = role === ROLES.ADMIN || isSuperAdmin;
   const base = isAdminSide ? "/admin" : "/user";
+  const { isOnline, pendingCount, isSyncing } = useOffline();
+  const bannerVisible = !isOnline || pendingCount > 0 || isSyncing;
 
   return (
     <div className="min-h-screen flex bg-slate-950 text-slate-100">
@@ -100,7 +103,7 @@ export default function SidebarLayout({ menuItems = [], title = "Syncetra" }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 w-full">
-        <header className="h-14 border-b border-slate-800 flex items-center px-4 sm:px-6 bg-slate-900/50 backdrop-blur sticky top-0 z-30">
+        <header className={`h-14 border-b border-slate-800 flex items-center px-4 sm:px-6 bg-slate-900/50 backdrop-blur sticky z-30 ${bannerVisible ? "top-9" : "top-0"}`}>
           <button type="button" onClick={() => setMobileMenuOpen(true)} className="sm:hidden mr-3 p-2 rounded-lg bg-slate-800 text-slate-300">☰</button>
           <span className="text-xs px-2 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
             {isSuperAdmin ? "Super Admin" : isAdminSide ? "Administrator" : "Member"}

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAppSelector } from "../../../hooks";
 import { getAdmins, updateUser } from "../../../services/users";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import { ROLES } from "../../../constants/enum";
 import MasterPageShell from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
@@ -194,14 +195,16 @@ export default function AdminAdmins() {
   const [editAdmin, setEditAdmin] = useState(null);
   const { popup, showSuccess } = useActionPopup("admins");
 
-  const fetchAdmins = () => {
+  const fetchAdmins = useCallback(() => {
     setLoading(true);
     getAdmins()
-      .then((res) => setAdmins(res?.data || []))
+      .then((res) => { if (res !== null) setAdmins(res?.data || []); })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { fetchAdmins(); }, []);
+  useEffect(() => { fetchAdmins(); }, [fetchAdmins]);
+  useOnlineReload(fetchAdmins);
 
   const handleSaved = (updated) => {
     if (updated) {

@@ -4,6 +4,7 @@ import { CLEAR_USER } from "../../store/userSlice";
 import { disconnectSocket } from "../../services/socketService";
 import { ROLES } from "../../constants/enum";
 import TaskAcknowledgmentNotifier from "../task-acknowledgment/TaskAcknowledgmentNotifier";
+import { useOffline } from "../../context/OfflineContext";
 
 export default function MainLayout({ navItems = [] }) {
   const dispatch = useAppDispatch();
@@ -12,6 +13,8 @@ export default function MainLayout({ navItems = [] }) {
   const role = userInfo?.user?.role;
   const isAdmin = role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN;
   const isMember = role === ROLES.USER;
+  const { isOnline, pendingCount, isSyncing } = useOffline();
+  const bannerVisible = !isOnline || pendingCount > 0 || isSyncing;
 
   const logout = () => {
     disconnectSocket();
@@ -22,7 +25,7 @@ export default function MainLayout({ navItems = [] }) {
   return (
     <div className="min-h-screen flex flex-col">
       {isMember && <TaskAcknowledgmentNotifier />}
-      <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
+      <header className={`bg-slate-800 border-b border-slate-700 px-4 py-3 flex items-center justify-between sticky z-40 ${bannerVisible ? "top-9" : "top-0"}`}>
         <div>
           <h1 className="text-lg font-bold text-red-500">Group Alarm</h1>
           <p className="text-xs text-slate-400">

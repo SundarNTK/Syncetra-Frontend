@@ -4,6 +4,7 @@ import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import { pollOptionGlowClass } from "../../../components/polls/pollOptionStyles";
 import { useAppSelector } from "../../../hooks";
 import { getUserPolls, votePoll } from "../../../services/polls";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 
 // ─── Confetti burst ───────────────────────────────────────────────────────────
 const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ec4899", "#8b5cf6", "#f97316"];
@@ -378,19 +379,18 @@ export default function UserPolls() {
   // Description modal
   const [descPoll, setDescPoll] = useState(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
     setLoading(true);
-    try {
-      const params = {};
-      if (typeFilter !== "all") params.type = typeFilter;
-      const res = await getUserPolls(params);
-      setPolls(res?.data || []);
-    } finally {
-      setLoading(false);
-    }
+    const params = {};
+    if (typeFilter !== "all") params.type = typeFilter;
+    getUserPolls(params)
+      .then((res) => { if (res !== null) setPolls(res?.data || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [typeFilter]);
 
   useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   const handleVoteConfirm = (poll, optionIndex) => {
     setConfirm({ poll, optionIndex });

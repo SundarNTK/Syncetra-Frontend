@@ -154,8 +154,8 @@ export default function AdminAttendance() {
         getTripMembers(selectedTripId),
         getAttendanceCheckpoints(selectedTripId),
       ]);
-      setMembers(memRes?.data || []);
-      setCheckpoints(cpRes?.data || []);
+      if (memRes !== null) setMembers(memRes?.data || []);
+      if (cpRes !== null) setCheckpoints(cpRes?.data || []);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, [selectedTripId]);

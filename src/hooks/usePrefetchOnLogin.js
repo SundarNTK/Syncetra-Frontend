@@ -13,8 +13,15 @@ import {
   getTripHub,
   getItinerary,
   getSchedules,
+  getMedia,
+  getUserAttendance,
+  getUserVehicles,
+  getMyShareCollection,
 } from '../services/trips';
 import { getAdminGroups } from '../services/groups';
+import { getPolls, getUserPolls } from '../services/polls';
+import { getAdminAlarms, getUserAlarmHistory } from '../services/alarms';
+import { getAdmins } from '../services/users';
 
 const SELECTED_TRIP_KEY = 'syncetra_selected_trip';
 
@@ -42,7 +49,15 @@ export const usePrefetchOnLogin = () => {
       if (!trips.length) return;
 
       // 2. Cache shared master data
-      if (isAdmin) getAdminGroups().catch(() => {});
+      if (isAdmin) {
+        getAdminGroups().catch(() => {});
+        getAdminAlarms().catch(() => {});
+        getAdmins().catch(() => {});
+        getPolls({}).catch(() => {});
+      } else {
+        getUserPolls({}).catch(() => {});
+        getUserAlarmHistory().catch(() => {});
+      }
 
       // 3. Identify the priority trip for deep prefetch
       const selectedId = localStorage.getItem(SELECTED_TRIP_KEY);
@@ -64,7 +79,11 @@ export const usePrefetchOnLogin = () => {
         getChecklists(primaryId, isAdmin),
         getItinerary(primaryId, isAdmin),
         getSchedules(primaryId, isAdmin),
-        ...(isAdmin ? [getAttendance(primaryId)] : []),
+        getMedia(primaryId, {}, isAdmin),
+        ...(isAdmin
+          ? [getAttendance(primaryId)]
+          : [getUserAttendance(primaryId), getUserVehicles(primaryId), getMyShareCollection(primaryId)]
+        ),
       ]);
 
       // 5. Light-prefetch hub + expenses + tasks for all other trips (background,

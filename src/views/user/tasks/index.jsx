@@ -3,6 +3,7 @@ import { useAppSelector } from "../../../hooks";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getTasks, acknowledgeTask } from "../../../services/trips";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import { formatDateTimeDisplay } from "../../../utils/dateTimeUtils";
 
 const fmtDate = (iso) => (iso ? formatDateTimeDisplay(iso) : null);
@@ -101,12 +102,13 @@ export default function UserTasks() {
     if (!selectedTripId) { setItems([]); return; }
     setLoading(true);
     getTasks(selectedTripId, false)
-      .then((r) => setItems(r?.data || []))
-      .catch(() => setItems([]))
+      .then((r) => { if (r !== null) setItems(r?.data || []); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [selectedTripId]);
 
   useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   const toggleExpand = (id) =>
     setExpanded((p) => ({ ...p, [id]: !p[id] }));

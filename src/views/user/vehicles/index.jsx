@@ -1,8 +1,9 @@
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getUserVehicles } from "../../../services/trips";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import VehicleMetaBadges from "../../../components/vehicles/VehicleMetaBadges";
 
@@ -461,27 +462,17 @@ export default function UserVehicles() {
   const [loading, setLoading] = useState(false);
   const [viewVeh, setViewVeh] = useState(null);
 
-  useEffect(() => {
-    if (!selectedTripId) {
-      setItems([]);
-      return undefined;
-    }
-    let ignore = false;
+  const load = useCallback(() => {
+    if (!selectedTripId) { setItems([]); return; }
     setLoading(true);
     getUserVehicles(selectedTripId)
-      .then((r) => {
-        if (!ignore) setItems(r?.data || []);
-      })
-      .catch(() => {
-        if (!ignore) setItems([]);
-      })
-      .finally(() => {
-        if (!ignore) setLoading(false);
-      });
-    return () => {
-      ignore = true;
-    };
+      .then((r) => { if (r !== null) setItems(r?.data || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [selectedTripId]);
+
+  useEffect(() => { load(); }, [load]);
+  useOnlineReload(load);
 
   return (
     <TripModuleShell title="Vehicles" description="Trip vehicle & booking details" loading={loading && !!selectedTripId}>

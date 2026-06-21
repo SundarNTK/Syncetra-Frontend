@@ -3,10 +3,12 @@ import { createPortal } from "react-dom";
 import { useAppSelector } from "../../../hooks";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useActionPopup } from "../../../hooks/useActionPopup";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { ChecklistThumb } from "../../../components/trip/ChecklistThumb";
 import ChecklistViewModal from "../../../components/checklist/ChecklistViewModal";
+import { deletePendingItem, updatePendingItem } from "../../../utils/offlinePendingOps";
 import MemberMultiSelect, {
   assigneesForApi,
   assignedIdsFromItem,
@@ -207,16 +209,24 @@ function ChecklistEditModal({ tripId, item, tripMembers, memberOptionIds, member
     setSaving(true);
     setImgError("");
     try {
-      await updateChecklist(tripId, item._id, {
+      const payload = {
         item: form.item.trim(),
         description: form.description.trim(),
         imageUrl: form.imageUrl.trim(),
         assignedTo: assigneesForApi(form.assignedTo, memberOptionIds),
-      });
+      };
+      if (item._pending && item._queueId) {
+        await updatePendingItem(item, payload);
+        onSaved();
+        onClose();
+        return;
+      }
+      await updateChecklist(tripId, item._id, payload);
       onSaved();
       onClose();
     } catch (err) {
-      setImgError(err.message || "Failed to update");
+      if (err.queued) { onSaved(); onClose(); }
+      else { setImgError(err.message || "Failed to update"); }
     } finally {
       setSaving(false);
     }
@@ -363,9 +373,10 @@ export default function AdminChecklist() {
     if (!selectedTripId) return;
     setLoadError("");
     getChecklists(selectedTripId)
-      .then((r) => setItems(r?.data || []))
+      .then((r) => {
+        if (r !== null) setItems(r?.data || []);
+      })
       .catch((err) => {
-        setItems([]);
         setLoadError(err.message || "Could not load checklist");
       });
   }, [selectedTripId]);
@@ -380,13 +391,10 @@ export default function AdminChecklist() {
     setLoading(true);
     getChecklists(selectedTripId)
       .then((r) => {
-        if (!ignore) setItems(r?.data || []);
+        if (!ignore && r !== null) setItems(r?.data || []);
       })
       .catch((err) => {
-        if (!ignore) {
-          setItems([]);
-          setLoadError(err.message || "Could not load checklist");
-        }
+        if (!ignore) setLoadError(err.message || "Could not load checklist");
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -395,6 +403,7 @@ export default function AdminChecklist() {
       ignore = true;
     };
   }, [selectedTripId]);
+  useOnlineReload(reloadChecklists);
 
   useEffect(() => {
     if (!selectedTripId) {
@@ -445,7 +454,13 @@ export default function AdminChecklist() {
       reloadChecklists();
       showSuccess("Checklist item added successfully.");
     } catch (err) {
-      setImgError(err.message || "Failed to add item");
+      if (err.queued) {
+        setForm({ item: "", description: "", assignedTo: [], imageUrl: "" });
+        reloadChecklists();
+        showSuccess("Item saved offline — will sync when reconnected.");
+      } else {
+        setImgError(err.message || "Failed to add item");
+      }
     } finally {
       setSaving(false);
     }
@@ -457,11 +472,20 @@ export default function AdminChecklist() {
       recordLabel: item.item,
       onConfirm: async () => {
         try {
+          if (item._pending && item._queueId) {
+            await deletePendingItem(item);
+            reloadChecklists();
+            return;
+          }
           await deleteChecklist(selectedTripId, item._id);
           reloadChecklists();
         } catch (err) {
-          alert(err.message || "Could not delete item");
-          throw err;
+          if (err.queued) {
+            reloadChecklists();
+          } else {
+            alert(err.message || "Could not delete item");
+            throw err;
+          }
         }
       },
     });
@@ -544,13 +568,21 @@ export default function AdminChecklist() {
               return (
                 <li
                   key={c._id}
-                  className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex gap-3 items-start"
+                  className={`border rounded-xl p-3 flex gap-3 items-start ${c._pending ? "bg-amber-950/20 border-amber-600/40 shadow-[0_0_12px_rgba(251,191,36,0.12)]" : "bg-slate-900 border-slate-800"}`}
                 >
                   <div className="w-16 h-16 rounded-lg overflow-hidden border border-slate-700 shrink-0 bg-slate-950 flex items-center justify-center">
                     <ChecklistThumb tripId={selectedTripId} item={c} isAdmin />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-100">{c.item}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-slate-100">{c.item}</p>
+                      {c._pending && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/50 text-amber-300 text-[10px] font-semibold tracking-wide uppercase">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                          Not Synced
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2 mt-1 text-[11px]">
                       <span className="text-slate-500">
                         Assignee: <span className="text-slate-300">{assigneeLabel}</span>

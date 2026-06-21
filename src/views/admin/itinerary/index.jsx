@@ -14,6 +14,8 @@ import LocationPicker from "../../../components/location-picker/LocationPicker";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { useOnlineReload } from "../../../hooks/useOnlineReload";
+import { deletePendingItem, updatePendingItem } from "../../../utils/offlinePendingOps";
 
 /* ─── Time helpers ─────────────────────────────────────────────────────────── */
 const parse24 = (v) => {
@@ -726,6 +728,12 @@ function ItineraryCard({ item, index, total, onView, onEdit, onDelete, onPreview
                     ✓ Reached
                   </span>
                 )}
+                {item._pending && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/50 text-amber-300 text-[10px] font-semibold tracking-wide uppercase shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Not Synced
+                  </span>
+                )}
               </div>
               {item.locationName && (
                 <p className="text-xs text-slate-500 mt-1 truncate">📍 {item.locationName}</p>
@@ -912,9 +920,11 @@ export default function AdminItinerary() {
     setLoading(true);
     try {
       const r = await getItinerary(selectedTripId);
-      const sorted = (r?.data || []).slice().sort((a, b) => (a.orderNo ?? 0) - (b.orderNo ?? 0));
-      setItems(sorted);
-    } catch { setItems([]); }
+      if (r !== null) {
+        const sorted = (r?.data || []).slice().sort((a, b) => (a.orderNo ?? 0) - (b.orderNo ?? 0));
+        setItems(sorted);
+      }
+    } catch { /* ignore — connectivity errors return null */ }
     finally { setLoading(false); }
   }, [selectedTripId]);
 
@@ -922,18 +932,45 @@ export default function AdminItinerary() {
     if (!selectedTripId) { setItems([]); return; }
     load();
   }, [selectedTripId, load]);
+  useOnlineReload(load);
 
   const handleAdd = async (form) => {
-    await addItinerary(selectedTripId, form);
-    load();
-    showSuccess("Itinerary point added.");
+    try {
+      await addItinerary(selectedTripId, form);
+      load();
+      showSuccess("Itinerary point added.");
+    } catch (err) {
+      if (err.queued) {
+        load();
+        showSuccess("Itinerary point saved offline — will sync when reconnected.");
+      } else {
+        throw err;
+      }
+    }
   };
 
   const handleEdit = async (form) => {
-    await updateItinerary(selectedTripId, editItem._id, form);
-    setEditItem(null);
-    load();
-    showSuccess("Itinerary point updated.");
+    try {
+      if (editItem._pending && editItem._queueId) {
+        await updatePendingItem(editItem, form);
+        setEditItem(null);
+        load();
+        showSuccess("Itinerary point updated.");
+        return;
+      }
+      await updateItinerary(selectedTripId, editItem._id, form);
+      setEditItem(null);
+      load();
+      showSuccess("Itinerary point updated.");
+    } catch (err) {
+      if (err.queued) {
+        setEditItem(null);
+        load();
+        showSuccess("Itinerary update saved offline — will sync when reconnected.");
+      } else {
+        throw err;
+      }
+    }
   };
 
   const handleDelete = (item) => {
@@ -942,10 +979,23 @@ export default function AdminItinerary() {
       recordLabel: item.pointName,
       onConfirm: async () => {
         try {
+          if (item._pending && item._queueId) {
+            await deletePendingItem(item);
+            load();
+            showSuccess("Unsaved itinerary point removed.");
+            return;
+          }
           await deleteItinerary(selectedTripId, item._id);
           load();
           showSuccess("Itinerary point deleted.");
-        } catch (e) { showError(e.message || "Delete failed."); }
+        } catch (err) {
+          if (err.queued) {
+            load();
+            showSuccess("Delete queued offline — will sync when reconnected.");
+          } else {
+            showError(err.message || "Delete failed.");
+          }
+        }
       },
     });
   };
