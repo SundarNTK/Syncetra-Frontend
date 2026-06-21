@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
-import { getExpenses } from "../../../services/trips";
+import { getExpenses, getSponsors } from "../../../services/trips";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -51,36 +51,43 @@ function ImagePreviewModal({ src, onClose }) {
 export default function UserExpenses() {
   const { selectedTripId, selectedTrip } = useTrip();
   const [items,      setItems]      = useState([]);
+  const [sponsors,   setSponsors]   = useState([]);
   const [loading,    setLoading]    = useState(false);
   const [previewImg, setPreviewImg] = useState(null);
 
   useEffect(() => {
     if (!selectedTripId) {
       setItems([]);
+      setSponsors([]);
       return undefined;
     }
     let ignore = false;
     setLoading(true);
-    getExpenses(selectedTripId, false)
-      .then((r) => {
-        if (!ignore) setItems(r?.data || []);
+    Promise.all([
+      getExpenses(selectedTripId, false),
+      getSponsors(selectedTripId, false),
+    ])
+      .then(([expRes, spRes]) => {
+        if (!ignore) {
+          setItems(expRes?.data || []);
+          setSponsors(spRes?.data || []);
+        }
       })
       .catch(() => {
-        if (!ignore) setItems([]);
+        if (!ignore) { setItems([]); setSponsors([]); }
       })
       .finally(() => {
         if (!ignore) setLoading(false);
       });
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [selectedTripId]);
 
-  const totalBudget    = Number(selectedTrip?.budget || 0);
-  const totalCollected = totalBudget;
-  const totalSpent     = items.reduce((s, e) => s + (e.amount || 0), 0);
-  const remaining      = totalBudget - totalSpent;
-  const pct            = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
+  const totalBudget   = Number(selectedTrip?.budget || 0);
+  const totalSponsor  = sponsors.reduce((s, sp) => s + (Number(sp.amount) || 0), 0);
+  const grandTotal    = totalBudget + totalSponsor;
+  const totalSpent    = items.reduce((s, e) => s + (e.amount || 0), 0);
+  const remaining     = grandTotal - totalSpent;
+  const pct           = grandTotal > 0 ? Math.min(100, Math.round((totalSpent / grandTotal) * 100)) : 0;
 
   return (
     <TripModuleShell title="Expenses" description="Trip expense summary" loading={loading && !!selectedTripId}>
@@ -91,52 +98,125 @@ export default function UserExpenses() {
       {/* ── Budget summary cards ── */}
       {selectedTripId && (
         <div className="space-y-3 mb-4">
-          {/* Progress bar */}
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-xs font-medium text-slate-400">Budget Usage</p>
-              <p className="text-xs font-bold text-slate-300">{pct}%</p>
-            </div>
-            <div className="h-2 rounded-full bg-slate-700 overflow-hidden mb-3">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${pct}%`,
-                  background: pct >= 90
-                    ? "linear-gradient(90deg,#ef4444,#dc2626)"
-                    : pct >= 70
-                    ? "linear-gradient(90deg,#f59e0b,#d97706)"
-                    : "linear-gradient(90deg,#10b981,#059669)",
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center">
-                <p className="text-base font-bold text-slate-200">{fmt(totalBudget)}</p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Budget</p>
-              </div>
-              <div className="text-center border-x border-slate-700/50">
-                <p className={`text-base font-bold ${pct >= 90 ? "text-red-400" : "text-amber-400"}`}>
-                  {fmt(totalSpent)}
-                </p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Spent</p>
-              </div>
-              <div className="text-center">
-                <p className={`text-base font-bold ${remaining < 0 ? "text-red-400" : "text-emerald-400"}`}>
-                  {fmt(remaining)}
-                </p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">
-                  {remaining < 0 ? "Over" : "Left"}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          {/* Collected */}
-          {totalBudget > 0 && (
-            <div className="flex items-center justify-between bg-slate-800/40 border border-slate-700/40 rounded-xl px-4 py-2.5">
-              <p className="text-xs text-slate-400">Total Collected</p>
-              <p className="text-sm font-semibold text-blue-400">{fmt(totalCollected)}</p>
+          {/* ── Fund glow box ── */}
+          {totalSponsor > 0 ? (
+            /* Expanded sponsor glow box with Fund Usage progress */
+            <div className="relative rounded-2xl overflow-hidden border border-violet-500/40 bg-slate-900/80 shadow-[0_0_24px_rgba(139,92,246,0.16)]">
+              <div className="absolute inset-0 pointer-events-none rounded-2xl"
+                style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.10) 0%, transparent 65%)" }} />
+
+              {/* Header */}
+              <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-3 relative">
+                <div>
+                  <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest mb-0.5">🏢 Sponsor Fund</p>
+                  <p className="text-xl font-black"
+                    style={{ background: "linear-gradient(90deg,#a78bfa,#c4b5fd,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                    {fmt(totalSponsor)}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{sponsors.length} sponsor{sponsors.length !== 1 ? "s" : ""}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Grand Total</p>
+                  <p className="text-lg font-black text-emerald-400">{fmt(grandTotal)}</p>
+                  <p className="text-[10px] text-slate-600">Budget + Sponsor</p>
+                </div>
+              </div>
+
+              {/* Progress bars */}
+              <div className="px-4 pb-4 space-y-3 border-t border-white/[0.06] pt-3 relative">
+                {/* Fund Usage */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full"
+                        style={{ background: pct >= 90 ? "#ef4444" : pct >= 70 ? "#f59e0b" : "#10b981", boxShadow: `0 0 6px ${pct >= 90 ? "rgba(239,68,68,0.8)" : pct >= 70 ? "rgba(245,158,11,0.8)" : "rgba(16,185,129,0.8)"}` }} />
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Fund Usage</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <span className={`font-bold ${pct >= 90 ? "text-red-400" : pct >= 70 ? "text-amber-400" : "text-emerald-400"}`}>{fmt(totalSpent)}</span>
+                      <span className="text-slate-600">/</span>
+                      <span className="text-slate-400">{fmt(grandTotal)}</span>
+                      <span className={`ml-1.5 font-black ${pct >= 90 ? "text-red-400" : pct >= 70 ? "text-amber-400" : "text-emerald-400"}`}>{pct}%</span>
+                    </div>
+                  </div>
+                  <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${pct}%`,
+                        background: pct >= 90 ? "linear-gradient(90deg,#dc2626,#ef4444)" : pct >= 70 ? "linear-gradient(90deg,#d97706,#f59e0b)" : "linear-gradient(90deg,#059669,#10b981)",
+                        boxShadow: pct > 0 ? `0 0 10px rgba(${pct >= 90 ? "239,68,68" : pct >= 70 ? "245,158,11" : "16,185,129"},0.45)` : "none",
+                      }} />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <p className="text-[10px] text-slate-600">
+                      {remaining < 0 ? `${fmt(Math.abs(remaining))} over fund` : `${fmt(remaining)} left`}
+                    </p>
+                    {pct >= 90 && <p className="text-[10px] text-red-400 font-semibold">⚠ Near limit</p>}
+                  </div>
+                </div>
+
+                {/* Mini budget vs grand total breakdown */}
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="flex-1 text-center bg-slate-800/60 rounded-lg py-2">
+                    <p className="text-sm font-bold text-slate-200">{fmt(totalBudget)}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Members Budget</p>
+                  </div>
+                  <span className="text-slate-600 text-xs">+</span>
+                  <div className="flex-1 text-center bg-slate-800/60 rounded-lg py-2" style={{ border: "1px solid rgba(139,92,246,0.2)" }}>
+                    <p className="text-sm font-bold text-violet-400">{fmt(totalSponsor)}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Sponsor</p>
+                  </div>
+                  <span className="text-slate-600 text-xs">=</span>
+                  <div className="flex-1 text-center bg-slate-800/60 rounded-lg py-2" style={{ border: "1px solid rgba(16,185,129,0.2)" }}>
+                    <p className="text-sm font-bold text-emerald-400">{fmt(grandTotal)}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Total</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Simple fund usage — no sponsors */
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-xs font-medium text-slate-400">Fund Usage</p>
+                <p className="text-xs font-bold text-slate-300">{pct}%</p>
+              </div>
+              <div className="h-2 rounded-full bg-slate-700 overflow-hidden mb-3">
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${pct}%`,
+                    background: pct >= 90 ? "linear-gradient(90deg,#ef4444,#dc2626)" : pct >= 70 ? "linear-gradient(90deg,#f59e0b,#d97706)" : "linear-gradient(90deg,#10b981,#059669)",
+                  }} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center">
+                  <p className="text-base font-bold text-slate-200">{fmt(totalBudget)}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Budget</p>
+                </div>
+                <div className="text-center border-x border-slate-700/50">
+                  <p className={`text-base font-bold ${pct >= 90 ? "text-red-400" : "text-amber-400"}`}>{fmt(totalSpent)}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Spent</p>
+                </div>
+                <div className="text-center">
+                  <p className={`text-base font-bold ${remaining < 0 ? "text-red-400" : "text-emerald-400"}`}>{fmt(Math.abs(remaining))}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">{remaining < 0 ? "Over" : "Left"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fund breakdown */}
+          {totalSponsor > 0 && (
+            <div className="bg-slate-900/40 border border-slate-800/60 rounded-xl px-4 py-3">
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">Fund Breakdown</p>
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-400">
+                <span>Members budget: <span className="text-slate-200 font-semibold">{fmt(totalBudget)}</span></span>
+                <span className="text-slate-600">+</span>
+                <span>Sponsors: <span className="text-violet-400 font-semibold">{fmt(totalSponsor)}</span></span>
+                <span className="text-slate-600">=</span>
+                <span>Total: <span className="text-emerald-400 font-semibold">{fmt(grandTotal)}</span></span>
+              </div>
             </div>
           )}
         </div>

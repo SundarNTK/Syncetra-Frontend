@@ -13,6 +13,7 @@ import PopupStylesPreview from "../views/popup-styles";
 import PopupPreviewPage from "../views/popup-preview";
 import ItineraryVariantsPreview from "../views/popup-preview/itinerary-variants";
 import ExpenseVariantsPreview from "../views/popup-preview/expense-variants";
+import SponsorPopupVariants from "../views/popup-preview/sponsor-variants";
 import AdminDashboard from "../views/admin/dashboard";
 import AdminTrips from "../views/admin/trips";
 import AdminGroups from "../views/admin/groups";
@@ -22,6 +23,7 @@ import ScheduleAlarm from "../views/admin/alarms/ScheduleAlarm";
 import ActiveAlarms from "../views/admin/alarms/ActiveAlarms";
 import AlarmList from "../views/admin/alarms/AlarmList";
 import AdminExpenses from "../views/admin/expenses";
+import AdminSponsors from "../views/admin/sponsors";
 import AdminVehicles from "../views/admin/vehicles";
 import AdminAttendance from "../views/admin/attendance";
 import AdminTasks from "../views/admin/tasks";
@@ -45,6 +47,7 @@ import UserItinerary from "../views/user/itinerary";
 import UserShareCollection from "../views/user/share-collection";
 import UserAlarmHistory from "../views/user/history";
 import UserVehicles from "../views/user/vehicles";
+import UserSponsors from "../views/user/sponsors";
 import { ROLES } from "../constants/enum";
 import UserProfile from "../views/profile";
 
@@ -62,6 +65,7 @@ const BASE_ADMIN_MENU = [
   { path: "/itinerary",        label: "Itinerary",        icon: "📅" },
   { path: "/share-collection", label: "Share Collection", icon: "💳" },
   { path: "/expenses",         label: "Expenses",         icon: "💰" },
+  { path: "/sponsors",         label: "Sponsors",         icon: "🏢" },
   { path: "/gallery",       label: "Gallery",       icon: "📷" },
   { path: "/checklist",     label: "Checklist",     icon: "🎒" },
   { path: "/polls",         label: "Polls",         icon: "🗳️" },
@@ -77,6 +81,7 @@ const userMenu = [
   { path: "/share-collection", label: "My Share",          icon: "💳" },
   { path: "/vehicles",         label: "Vehicles",         icon: "🚌" },
   { path: "/expenses",   label: "Expenses",      icon: "💰" },
+  { path: "/sponsors",   label: "Sponsors",      icon: "🏢" },
   { path: "/gallery",    label: "Gallery",       icon: "📷" },
   { path: "/checklist",  label: "Checklist",     icon: "🎒" },
   { path: "/polls",      label: "Polls",         icon: "🗳️" },
@@ -126,6 +131,7 @@ export default function AppRoutes() {
     { path: "/popup-preview",             element: <PopupPreviewPage /> },
     { path: "/itinerary-popup-variants",  element: <ItineraryVariantsPreview /> },
     { path: "/expense-popup-variants",    element: <ExpenseVariantsPreview /> },
+    { path: "/sponsor-popup-variants",   element: <SponsorPopupVariants /> },
     {
       path: "/admin",
       element: privateRoute(
@@ -148,6 +154,7 @@ export default function AppRoutes() {
         { path: "itinerary",        element: <AdminItinerary /> },
         { path: "share-collection", element: <AdminShareCollection /> },
         { path: "expenses",         element: <AdminExpenses /> },
+        { path: "sponsors",         element: <AdminSponsors /> },
         { path: "gallery",         element: <AdminGallery /> },
         { path: "checklist",       element: <AdminChecklist /> },
         { path: "polls",           element: <AdminPolls /> },
@@ -173,6 +180,7 @@ export default function AppRoutes() {
         { path: "share-collection", element: <UserShareCollection /> },
         { path: "vehicles",         element: <UserVehicles /> },
         { path: "expenses",   element: <UserExpenses /> },
+        { path: "sponsors",   element: <UserSponsors /> },
         { path: "gallery",    element: <UserGallery /> },
         { path: "checklist",  element: <UserChecklist /> },
         { path: "polls",      element: <UserPolls /> },

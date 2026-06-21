@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
-import { getExpenses, addExpense, updateExpense, deleteExpense, getTripHub } from "../../../services/trips";
+import { getExpenses, addExpense, updateExpense, deleteExpense, getTripHub, getSponsors } from "../../../services/trips";
 import { getAdminGroups } from "../../../services/groups";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
@@ -303,6 +303,7 @@ export default function AdminExpenses() {
   const isSuperAdmin = userInfo?.user?.role === ROLES.SUPER_ADMIN;
   const [hub,              setHub]              = useState(null);
   const [items,            setItems]            = useState([]);
+  const [sponsors,         setSponsors]         = useState([]);
   const [loading,          setLoading]          = useState(false);
   const [saving,           setSaving]           = useState(false);
   const [groupMemberCount, setGroupMemberCount] = useState(null);
@@ -316,15 +317,17 @@ export default function AdminExpenses() {
     if (!selectedTripId) return;
     setLoading(true);
     try {
-      const [h, e, g] = await Promise.all([
+      const [h, e, g, sp] = await Promise.all([
         getTripHub(selectedTripId),
         getExpenses(selectedTripId),
         getAdminGroups(),
+        getSponsors(selectedTripId),
       ]);
       // Only overwrite state when we got real data — null means offline+no cache,
       // so we keep whatever is currently in state (could be a pending item we just added).
       if (h !== null) setHub(h?.data);
       if (e !== null) setItems(e?.data || []);
+      if (sp !== null) setSponsors(sp?.data || []);
       if (g !== null) {
         const linkedGroup = (g?.data || []).find(
           (grp) => String(grp.tripId) === String(selectedTripId)
@@ -390,9 +393,15 @@ export default function AdminExpenses() {
     });
   };
 
-  const s         = hub?.expenseSummary;
-  const pct       = s?.totalBudget > 0 ? Math.min(100, Math.round((s.totalSpent / s.totalBudget) * 100)) : 0;
-  const remaining = (s?.totalBudget || 0) - (s?.totalSpent || 0);
+  const s             = hub?.expenseSummary;
+  const totalSponsor  = sponsors.reduce((acc, sp) => acc + (Number(sp.amount) || 0), 0);
+  const totalBudget   = s?.totalBudget   || 0;
+  const grandTotal    = totalBudget + totalSponsor;
+  const totalSpent    = s?.totalSpent    || 0;
+  const totalCollected = s?.totalCollected || 0;
+  const grandBalance  = grandTotal - totalSpent;
+  const pct           = grandTotal > 0 ? Math.min(100, Math.round((totalSpent / grandTotal) * 100)) : 0;
+  const collectionPct = totalBudget > 0 ? Math.min(100, Math.round((totalCollected / totalBudget) * 100)) : 0;
 
   return (
     <TripModuleShell title="Expenses" description="Auto-calculated trip budget & splits" loading={loading && !!selectedTripId}>
@@ -416,60 +425,164 @@ export default function AdminExpenses() {
           {/* ── Summary ── */}
           {s && (
             <div className="space-y-3 mb-4">
-              <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-xs font-medium text-slate-400">Budget Usage</p>
-                  <p className="text-xs font-bold text-slate-300">{pct}%</p>
-                </div>
-                <div className="h-2 rounded-full bg-slate-700 overflow-hidden mb-3">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${pct}%`,
-                      background: pct >= 90
-                        ? "linear-gradient(90deg,#ef4444,#dc2626)"
-                        : pct >= 70
-                        ? "linear-gradient(90deg,#f59e0b,#d97706)"
-                        : "linear-gradient(90deg,#10b981,#059669)",
-                    }}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">
-                    <p className="text-base font-bold text-slate-200">{fmt(s.totalBudget)}</p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Budget</p>
-                  </div>
-                  <div className="text-center border-x border-slate-700/50">
-                    <p className={`text-base font-bold ${pct >= 90 ? "text-red-400" : "text-amber-400"}`}>
-                      {fmt(s.totalSpent)}
-                    </p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Spent</p>
-                  </div>
-                  <div className="text-center">
-                    <p className={`text-base font-bold ${remaining < 0 ? "text-red-400" : "text-emerald-400"}`}>
-                      {fmt(Math.abs(remaining))}
-                    </p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">
-                      {remaining < 0 ? "Over" : "Left"}
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {/* ── Fund glow box ── */}
+              {totalSponsor > 0 ? (
+                /* Expanded sponsor glow box with progress bars */
+                <div className="relative rounded-2xl overflow-hidden border border-violet-500/40 bg-slate-900/80 shadow-[0_0_28px_rgba(139,92,246,0.18)]">
+                  <div className="absolute inset-0 pointer-events-none rounded-2xl"
+                    style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.12) 0%, transparent 65%)" }} />
+
+                  {/* Header row */}
+                  <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-4 relative">
+                    <div>
+                      <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest mb-0.5">🏢 Sponsor Fund</p>
+                      <p className="text-2xl font-black"
+                        style={{ background: "linear-gradient(90deg,#a78bfa,#c4b5fd,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                        {fmt(totalSponsor)}
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{sponsors.length} sponsor{sponsors.length !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Grand Total</p>
+                      <p className="text-xl font-black text-emerald-400">{fmt(grandTotal)}</p>
+                      <p className="text-[10px] text-slate-600 mt-0.5">Budget + Sponsor</p>
+                    </div>
+                  </div>
+
+                  {/* Progress bars */}
+                  <div className="px-5 pb-5 space-y-4 relative border-t border-white/[0.06] pt-4">
+
+                    {/* Bar 1 — Budget Collection from members */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
+                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Member Collection</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span className="font-bold text-blue-400">{fmt(totalCollected)}</span>
+                          <span className="text-slate-600">/</span>
+                          <span className="text-slate-400">{fmt(totalBudget)}</span>
+                          <span className="ml-1.5 font-black text-blue-400">{collectionPct}%</span>
+                        </div>
+                      </div>
+                      <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${collectionPct}%`,
+                            background: "linear-gradient(90deg,#2563eb,#3b82f6,#60a5fa)",
+                            boxShadow: collectionPct > 0 ? "0 0 10px rgba(59,130,246,0.55)" : "none",
+                          }} />
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <p className="text-[10px] text-slate-600">
+                          {fmt(Math.max(0, totalBudget - totalCollected))} pending from members
+                        </p>
+                        <p className="text-[10px] text-slate-600">
+                          {collectionPct >= 100 ? "✓ Fully collected" : `${100 - collectionPct}% remaining`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bar 2 — Fund Usage (Spent vs Grand Total) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full"
+                            style={{ background: pct >= 90 ? "#ef4444" : pct >= 70 ? "#f59e0b" : "#10b981", boxShadow: `0 0 6px ${pct >= 90 ? "rgba(239,68,68,0.8)" : pct >= 70 ? "rgba(245,158,11,0.8)" : "rgba(16,185,129,0.8)"}` }} />
+                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Fund Usage</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span className={`font-bold ${pct >= 90 ? "text-red-400" : pct >= 70 ? "text-amber-400" : "text-emerald-400"}`}>{fmt(totalSpent)}</span>
+                          <span className="text-slate-600">/</span>
+                          <span className="text-slate-400">{fmt(grandTotal)}</span>
+                          <span className={`ml-1.5 font-black ${pct >= 90 ? "text-red-400" : pct >= 70 ? "text-amber-400" : "text-emerald-400"}`}>{pct}%</span>
+                        </div>
+                      </div>
+                      <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${pct}%`,
+                            background: pct >= 90
+                              ? "linear-gradient(90deg,#dc2626,#ef4444)"
+                              : pct >= 70
+                              ? "linear-gradient(90deg,#d97706,#f59e0b)"
+                              : "linear-gradient(90deg,#059669,#10b981)",
+                            boxShadow: pct > 0 ? `0 0 10px rgba(${pct >= 90 ? "239,68,68" : pct >= 70 ? "245,158,11" : "16,185,129"},0.45)` : "none",
+                          }} />
+                      </div>
+                      <div className="flex justify-between mt-1">
+                        <p className="text-[10px] text-slate-600">
+                          {grandBalance < 0 ? `${fmt(Math.abs(grandBalance))} over fund` : `${fmt(grandBalance)} left`}
+                        </p>
+                        {pct >= 90 && <p className="text-[10px] text-red-400 font-semibold">⚠ Near limit</p>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Simple fund usage card — no sponsors */
+                <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="text-xs font-medium text-slate-400">Fund Usage</p>
+                    <p className="text-xs font-bold text-slate-300">{pct}%</p>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-700 overflow-hidden mb-3">
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${pct}%`,
+                        background: pct >= 90 ? "linear-gradient(90deg,#ef4444,#dc2626)" : pct >= 70 ? "linear-gradient(90deg,#f59e0b,#d97706)" : "linear-gradient(90deg,#10b981,#059669)",
+                      }} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center">
+                      <p className="text-base font-bold text-slate-200">{fmt(grandTotal)}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Budget</p>
+                    </div>
+                    <div className="text-center border-x border-slate-700/50">
+                      <p className={`text-base font-bold ${pct >= 90 ? "text-red-400" : "text-amber-400"}`}>{fmt(totalSpent)}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Spent</p>
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-base font-bold ${grandBalance < 0 ? "text-red-400" : "text-emerald-400"}`}>{fmt(Math.abs(grandBalance))}</p>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">{grandBalance < 0 ? "Over" : "Left"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Stat cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                  { label: "Budget",    val: fmt(s.totalBudget),     cls: "text-slate-200"  },
-                  { label: "Collected", val: fmt(s.totalCollected),   cls: "text-blue-400"   },
-                  { label: "Spent",     val: fmt(s.totalSpent),        cls: pct >= 90 ? "text-red-400" : "text-amber-400" },
-                  { label: "Balance",   val: fmt(s.remainingBalance), cls: (s.remainingBalance || 0) < 0 ? "text-red-400" : "text-emerald-400" },
-                  { label: "Members",   val: groupMemberCount != null ? groupMemberCount : (s.memberCount ?? "—"), cls: "text-slate-200" },
+                  { label: "Budget",     val: fmt(totalBudget),     cls: "text-slate-200" },
+                  { label: "Sponsor",    val: fmt(totalSponsor),    cls: "text-violet-400" },
+                  { label: "Collected",  val: fmt(totalCollected),  cls: "text-blue-400"  },
+                  { label: "Spent",      val: fmt(totalSpent),      cls: pct >= 90 ? "text-red-400" : "text-amber-400" },
+                  { label: "Balance",    val: fmt(Math.abs(grandBalance)), cls: grandBalance < 0 ? "text-red-400" : "text-emerald-400" },
+                  { label: "Members",    val: groupMemberCount != null ? groupMemberCount : (s.memberCount ?? "—"), cls: "text-slate-200" },
                 ].map(({ label, val, cls }) => (
-                  <div key={label} className="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
+                  <div key={label}
+                    className={`bg-slate-900/80 border rounded-xl p-3 ${label === "Sponsor" && totalSponsor > 0 ? "border-violet-700/40 shadow-[0_0_12px_rgba(139,92,246,0.12)]" : "border-slate-800"}`}>
                     <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">{label}</p>
                     <p className={`text-lg font-bold ${cls}`}>{val}</p>
                   </div>
                 ))}
               </div>
+
+              {/* Budget breakdown detail */}
+              {totalSponsor > 0 && (
+                <div className="bg-slate-900/40 border border-slate-800/60 rounded-xl px-4 py-3">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">Fund Breakdown</p>
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-400">
+                    <span>Budget (members share): <span className="text-slate-200 font-semibold">{fmt(totalBudget)}</span></span>
+                    <span className="text-slate-600">+</span>
+                    <span>Sponsor contributions: <span className="text-violet-400 font-semibold">{fmt(totalSponsor)}</span></span>
+                    <span className="text-slate-600">=</span>
+                    <span>Grand Total: <span className="text-emerald-400 font-semibold">{fmt(grandTotal)}</span></span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

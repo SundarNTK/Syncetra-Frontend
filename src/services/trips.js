@@ -122,3 +122,12 @@ export const deleteSharePayment = (tripId, id, paymentId) =>
   apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION_PAYMENT_DEL(tripId, id, paymentId));
 export const getMyShareCollection = (tripId) =>
   apiGet(API_SCOPE.USER, EndPoints.TRIP_SHARE_COLLECTION_ME(tripId));
+
+export const getSponsors = (tripId, isAdmin = true) =>
+  apiGet(scope(isAdmin), EndPoints.TRIP_SPONSORS(tripId));
+export const addSponsor = (tripId, data) =>
+  apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_SPONSORS(tripId), data);
+export const updateSponsor = (tripId, id, data) =>
+  apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_SPONSOR(tripId, id), data);
+export const deleteSponsor = (tripId, id) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_SPONSOR(tripId, id));

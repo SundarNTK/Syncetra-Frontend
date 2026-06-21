@@ -68,7 +68,13 @@ export const useOfflineSync = () => {
   }, [userId, refreshCount]);
 
   useEffect(() => {
-    const goOnline  = () => { setIsOnline(true);  drainQueue(); };
+    const goOnline  = () => {
+      setIsOnline(true);
+      // Pre-set syncing flag synchronously so the banner immediately shows
+      // "Syncing…" (blue) instead of briefly flashing "Back online — syncing…" (green).
+      setIsSyncing(true);
+      drainQueue().finally(() => setIsSyncing(false));
+    };
     const goOffline = () => { setIsOnline(false); };
     window.addEventListener('online',  goOnline);
     window.addEventListener('offline', goOffline);

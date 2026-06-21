@@ -45,6 +45,8 @@ const EndPoints = Object.freeze({
   TRIP_SHARE_COLLECTION_PAYMENT: (tripId, id) => `/trips/${tripId}/share-collections/${id}/payments`,
   TRIP_SHARE_COLLECTION_PAYMENT_DEL: (tripId, id, paymentId) => `/trips/${tripId}/share-collections/${id}/payments/${paymentId}`,
   TRIP_SHARE_COLLECTION_ME: (tripId) => `/trips/${tripId}/share-collection/me`,
+  TRIP_SPONSORS: (id) => `/trips/${id}/sponsors`,
+  TRIP_SPONSOR: (tripId, id) => `/trips/${tripId}/sponsors/${id}`,
   ALARMS: "/alarms",
   ALARM: (id) => `/alarms/${id}`,
   ALARMS_ACTIVE: "/alarms/active",

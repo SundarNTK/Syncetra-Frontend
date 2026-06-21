@@ -595,7 +595,6 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
       await onSubmit({
         ...form,
         budget,
-        collectedAmount: budget,
         startDate: form.startDate
           ? new Date(`${form.startDate}T00:00:00`).toISOString()
           : undefined,
@@ -646,7 +645,7 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
         />
       </div>
 
-      <div className={`grid grid-cols-1 gap-3 ${isEdit ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Trip Type</label>
           <SearchableSelect
@@ -672,17 +671,6 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
             className={inputCls}
           />
         </div>
-        {isEdit && (
-          <div>
-            <label className={labelCls}>Collected</label>
-            <div
-              className={`${inputCls} flex items-center bg-slate-900 text-slate-300`}
-              aria-readonly="true"
-            >
-              ₹{(Number(form.budget) || 0).toLocaleString()}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1223,7 +1211,6 @@ function TripViewModal({ trip, onClose, onEdit }) {
 
   const tripType = tripTypeMap[trip.tripType] || tripTypeMap.group;
   const memberCount = useTripMemberCount(trip._id, (trip.members || []).length);
-  const collectedAmount = Number(trip.budget) || Number(trip.collectedAmount) || 0;
 
   return (
     <div
@@ -1297,10 +1284,6 @@ function TripViewModal({ trip, onClose, onEdit }) {
             <InfoTile
               label="Budget"
               value={`₹${(trip.budget || 0).toLocaleString()}`}
-            />
-            <InfoTile
-              label="Collected"
-              value={`₹${collectedAmount.toLocaleString()}`}
             />
             <InfoTile
               label="Start date"
