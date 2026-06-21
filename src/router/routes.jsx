@@ -14,6 +14,7 @@ import PopupPreviewPage from "../views/popup-preview";
 import ItineraryVariantsPreview from "../views/popup-preview/itinerary-variants";
 import ExpenseVariantsPreview from "../views/popup-preview/expense-variants";
 import SponsorPopupVariants from "../views/popup-preview/sponsor-variants";
+import VoteSuccessVariants from "../views/popup-preview/vote-success-variants";
 import AdminDashboard from "../views/admin/dashboard";
 import AdminTrips from "../views/admin/trips";
 import AdminGroups from "../views/admin/groups";
@@ -132,6 +133,7 @@ export default function AppRoutes() {
     { path: "/itinerary-popup-variants",  element: <ItineraryVariantsPreview /> },
     { path: "/expense-popup-variants",    element: <ExpenseVariantsPreview /> },
     { path: "/sponsor-popup-variants",   element: <SponsorPopupVariants /> },
+    { path: "/vote-success-variants",    element: <VoteSuccessVariants /> },
     {
       path: "/admin",
       element: privateRoute(

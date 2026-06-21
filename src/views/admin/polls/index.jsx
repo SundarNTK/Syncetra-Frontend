@@ -12,7 +12,24 @@ import { ROLES } from "../../../constants/enum";
 import MasterPageShell, { MasterList, MasterListItem, MasterListEmpty } from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
-import { pollOptionGlowClass } from "../../../components/polls/pollOptionStyles";
+import { pollOptionGlowClass, OPT_COLORS, pollOptionHeaderStyle, pollOptionLabelStyle } from "../../../components/polls/pollOptionStyles";
+
+// ─── Poll animation styles ────────────────────────────────────────────────────
+function PollAnimStyles() {
+  return (
+    <style>{`
+      @keyframes pollNumPop {
+        0%   { transform: scale(0.6); opacity: 0; }
+        70%  { transform: scale(1.15); }
+        100% { transform: scale(1);   opacity: 1; }
+      }
+      @keyframes pollOptSlideIn {
+        from { opacity: 0; transform: translateX(-8px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+    `}</style>
+  );
+}
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const IconPlus  = () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>;
@@ -303,61 +320,109 @@ function ViewPollModal({ poll, trips, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8 overflow-y-auto" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-slate-800">
           <div className="min-w-0 flex-1 pr-2">
-            <h3 className="font-semibold text-emerald-400 leading-snug break-words">{poll.title}</h3>
-            <div className="flex flex-wrap gap-1.5 mt-1">
+            <h3 className="font-semibold text-lg text-emerald-400 leading-snug break-words">{poll.title}</h3>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
               <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[poll.pollType]}`}>
                 {poll.pollType === "trip" ? "Trip Poll" : "General"}
               </span>
               <StatusBadge status={status} />
+              {eligible > 0 && (
+                <span className="text-[10px] text-slate-400 border border-slate-700/50 bg-slate-800/50 px-2 py-0.5 rounded-full">
+                  {uniqueResponded}/{eligible} responded
+                </span>
+              )}
             </div>
           </div>
           <button type="button" onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 shrink-0"><IconX /></button>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-5">
           <div>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Question</p>
-            <p className="text-sm text-slate-200 whitespace-pre-wrap">{poll.question}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1.5">Question</p>
+            <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed pl-3 border-l-2 border-emerald-700/40">{poll.question}</p>
           </div>
           {poll.pollType === "trip" && (
-            <p className="text-xs text-slate-400">
-              Trip: <span className="text-slate-200">{trip?.tripName || "—"}</span>
-            </p>
-          )}
-          {eligible > 0 && (
-            <p className="text-xs text-slate-400">
-              <span className="text-slate-200 font-medium">{uniqueResponded}</span> of {eligible} eligible members have responded.
-            </p>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg"
+              style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 10px rgba(139,92,246,0.15)" }}>
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.7)" }}>Trip</span>
+              <span className="w-px h-3 bg-violet-500/30" />
+              <span className="text-xs font-semibold" style={{ color: "#c4b5fd", textShadow: "0 0 8px rgba(167,139,250,0.5)" }}>
+                {trip?.tripName || "—"}
+              </span>
+            </div>
           )}
           <div>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-2">Options</p>
-            <ul className="space-y-3">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-3">
+              Options <span className="normal-case text-slate-600">({(poll.options || []).length})</span>
+            </p>
+            <div className="space-y-3">
               {(poll.options || []).map((o, i) => {
-                const c = o.votes?.length || 0;
-                const pct = pctOfEligible(c, eligible);
+                const c       = o.votes?.length || 0;
+                const pct     = pctOfEligible(c, eligible);
+                const barPct  = pct ?? 0;
+                const hasDesc = o.description && o.description.trim() && o.description !== "<p><br></p>";
                 return (
-                <li
-                  key={i}
-                  className={`rounded-xl p-3 ${pollOptionGlowClass(i)}`}
-                >
-                  <p className="text-sm font-medium text-white mb-1">
-                    {i + 1}. {o.label}
-                    <span className="text-xs font-normal text-slate-500 ml-2">
-                      ({c} vote{c !== 1 ? "s" : ""}
-                      {pct != null ? ` · ${pct}% of members` : ""})
-                    </span>
-                  </p>
-                  {o.description ? (
-                    <div className="poll-option-desc text-sm" dangerouslySetInnerHTML={{ __html: o.description }} />
-                  ) : (
-                    <p className="text-xs text-slate-500 italic">No description</p>
-                  )}
-                </li>
+                  <div key={i} className={`rounded-2xl overflow-hidden ${pollOptionGlowClass(i)}`}>
+                    {/* Option header + progress — animated bg + gradient label */}
+                    <div className="px-4 py-3.5" style={pollOptionHeaderStyle(i)}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span
+                          className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-slate-900"
+                          style={{
+                            background: `linear-gradient(135deg, ${OPT_COLORS[i % 8]}, ${OPT_COLORS[i % 8]}88)`,
+                            boxShadow: `0 0 10px ${OPT_COLORS[i % 8]}55`,
+                          }}
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="text-sm font-bold leading-snug break-words flex-1 min-w-0 tracking-wide"
+                          style={pollOptionLabelStyle(i)}>
+                          {o.label}
+                        </span>
+                        <span className="shrink-0 text-xs text-slate-400 whitespace-nowrap tabular-nums font-semibold">
+                          {c} vote{c !== 1 ? "s" : ""}
+                          {pct != null && <span className="ml-1 text-slate-200">· {pct}%</span>}
+                        </span>
+                      </div>
+                      <div className="ml-10 h-2 bg-black/30 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${barPct}%`,
+                            background: `linear-gradient(90deg, ${OPT_COLORS[i % 8]}88, ${OPT_COLORS[i % 8]})`,
+                            boxShadow: barPct > 0 ? `0 0 8px ${OPT_COLORS[i % 8]}55` : "none",
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {/* Description with images */}
+                    {hasDesc ? (
+                      <div className="border-t border-white/[0.05] px-4 py-3.5 bg-black/10">
+                        <div
+                          className={`
+                            text-sm text-slate-300
+                            prose prose-invert prose-sm max-w-none
+                            [&_img]:rounded-xl [&_img]:max-w-full [&_img]:my-3 [&_img]:block
+                            [&_img]:border [&_img]:border-slate-700/40 [&_img]:shadow-lg
+                            [&_img]:max-h-80 [&_img]:w-auto
+                            [&_p]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0
+                            [&_ul]:pl-5 [&_ol]:pl-5 [&_li]:mb-1
+                            [&_strong]:text-slate-200
+                          `}
+                          dangerouslySetInnerHTML={{ __html: o.description }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="px-4 py-2.5 border-t border-white/[0.04]">
+                        <p className="text-xs text-slate-600 italic">No description</p>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           </div>
         </div>
         <div className="px-5 pb-5">
@@ -369,13 +434,15 @@ function ViewPollModal({ poll, trips, onClose }) {
 }
 
 // ─── EditPollModal ────────────────────────────────────────────────────────────
-function EditPollModal({ poll, trips, onClose, onSaved }) {
+function EditPollModal({ poll, trips, onClose, onSaved, isSuperAdmin }) {
   const totalVotes = (poll.options || []).reduce((s, o) => s + (o.votes?.length || 0), 0);
   const canEditOptions = totalVotes === 0;
 
   const [form, setForm] = useState({
-    title: poll.title || "",
+    title:    poll.title    || "",
     question: poll.question || "",
+    pollType: poll.pollType || "general",
+    tripId:   poll.tripId   || "",
   });
   const [options, setOptions] = useState(
     () => (poll.options || []).map((o) => ({ label: o.label || "", description: o.description || "" }))
@@ -414,6 +481,10 @@ function EditPollModal({ poll, trips, onClose, onSaved }) {
     try {
       const payload = { title: form.title, question: form.question };
       if (canEditOptions) payload.options = filled;
+      if (isSuperAdmin) {
+        payload.pollType = form.pollType;
+        payload.tripId   = form.pollType === "trip" ? form.tripId || null : null;
+      }
       await updatePoll(poll._id, payload);
       onSaved();
     } catch (err) {
@@ -438,13 +509,55 @@ function EditPollModal({ poll, trips, onClose, onSaved }) {
           <input placeholder="Poll title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputCls} required />
           <textarea placeholder="Question *" value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className={`${inputCls} resize-none`} rows={2} required />
 
-          <div className="rounded-lg bg-slate-800/40 border border-slate-700/60 px-3 py-2 text-xs text-slate-400">
-            <span className="text-slate-300">Type:</span>{" "}
-            {poll.pollType === "trip" ? `Trip poll${trip ? ` · ${trip.tripName}` : ""}` : "General (all members)"}
-            {!canEditOptions && (
-              <span className="block mt-1 text-amber-400/90">Options are locked because votes have been recorded. You can still edit the title and question.</span>
-            )}
-          </div>
+          {isSuperAdmin ? (
+            /* Super admin can change poll type */
+            <div className="space-y-3">
+              <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+                <div className="flex-1 min-w-[160px]">
+                  <label className="text-xs text-slate-400 block mb-1">Poll Type</label>
+                  <SearchableSelect
+                    value={form.pollType}
+                    onChange={(pollType) => setForm((f) => ({ ...f, pollType, tripId: "" }))}
+                    options={[
+                      { value: "general", label: "General (all members)" },
+                      { value: "trip",    label: "Trip-based" },
+                    ]}
+                    searchable={false}
+                    placeholder="Poll type"
+                  />
+                </div>
+                {form.pollType === "trip" && (
+                  <div className="flex-1 min-w-[160px]">
+                    <label className="text-xs text-slate-400 block mb-1">Select Trip</label>
+                    <SearchableSelect
+                      value={form.tripId}
+                      onChange={(tripId) => setForm((f) => ({ ...f, tripId }))}
+                      options={[
+                        { value: "", label: "— Choose trip —" },
+                        ...trips.map((t) => ({ value: t._id, label: t.tripName })),
+                      ]}
+                      placeholder="— Choose trip —"
+                      searchPlaceholder="Search trips…"
+                    />
+                  </div>
+                )}
+              </div>
+              {!canEditOptions && (
+                <p className="text-xs text-amber-400/90 bg-amber-950/30 border border-amber-700/30 rounded-lg px-3 py-2">
+                  ⚠ Options are locked because votes have been recorded. You can still edit title, question, and poll type.
+                </p>
+              )}
+            </div>
+          ) : (
+            /* Admin (non-super): read-only type display */
+            <div className="rounded-lg bg-slate-800/40 border border-slate-700/60 px-3 py-2 text-xs text-slate-400">
+              <span className="text-slate-300">Type:</span>{" "}
+              {poll.pollType === "trip" ? `Trip poll${trip ? ` · ${trip.tripName}` : ""}` : "General (all members)"}
+              {!canEditOptions && (
+                <span className="block mt-1 text-amber-400/90">Options are locked because votes have been recorded. You can still edit the title and question.</span>
+              )}
+            </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -756,22 +869,49 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
                 <div
                   key={i}
                   className={`rounded-xl overflow-hidden ${pollOptionGlowClass(i)}`}
+                  style={{ animation: `pollOptSlideIn 0.35s ease both ${i * 50}ms` }}
                 >
-                  <div className="px-3 py-2.5 bg-slate-950/30">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-                      <span className={`text-sm font-medium leading-snug min-w-0 break-words ${isLeading ? "text-emerald-300" : "text-slate-200"}`}>
-                        {isLeading && status === "open" && "⚡ "}
-                        {isLeading && status === "completed" && "🏆 "}
-                        {o.label}
+                  <div className="px-3 py-3" style={pollOptionHeaderStyle(i)}>
+                    <div className="flex items-center gap-2.5 mb-2">
+                      {/* Colored number circle */}
+                      <span
+                        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black text-slate-900"
+                        style={{
+                          background: `linear-gradient(135deg, ${OPT_COLORS[i % 8]}, ${OPT_COLORS[i % 8]}88)`,
+                          boxShadow: `0 0 8px ${OPT_COLORS[i % 8]}50`,
+                          animation: `pollNumPop 0.4s ease both ${i * 50 + 100}ms`,
+                        }}
+                      >
+                        {i + 1}
                       </span>
-                      <span className="text-xs text-slate-400 shrink-0 whitespace-nowrap sm:text-right">
+                      {/* Gradient label */}
+                      <span className="text-sm font-bold leading-snug min-w-0 break-words flex-1 tracking-wide">
+                        {isLeading && status === "completed" ? (
+                          <><span>🏆 </span><span className="poll-winner-gradient">{o.label}</span></>
+                        ) : isLeading ? (
+                          <><span>⚡ </span><span className="poll-leading-gradient">{o.label}</span></>
+                        ) : (
+                          <span style={pollOptionLabelStyle(i)}>{o.label}</span>
+                        )}
+                      </span>
+                      <span className={`shrink-0 text-xs whitespace-nowrap tabular-nums font-semibold sm:text-right ${
+                        isLeading && status === "completed" ? "text-amber-300" : isLeading ? "text-emerald-400" : "text-slate-400"
+                      }`}>
                         {count} vote{count !== 1 ? "s" : ""} · {barPct}%
                       </span>
                     </div>
-                    <div className="mt-2 h-2 bg-slate-800/80 rounded-full overflow-hidden">
+                    <div className="ml-8 h-2 bg-black/30 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-                        style={{ width: `${barPct}%`, minWidth: barPct > 0 ? "0.25rem" : 0 }}
+                        style={{
+                          width: `${barPct}%`,
+                          minWidth: barPct > 0 ? "0.25rem" : 0,
+                          boxShadow: isLeading && status === "completed"
+                            ? "0 0 8px rgba(245,158,11,0.5)"
+                            : isLeading
+                            ? "0 0 8px rgba(16,185,129,0.5)"
+                            : "none",
+                        }}
                       />
                     </div>
                   </div>
@@ -787,9 +927,14 @@ function PollCard({ poll, isAdminUser, isSuperAdmin, trips, onView, onEdit, onAn
             </p>
           )}
           {poll.pollType === "trip" && poll.tripId && (
-            <p className="text-[10px] text-slate-500 mt-1">
-              Trip: <span className="text-slate-400">{trips.find((t) => String(t._id) === String(poll.tripId))?.tripName || "—"}</span>
-            </p>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg mt-1"
+              style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)", boxShadow: "0 0 10px rgba(139,92,246,0.15)" }}>
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "rgba(167,139,250,0.7)" }}>Trip</span>
+              <span className="w-px h-3 bg-violet-500/30" />
+              <span className="text-xs font-semibold" style={{ color: "#c4b5fd", textShadow: "0 0 8px rgba(167,139,250,0.5)" }}>
+                {trips.find((t) => String(t._id) === String(poll.tripId))?.tripName || "—"}
+              </span>
+            </div>
           )}
         </div>
 
@@ -899,6 +1044,7 @@ export default function AdminPolls() {
         ) : null
       }
     >
+      <PollAnimStyles />
       {popup}
       {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-2 w-full">
@@ -968,6 +1114,7 @@ export default function AdminPolls() {
         <EditPollModal
           poll={editPoll}
           trips={trips}
+          isSuperAdmin={isSuperAdmin}
           onClose={() => setEditPoll(null)}
           onSaved={() => { setEditPoll(null); load(); showSuccess("Poll updated successfully."); }}
         />

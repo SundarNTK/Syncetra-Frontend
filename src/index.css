@@ -1055,6 +1055,17 @@ input, select, textarea, button {
   animation: shimmer-sweep 2.8s ease-in-out infinite;
 }
 
+/* Poll option header animated background */
+@keyframes pollOptHeaderShimmer {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 0%; }
+}
+/* Poll option label shimmer text */
+@keyframes pollOptLabelShimmer {
+  from { background-position: 0% center; }
+  to   { background-position: 200% center; }
+}
+
 /* Animated gradient text — poll leading / winner highlights */
 @keyframes poll-gradient-shift {
   0% { background-position: 0% 50%; }

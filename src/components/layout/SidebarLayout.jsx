@@ -40,12 +40,12 @@ export default function SidebarLayout({ menuItems = [], title = "Syncetra" }) {
   const bannerVisible = !isOnline || pendingCount > 0 || isSyncing;
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100">
+    <div className={`min-h-screen flex bg-slate-950 text-slate-100 transition-[padding-top] duration-200 ${bannerVisible ? "pt-9" : ""}`}>
       {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 sm:hidden" onClick={() => setMobileMenuOpen(false)} />
+        <div className={`fixed inset-0 bg-black/50 z-40 sm:hidden ${bannerVisible ? "top-9" : "top-0"}`} onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      <aside className={`${collapsed ? "w-20" : "w-64"} fixed sm:relative z-50 sm:z-auto flex flex-col border-r border-slate-800 bg-slate-900/95 transition-all duration-300 shrink-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} h-screen sm:h-auto`}>
+      <aside className={`${collapsed ? "w-20" : "w-64"} fixed sm:relative z-50 sm:z-auto flex flex-col border-r border-slate-800 bg-slate-900/95 transition-all duration-300 shrink-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} ${bannerVisible ? "top-9 h-[calc(100vh-2.25rem)]" : "top-0 h-screen"} sm:top-auto sm:h-auto`}>
 
         {/* Logo / brand area with collapse toggle inside */}
         <div className="border-b border-slate-800 p-3 sm:p-4">
