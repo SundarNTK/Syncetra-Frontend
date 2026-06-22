@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { SET_USER_INFO } from "../../store/userSlice";
@@ -34,6 +35,65 @@ const LOGIN_BG_CSS = `
 }
 .sl-liquid-a { animation: sl-liquid 8s ease-in-out infinite; }
 .sl-liquid-b { animation: sl-liquid-alt 9s ease-in-out infinite; }
+
+@keyframes reg-ring-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+@keyframes reg-envelope-pop {
+  0% { transform: scale(0.3) rotate(-12deg); opacity: 0; }
+  55% { transform: scale(1.18) rotate(5deg); opacity: 1; }
+  75% { transform: scale(0.94) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes reg-shimmer-text {
+  0% { background-position: -300% center; }
+  100% { background-position: 300% center; }
+}
+@keyframes reg-float-up {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes reg-dot-drift {
+  0%, 100% { transform: translateY(0); opacity: 0.45; }
+  50% { transform: translateY(-7px); opacity: 1; }
+}
+@keyframes reg-check-draw {
+  0% { stroke-dashoffset: 40; opacity: 0; }
+  60% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes reg-badge-pop {
+  0% { transform: scale(0) rotate(-6deg); opacity: 0; }
+  70% { transform: scale(1.1) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.reg-shimmer-text {
+  background: linear-gradient(90deg, #f97316 0%, #fbbf24 25%, #fb923c 50%, #fbbf24 75%, #f97316 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: reg-shimmer-text 3s linear infinite;
+}
+
+/* ── Solar Burst (Registration Success Popup) ── */
+@keyframes sb-backdrop  { from{opacity:0} to{opacity:1} }
+@keyframes sb-card-pop  { 0%{transform:scale(0.55) translateY(40px);opacity:0} 60%{transform:scale(1.04) translateY(-5px);opacity:1} 80%{transform:scale(0.97)} 100%{transform:scale(1) translateY(0);opacity:1} }
+@keyframes sb-ring      { 0%{transform:scale(0.4);opacity:0.9} 100%{transform:scale(2.8);opacity:0} }
+@keyframes sb-spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes sb-star-pop  { 0%{transform:scale(0) rotate(-20deg);opacity:0} 60%{transform:scale(1.2) rotate(5deg);opacity:1} 80%{transform:scale(0.93) rotate(-2deg)} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+@keyframes sb-float     { 0%,100%{transform:rotate(0deg) scale(1)} 50%{transform:rotate(8deg) scale(1.05)} }
+@keyframes sb-fade-up   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes sb-bar-drain { from{width:100%} to{width:0%} }
+.sb-title {
+  background: linear-gradient(90deg,#fbbf24,#fb923c,#fde047,#f59e0b,#fbbf24);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: reg-shimmer-text 2.5s linear infinite;
+}
 `;
 
 function Field({ label, children }) {
@@ -62,6 +122,115 @@ function ErrorBanner({ msg }) {
     <p className="text-red-400 text-sm text-center bg-red-950/50 border border-red-800/40 py-2 px-3 rounded-lg">
       {msg}
     </p>
+  );
+}
+
+// ─── Solar Burst — Registration Success Popup ────────────────────────────────
+function SbEmberCanvas({ active }) {
+  const ref = useRef(null);
+  const raf = useRef(null);
+  useEffect(() => {
+    if (!active) return;
+    const c = ref.current; if (!c) return;
+    const ctx = c.getContext("2d");
+    c.width = c.offsetWidth; c.height = c.offsetHeight;
+    const W = c.width, H = c.height, CX = W / 2, CY = H * 0.44;
+    const COLS = ["#f59e0b","#fb923c","#fbbf24","#fde047","#f97316","#fcd34d","#fef08a"];
+    const embers = Array.from({ length: 70 }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const spd = Math.random() * 5 + 2;
+      return { x: CX, y: CY, vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd - 1, col: COLS[Math.floor(Math.random() * COLS.length)], sz: Math.random() * 4 + 1.5, life: 1, decay: Math.random() * 0.01 + 0.005 };
+    });
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      let any = false;
+      embers.forEach(e => {
+        if (e.life <= 0) return; any = true;
+        e.x += e.vx; e.y += e.vy; e.vy += 0.04; e.vx *= 0.99; e.life -= e.decay;
+        ctx.save(); ctx.globalAlpha = e.life * 0.85;
+        ctx.shadowColor = e.col; ctx.shadowBlur = 8; ctx.fillStyle = e.col;
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.sz, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      });
+      if (any) raf.current = requestAnimationFrame(draw);
+    };
+    raf.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf.current);
+  }, [active]);
+  if (!active) return null;
+  return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none" />;
+}
+
+const SB_RAYS = Array.from({ length: 12 }, (_, i) => i);
+
+function SolarBurstRegPopup({ devSetupUrl, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 5000); return () => clearTimeout(t); }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.91)", backdropFilter: "blur(10px)", animation: "sb-backdrop 0.35s ease both" }}>
+      <div className="relative w-full max-w-sm rounded-3xl text-center overflow-hidden"
+        style={{ background: "linear-gradient(160deg,#0d0500 0%,#100802 100%)", border: "1px solid rgba(251,191,36,0.25)", boxShadow: "0 0 80px rgba(245,158,11,0.18), 0 0 40px rgba(249,115,22,0.1), 0 40px 80px rgba(0,0,0,0.85)", animation: "sb-card-pop 0.65s cubic-bezier(0.22,1.2,0.36,1) both" }}>
+        <SbEmberCanvas active />
+        <div style={{ height: 2, background: "linear-gradient(90deg,transparent,#f59e0b,#fb923c,#f59e0b,transparent)" }} />
+
+        <div className="relative z-10 pt-8 pb-7 px-6">
+          {/* Rays + star icon */}
+          <div className="flex justify-center mb-5">
+            <div className="relative flex items-center justify-center" style={{ width: 110, height: 110 }}>
+              {[0, 0.4, 0.8].map((d, i) => (
+                <div key={i} className="absolute rounded-full"
+                  style={{ inset: 0, border: "1px solid rgba(245,158,11,0.35)", animation: `sb-ring ${2 + i * 0.2}s ${d}s ease-out infinite` }} />
+              ))}
+              <div className="absolute inset-0" style={{ animation: "sb-spin 18s linear infinite" }}>
+                {SB_RAYS.map((i) => (
+                  <div key={i} className="absolute"
+                    style={{ top: "50%", left: "50%", width: 48, height: 2, marginTop: -1, marginLeft: 0, transformOrigin: "0 50%", transform: `rotate(${i * 30}deg)`, background: `linear-gradient(90deg,rgba(245,158,11,${i % 2 === 0 ? 0.5 : 0.25}),transparent)` }} />
+                ))}
+              </div>
+              <div className="relative z-10 w-16 h-16 rounded-full flex items-center justify-center"
+                style={{ background: "radial-gradient(circle,rgba(245,158,11,0.35),rgba(249,115,22,0.15))", border: "1px solid rgba(245,158,11,0.4)", boxShadow: "0 0 30px rgba(245,158,11,0.45)", animation: "sb-star-pop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both" }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ animation: "sb-float 3s ease-in-out infinite" }}>
+                  <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="url(#sbGradReg)" stroke="rgba(251,191,36,0.5)" strokeWidth="0.5" />
+                  <defs><linearGradient id="sbGradReg" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#fbbf24" /><stop offset="1" stopColor="#f97316" /></linearGradient></defs>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-amber-600/70 mb-1.5" style={{ animation: "sb-fade-up 0.5s ease 0.5s both", opacity: 0 }}>
+            Registration
+          </p>
+          <h2 className="sb-title text-3xl font-black mb-2" style={{ animation: "sb-fade-up 0.45s ease 0.6s both" }}>
+            YOU&apos;RE IN!
+          </h2>
+          <p className="text-slate-400 text-sm leading-relaxed mb-1" style={{ animation: "sb-fade-up 0.5s ease 0.72s both", opacity: 0 }}>
+            Your account is live and ready.<br />A setup link was sent to your email.
+          </p>
+          <p className="text-slate-600 text-xs mb-4" style={{ animation: "sb-fade-up 0.5s ease 0.78s both", opacity: 0 }}>
+            Didn&apos;t get it? Check your spam folder.
+          </p>
+
+          {devSetupUrl && (
+            <div className="bg-slate-900/80 border border-amber-700/40 rounded-xl p-3 text-left mb-4"
+              style={{ animation: "sb-fade-up 0.5s ease 0.82s both", opacity: 0 }}>
+              <p className="text-[10px] text-amber-400/80 uppercase tracking-widest font-semibold mb-1">DEV — Setup link</p>
+              <a href={devSetupUrl} className="text-xs text-cyan-400 break-all hover:text-cyan-300">{devSetupUrl}</a>
+            </div>
+          )}
+
+          {/* Drain bar */}
+          <div className="h-[3px] bg-amber-900/25 rounded-full mb-5 overflow-hidden mx-2" style={{ animation: "sb-fade-up 0.5s ease 0.84s both", opacity: 0 }}>
+            <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" style={{ animation: "sb-bar-drain 5000ms linear both" }} />
+          </div>
+
+          <button onClick={onClose}
+            className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-bold text-slate-900 transition-all"
+            style={{ background: "linear-gradient(135deg,#fbbf24,#f97316)", boxShadow: "0 0 24px rgba(245,158,11,0.45), 0 4px 12px rgba(249,115,22,0.3)", animation: "sb-fade-up 0.5s ease 0.9s both", opacity: 0 }}>
+            🌟 Back to Sign In
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -385,60 +554,52 @@ export default function Login() {
 
             {/* ── Register ── */}
             {mode === "register" && (
-              <>
-                {success ? (
-                  <div className="animate-slide-up py-4 text-center space-y-4">
-                    <div className="text-4xl">📧</div>
-                    <p className="text-green-400 font-semibold text-sm">{success}</p>
-                    <p className="text-slate-400 text-xs">Check your spam folder if it doesn&apos;t arrive within a few minutes.</p>
-                    {devSetupUrl && (
-                      <div className="bg-slate-800 border border-slate-700 rounded-xl p-3 text-left">
-                        <p className="text-xs text-slate-500 mb-1">DEV — Setup link (email not configured):</p>
-                        <a href={devSetupUrl} className="text-xs text-cyan-400 break-all hover:underline">{devSetupUrl}</a>
-                      </div>
-                    )}
-                    <button type="button" onClick={() => switchMode("login")} className="text-orange-400 text-sm font-semibold hover:underline">Back to Sign In</button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleRegister} className="space-y-4 animate-slide-up">
-                    <div className="text-center mb-1">
-                      <p className="text-xs text-slate-500">After registration, a password setup link is sent to your email.</p>
-                    </div>
-                    <Field label="Username">
-                      <input type="text" value={regUsername}
-                        onChange={(e) => { setRegUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "")); setError(""); }}
-                        className={INPUT_CLS} placeholder="e.g. john_doe" required minLength={3} maxLength={30} autoFocus autoComplete="username" />
-                      <p className="text-xs text-slate-500 mt-1">Letters, numbers and underscores only.</p>
-                    </Field>
-                    <Field label="Full Name">
-                      <input type="text" value={regName}
-                        onChange={(e) => { setRegName(e.target.value); setError(""); }}
-                        className={INPUT_CLS} placeholder="Your full name" required minLength={2} />
-                    </Field>
-                    <Field label="Email Address">
-                      <input type="email" value={regEmail}
-                        onChange={(e) => { setRegEmail(e.target.value); setError(""); }}
-                        className={INPUT_CLS} placeholder="you@example.com" required />
-                    </Field>
-                    <Field label="Mobile Number">
-                      <input type="tel" value={regMobile}
-                        onChange={(e) => { setRegMobile(e.target.value.replace(/\D/g, "")); setError(""); }}
-                        className={INPUT_CLS} placeholder="9876543210" required minLength={10} maxLength={15} />
-                      <p className="text-xs text-slate-500 mt-1">Used for push alarm notifications.</p>
-                    </Field>
-                    {error && <ErrorBanner msg={error} />}
-                    <SubmitBtn loading={loading} label="Create Account" loadingLabel="Registering…" />
-                    <p className="text-center text-xs text-slate-500 mt-2">
-                      Already have an account?{" "}
-                      <button type="button" onClick={() => switchMode("login")} className="text-orange-400 font-semibold hover:underline">Sign In</button>
-                    </p>
-                  </form>
-                )}
-              </>
+              <form onSubmit={handleRegister} className="space-y-4 animate-slide-up">
+                <div className="text-center mb-1">
+                  <p className="text-xs text-slate-500">After registration, a password setup link is sent to your email.</p>
+                </div>
+                <Field label="Username">
+                  <input type="text" value={regUsername}
+                    onChange={(e) => { setRegUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, "")); setError(""); }}
+                    className={INPUT_CLS} placeholder="e.g. john_doe" required minLength={3} maxLength={30} autoFocus autoComplete="username" />
+                  <p className="text-xs text-slate-500 mt-1">Letters, numbers and underscores only.</p>
+                </Field>
+                <Field label="Full Name">
+                  <input type="text" value={regName}
+                    onChange={(e) => { setRegName(e.target.value); setError(""); }}
+                    className={INPUT_CLS} placeholder="Your full name" required minLength={2} />
+                </Field>
+                <Field label="Email Address">
+                  <input type="email" value={regEmail}
+                    onChange={(e) => { setRegEmail(e.target.value); setError(""); }}
+                    className={INPUT_CLS} placeholder="you@example.com" required />
+                </Field>
+                <Field label="Mobile Number">
+                  <input type="tel" value={regMobile}
+                    onChange={(e) => { setRegMobile(e.target.value.replace(/\D/g, "")); setError(""); }}
+                    className={INPUT_CLS} placeholder="9876543210" required minLength={10} maxLength={15} />
+                  <p className="text-xs text-slate-500 mt-1">Used for push alarm notifications.</p>
+                </Field>
+                {error && <ErrorBanner msg={error} />}
+                <SubmitBtn loading={loading} label="Create Account" loadingLabel="Registering…" />
+                <p className="text-center text-xs text-slate-500 mt-2">
+                  Already have an account?{" "}
+                  <button type="button" onClick={() => switchMode("login")} className="text-orange-400 font-semibold hover:underline">Sign In</button>
+                </p>
+              </form>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── Solar Burst registration success overlay ── */}
+      {success && createPortal(
+        <SolarBurstRegPopup
+          devSetupUrl={devSetupUrl}
+          onClose={() => { setSuccess(""); setDevSetupUrl(""); switchMode("login"); }}
+        />,
+        document.body
+      )}
     </div>
   );
 }

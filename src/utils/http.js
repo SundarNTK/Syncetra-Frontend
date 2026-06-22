@@ -83,7 +83,8 @@ http.interceptors.response.use(
     const isWriteOp    = WRITE_METHODS.has(method);
     const isFormData   = error.config?.data instanceof FormData;
 
-    if ((isOffline || isNetworkErr || isDbConnErr) && isWriteOp && !isFormData) {
+    // _skipQueue: true means this request came from drainQueue — never re-enqueue it.
+    if ((isOffline || isNetworkErr || isDbConnErr) && isWriteOp && !isFormData && !error.config?._skipQueue) {
       const userId = getUserId();
       if (userId) {
         const rawData = error.config.data;
@@ -108,7 +109,11 @@ http.interceptors.response.use(
     }
 
     const message = error.response?.data?.message || error.message || 'Request failed';
-    return Promise.reject(new Error(message));
+    const apiErr  = new Error(message);
+    // Preserve HTTP status so callers (e.g. drainQueue) can distinguish a server
+    // rejection (4xx/5xx, has status) from a pure network failure (no status).
+    if (error.response?.status) apiErr.status = error.response.status;
+    return Promise.reject(apiErr);
   }
 );
 

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../../hooks";
 import { SET_USER_INFO } from "../../store/userSlice";
@@ -8,6 +9,127 @@ import { ROLES } from "../../constants/enum";
 import { SyncetraBrand } from "../../components/brand/SyncetraLogo";
 
 const isAdminRole = (r) => r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN;
+
+/* ─── Cosmic Gate — Password Set Success Popup ──────────────────────────────── */
+const CG_CSS = `
+@keyframes cg-backdrop  { from{opacity:0} to{opacity:1} }
+@keyframes cg-card-pop  { 0%{transform:scale(0.55) translateY(40px);opacity:0} 60%{transform:scale(1.04) translateY(-5px);opacity:1} 80%{transform:scale(0.97)} 100%{transform:scale(1) translateY(0);opacity:1} }
+@keyframes cg-pulse-ring{ 0%{transform:scale(0.6);opacity:0.8} 100%{transform:scale(2.6);opacity:0} }
+@keyframes cg-portal    { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.08);opacity:1} 80%{transform:scale(0.96)} 100%{transform:scale(1);opacity:1} }
+@keyframes cg-spin      { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes cg-shimmer   { from{background-position:0% center} to{background-position:300% center} }
+@keyframes cg-fade-up   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes cg-bar-drain { from{width:100%} to{width:0%} }
+@keyframes cg-float     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.cg-title {
+  background: linear-gradient(90deg,#818cf8,#c4b5fd,#67e8f9,#818cf8);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: cg-shimmer 3s linear infinite;
+}
+`;
+
+function CgStarCanvas({ active }) {
+  const ref = useRef(null);
+  const raf = useRef(null);
+  useEffect(() => {
+    if (!active) return;
+    const c = ref.current; if (!c) return;
+    const ctx = c.getContext("2d");
+    c.width = c.offsetWidth; c.height = c.offsetHeight;
+    const W = c.width, H = c.height, CX = W / 2, CY = H / 2;
+    const COLS = ["#818cf8","#c4b5fd","#67e8f9","#a78bfa","#e0e7ff","#f0abfc"];
+    const stars = Array.from({ length: 80 }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const spd   = Math.random() * 4.5 + 1.5;
+      return { x: CX, y: CY, vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd, col: COLS[Math.floor(Math.random() * COLS.length)], sz: Math.random() * 3 + 1.5, life: 1, decay: Math.random() * 0.009 + 0.004 };
+    });
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      let any = false;
+      stars.forEach(s => {
+        if (s.life <= 0) return; any = true;
+        s.x += s.vx; s.y += s.vy; s.vx *= 0.985; s.vy *= 0.985; s.life -= s.decay;
+        ctx.save(); ctx.globalAlpha = s.life * 0.8; ctx.fillStyle = s.col;
+        ctx.shadowColor = s.col; ctx.shadowBlur = 6;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.sz, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      });
+      if (any) raf.current = requestAnimationFrame(draw);
+    };
+    raf.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(raf.current);
+  }, [active]);
+  if (!active) return null;
+  return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none" />;
+}
+
+function CosmicGatePwdPopup({ userName, onClose }) {
+  useEffect(() => { const t = setTimeout(onClose, 5000); return () => clearTimeout(t); }, [onClose]);
+  return (
+    <>
+      <style>{CG_CSS}</style>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
+        style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(10px)", animation: "cg-backdrop 0.35s ease both" }}>
+        <div className="relative w-full max-w-sm rounded-3xl text-center overflow-hidden"
+          style={{ background: "linear-gradient(160deg,#0a0818 0%,#04020f 100%)", border: "1px solid rgba(129,140,248,0.3)", boxShadow: "0 0 80px rgba(99,102,241,0.22), 0 40px 80px rgba(0,0,0,0.8)", animation: "cg-card-pop 0.65s cubic-bezier(0.22,1.2,0.36,1) both" }}>
+          <CgStarCanvas active />
+          <div style={{ height: 2, background: "linear-gradient(90deg,transparent,#818cf8,#67e8f9,#818cf8,transparent)" }} />
+
+          <div className="relative z-10 pt-8 pb-7 px-6">
+            {/* Portal rings + lock icon */}
+            <div className="relative flex items-center justify-center mx-auto mb-5" style={{ width: 110, height: 110 }}>
+              {[0, 0.5, 1].map((d, i) => (
+                <div key={i} className="absolute rounded-full"
+                  style={{ inset: 0, border: "1px solid rgba(129,140,248,0.4)", animation: `cg-pulse-ring 2s ${d}s ease-out infinite` }} />
+              ))}
+              {/* Portal glow disc */}
+              <div className="absolute rounded-full" style={{ inset: 12, background: "radial-gradient(circle,rgba(139,92,246,0.3) 0%,rgba(99,102,241,0.08) 70%,transparent 100%)", animation: "cg-portal 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both", boxShadow: "0 0 40px rgba(139,92,246,0.35), inset 0 0 24px rgba(139,92,246,0.2)" }} />
+              {/* Orbiting dots */}
+              <div className="absolute inset-0" style={{ animation: "cg-spin 4s linear infinite" }}>
+                {[0, 120, 240].map((deg, i) => (
+                  <div key={i} className="absolute w-2.5 h-2.5 rounded-full"
+                    style={{ top: "50%", left: "50%", marginTop: -5, marginLeft: -5, background: ["#818cf8","#67e8f9","#c4b5fd"][i], boxShadow: `0 0 8px ${["#818cf8","#67e8f9","#c4b5fd"][i]}`, transform: `rotate(${deg}deg) translateX(46px)` }} />
+                ))}
+              </div>
+              {/* Lock icon in center */}
+              <div className="relative z-10 w-14 h-14 rounded-full flex items-center justify-center"
+                style={{ background: "radial-gradient(circle,rgba(139,92,246,0.4) 0%,rgba(99,102,241,0.15) 100%)", border: "1px solid rgba(139,92,246,0.5)", boxShadow: "0 0 20px rgba(139,92,246,0.5)" }}>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" style={{ animation: "cg-float 2.5s ease-in-out infinite" }}>
+                  <rect x="5" y="11" width="14" height="10" rx="2" fill="rgba(139,92,246,0.3)" stroke="#c4b5fd" strokeWidth="1.5" />
+                  <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" />
+                  <circle cx="12" cy="16" r="1.5" fill="#67e8f9" />
+                </svg>
+              </div>
+            </div>
+
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-400/70 mb-1.5" style={{ animation: "cg-fade-up 0.5s ease 0.5s both", opacity: 0 }}>
+              Password Secured
+            </p>
+            <h2 className="cg-title text-2xl font-black tracking-tight mb-1" style={{ animation: "cg-fade-up 0.45s ease 0.6s both" }}>
+              YOU&apos;RE ALL SET{userName ? `, ${userName.split(" ")[0].toUpperCase()}` : ""}!
+            </h2>
+            <p className="text-slate-400 text-sm leading-relaxed mb-5" style={{ animation: "cg-fade-up 0.5s ease 0.72s both", opacity: 0 }}>
+              Your password is confirmed.<br />Taking you to your dashboard…
+            </p>
+
+            {/* Drain bar */}
+            <div className="h-[3px] bg-indigo-900/30 rounded-full mb-5 overflow-hidden mx-2" style={{ animation: "cg-fade-up 0.5s ease 0.82s both", opacity: 0 }}>
+              <div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#6366f1,#8b5cf6,#67e8f9)", animation: "cg-bar-drain 5000ms linear both" }} />
+            </div>
+
+            <button onClick={onClose}
+              className="inline-flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-bold text-white transition-all"
+              style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", boxShadow: "0 0 24px rgba(99,102,241,0.4)", animation: "cg-fade-up 0.5s ease 0.9s both", opacity: 0 }}>
+              Enter Syncetra →
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
 const INPUT_CLS =
   "w-full mt-2 px-4 py-3 sm:py-3.5 rounded-xl bg-slate-950 border border-slate-600 " +
@@ -51,8 +173,9 @@ export default function CreatePassword() {
   const token = searchParams.get("token") || "";
 
   // "loading" | "greeting" | "form" | "error" | "done"
-  const [phase, setPhase]     = useState("loading");
+  const [phase, setPhase]       = useState("loading");
   const [userName, setUserName] = useState("");
+  const [doneSession, setDoneSession] = useState(null);
   const [tokenError, setTokenError] = useState("");
 
   const [pwd, setPwd]           = useState("");
@@ -106,15 +229,8 @@ export default function CreatePassword() {
         await registerDeviceForPush(null, session.token);
       }
 
+      setDoneSession(session);
       setPhase("done");
-
-      // Small delay so the user sees the success message, then navigate
-      setTimeout(() => {
-        navigate(
-          isAdminRole(session?.user?.role) ? "/admin/dashboard" : "/user/dashboard",
-          { replace: true }
-        );
-      }, 1800);
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -132,6 +248,18 @@ export default function CreatePassword() {
       {/* Greeting popup — shown before the form */}
       {phase === "greeting" && (
         <GreetingPopup name={userName} onOk={() => setPhase("form")} />
+      )}
+
+      {/* Cosmic Gate — password set success */}
+      {phase === "done" && doneSession && createPortal(
+        <CosmicGatePwdPopup
+          userName={userName}
+          onClose={() => navigate(
+            isAdminRole(doneSession?.user?.role) ? "/admin/dashboard" : "/user/dashboard",
+            { replace: true }
+          )}
+        />,
+        document.body
       )}
 
       <div className="relative w-full max-w-md animate-fade-in">
@@ -253,13 +381,10 @@ export default function CreatePassword() {
             </form>
           )}
 
-          {/* Success */}
+          {/* Success — handled by portal popup below */}
           {phase === "done" && (
-            <div className="text-center py-8 animate-slide-up space-y-3">
-              <div className="text-5xl">🎉</div>
-              <h2 className="text-lg font-bold text-white">All set!</h2>
-              <p className="text-slate-400 text-sm">Password saved. Taking you to your dashboard…</p>
-              <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mt-2" />
+            <div className="text-center py-8">
+              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
             </div>
           )}
         </div>
