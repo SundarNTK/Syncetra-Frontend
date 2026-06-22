@@ -89,13 +89,8 @@ export default function MemberMultiSelect({
   }, [options, query]);
 
   const isAllMembersDraft = useMemo(() => {
-    if (!emptyMeansAll) {
-      return optionIds.length > 0 && draftSelected.length >= optionIds.length;
-    }
-    return (
-      optionIds.length === 0 || draftSelected.length === 0 || draftSelected.length >= optionIds.length
-    );
-  }, [emptyMeansAll, optionIds.length, draftSelected.length]);
+    return optionIds.length > 0 && draftSelected.length >= optionIds.length;
+  }, [optionIds.length, draftSelected.length]);
 
   const isAllMembersCommitted = useMemo(() => {
     if (!emptyMeansAll) {
@@ -113,7 +108,9 @@ export default function MemberMultiSelect({
 
   const openPanel = () => {
     if (disabled || !optionIds.length) return;
-    setDraft([...committed]);
+    // Expand implicit "all" (empty array) to explicit IDs so deselect-all works in the panel
+    const initial = emptyMeansAll && committed.length === 0 ? [...optionIds] : [...committed];
+    setDraft(initial);
     setQuery("");
     setOpen(true);
   };
@@ -170,7 +167,7 @@ export default function MemberMultiSelect({
   ]);
 
   const toggleAllDraft = () => {
-    if (emptyMeansAll) setDraft([]);
+    if (isAllMembersDraft) setDraft([]);
     else setDraft([...optionIds]);
   };
 
@@ -194,8 +191,7 @@ export default function MemberMultiSelect({
 
   const countLabel = (() => {
     if (!optionIds.length) return "";
-    if (isAllMembersDraft && emptyMeansAll) return "All members";
-    if (isAllMembersDraft && !emptyMeansAll) return `All ${optionIds.length} selected`;
+    if (isAllMembersDraft) return `All ${optionIds.length} selected`;
     if (!draftSelected.length) return "None selected";
     return `${draftSelected.length} selected`;
   })();
@@ -246,9 +242,7 @@ export default function MemberMultiSelect({
             ) : (
               filteredOptions.map((m) => {
                 const id = String(m.id || m._id);
-                const checked = emptyMeansAll
-                  ? isAllMembersDraft || draftSelected.includes(id)
-                  : draftSelected.includes(id);
+                const checked = draftSelected.includes(id);
                 return (
                   <label
                     key={id}

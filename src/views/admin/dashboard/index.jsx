@@ -196,8 +196,8 @@ export default function AdminDashboard() {
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-200 border ${isSel ? "bg-indigo-900/30 border-indigo-600/40" : "border-transparent hover:bg-slate-800/60 hover:border-slate-700/60"}`}
                 >
                   {t.coverImage
-                    ? <img src={t.coverImage} alt={t.tripName} className="w-9 h-9 rounded-xl object-cover shrink-0" />
-                    : <div className="w-9 h-9 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0"><span>✈️</span></div>
+                    ? <img src={t.coverImage} alt={t.tripName} className="w-14 h-10 rounded-xl object-cover shrink-0" />
+                    : <div className="w-14 h-10 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0"><span>✈️</span></div>
                   }
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-200 truncate">{t.tripName}</p>

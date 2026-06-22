@@ -902,18 +902,23 @@ function PollViewModal({ poll, userId, trips, onClose }) {
                         )}
                       </div>
                       {showBars && (
-                        <div className="ml-11 h-2.5 bg-black/30 rounded-full overflow-hidden">
+                        <div
+                          className="ml-11 rounded-full overflow-hidden"
+                          style={{ height: "6px", background: "rgba(255,255,255,0.08)" }}
+                        >
                           <div
                             className="h-full rounded-full transition-all duration-700"
                             style={{
                               width: `${barPct}%`,
-                              minWidth: barPct > 0 ? "0.25rem" : 0,
+                              minWidth: barPct > 0 ? "4px" : 0,
                               background: barGradient,
                               boxShadow:
                                 isLeading && totalVotes > 0
                                   ? isWinner
-                                    ? "0 0 10px rgba(245,158,11,0.5)"
-                                    : "0 0 10px rgba(16,185,129,0.45)"
+                                    ? "0 0 10px rgba(245,158,11,0.55)"
+                                    : "0 0 10px rgba(16,185,129,0.5)"
+                                  : barPct > 0
+                                  ? `0 0 6px ${OPT_COLORS[i % 8]}55`
                                   : "none",
                             }}
                           />
@@ -1163,13 +1168,21 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
               isLeading && isClosed && poll.pollStatus === "completed";
             const canVote = canVoteOnPoll;
 
-            const barColor = isWinner
-              ? "bg-amber-500"
+            const accentColor = OPT_COLORS[i % 8];
+            const barFill = isWinner
+              ? "linear-gradient(90deg,#92400e,#f59e0b,#fde047,#f59e0b)"
               : isLeading && !isClosed
-                ? "bg-emerald-500"
-                : isVoted
-                  ? "bg-emerald-700"
-                  : "bg-slate-600";
+              ? "linear-gradient(90deg,#065f46,#10b981,#34d399)"
+              : isVoted
+              ? "linear-gradient(90deg,#065f46,#047857)"
+              : `linear-gradient(90deg,${accentColor}99,${accentColor})`;
+            const barGlow = isWinner
+              ? "0 0 8px rgba(245,158,11,0.55)"
+              : isLeading && !isClosed
+              ? "0 0 8px rgba(16,185,129,0.55)"
+              : barPct > 0
+              ? `0 0 6px ${accentColor}55`
+              : "none";
 
             const optionInner = (
               <div className="px-3 py-3" style={pollOptionHeaderStyle(i)}>
@@ -1184,8 +1197,8 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
                       isVoted
                         ? {}
                         : {
-                            background: `linear-gradient(135deg, ${OPT_COLORS[i % 8]}, ${OPT_COLORS[i % 8]}88)`,
-                            boxShadow: `0 0 8px ${OPT_COLORS[i % 8]}50`,
+                            background: `linear-gradient(135deg, ${accentColor}, ${accentColor}88)`,
+                            boxShadow: `0 0 8px ${accentColor}50`,
                           }
                     }
                   >
@@ -1195,45 +1208,43 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
                     {isWinner ? (
                       <>
                         <span>🏆 </span>
-                        <span className="poll-winner-gradient">
-                          {opt.label}
-                        </span>
+                        <span className="poll-winner-gradient">{opt.label}</span>
                       </>
                     ) : isLeading && totalVotes > 0 && !isClosed ? (
                       <>
                         <span>⚡ </span>
-                        <span className="poll-leading-gradient">
-                          {opt.label}
-                        </span>
+                        <span className="poll-leading-gradient">{opt.label}</span>
                       </>
                     ) : (
                       <span style={pollOptionLabelStyle(i)}>{opt.label}</span>
                     )}
                   </span>
                   <span
-                    className={`shrink-0 text-xs whitespace-nowrap tabular-nums font-semibold ${
-                      isWinner
-                        ? "text-amber-300"
+                    className="shrink-0 text-xs whitespace-nowrap tabular-nums font-semibold"
+                    style={{
+                      color: isWinner
+                        ? "#fcd34d"
                         : isLeading && !isClosed
-                          ? "text-emerald-400"
-                          : "text-slate-400"
-                    }`}
+                        ? "#34d399"
+                        : "#94a3b8",
+                    }}
                   >
                     {count} · {barPct}%
                   </span>
                   {canVote && <TapVoteIcon />}
                 </div>
-                <div className="ml-8 h-2 bg-black/30 rounded-full overflow-hidden">
+                {/* Progress bar — inline styles so they can't be purged or overridden */}
+                <div
+                  className="ml-8 rounded-full overflow-hidden"
+                  style={{ height: "6px", background: "rgba(255,255,255,0.08)" }}
+                >
                   <div
-                    className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                    className="h-full rounded-full transition-all duration-700"
                     style={{
                       width: `${barPct}%`,
-                      minWidth: barPct > 0 ? "0.25rem" : 0,
-                      boxShadow: isWinner
-                        ? "0 0 8px rgba(245,158,11,0.5)"
-                        : isLeading && !isClosed
-                          ? "0 0 8px rgba(16,185,129,0.5)"
-                          : "none",
+                      minWidth: barPct > 0 ? "4px" : 0,
+                      background: barFill,
+                      boxShadow: barGlow,
                     }}
                   />
                 </div>

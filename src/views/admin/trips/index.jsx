@@ -1226,11 +1226,11 @@ function TripViewModal({ trip, onClose, onEdit }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-3 sm:px-6 py-4 sm:py-8"
       onClick={onClose}
     >
       <div
-        className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cover banner */}
@@ -1239,7 +1239,7 @@ function TripViewModal({ trip, onClose, onEdit }) {
             <ZoomableImage
               src={trip.coverImage}
               alt={trip.tripName}
-              className="w-full h-52 object-cover"
+              className="w-full h-56 sm:h-64 object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
             <button
@@ -1392,14 +1392,14 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
   return (
     <MasterListItem className="master-list-item trip-card flex-col sm:flex-row">
       {/* Cover — full-width banner on mobile; left column with curved glow on sm+ */}
-      <div className="trip-cover-column relative group shrink-0 w-full h-40 sm:h-auto sm:w-36 md:w-40 sm:min-h-[7.5rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60 p-1 sm:p-1.5">
+      <div className="trip-cover-column relative group shrink-0 w-full h-48 sm:h-auto sm:w-44 md:w-56 sm:min-h-[10rem] sm:self-stretch bg-slate-950 border-b sm:border-b-0 sm:border-r border-slate-800/60">
         <div className={`trip-cover-glow-wrap trip-cover-glow-wrap--card h-full w-full ${coverGlowClass}`}>
           <span className="trip-cover-glow-shimmer" aria-hidden="true" />
         {trip.coverImage ? (
           <ZoomableImage
             src={trip.coverImage}
             alt={trip.tripName}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover rounded-none"
           />
         ) : (
           <div

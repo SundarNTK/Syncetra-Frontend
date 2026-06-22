@@ -253,9 +253,9 @@ export default function UserDashboard() {
                   }`}
                 >
                   {t.coverImage ? (
-                    <img src={t.coverImage} alt={t.tripName} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+                    <img src={t.coverImage} alt={t.tripName} className="w-14 h-10 rounded-xl object-cover shrink-0" />
                   ) : (
-                    <div className="w-9 h-9 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0">
+                    <div className="w-14 h-10 rounded-xl bg-slate-700/60 flex items-center justify-center shrink-0">
                       <span className="text-base">✈️</span>
                     </div>
                   )}
