@@ -367,7 +367,7 @@ function PollViewModal({ poll, userId, trips, onClose }) {
   const maxVotes        = Math.max(...(poll.options || []).map((o) => o.votes?.length || 0), 0);
   const eligible        = poll.eligibleMemberCount ?? 0;
   const uniqueResponded = poll.uniqueVoterCount ?? 0;
-  const showBars        = hasVoted || isClosed;
+  const showBars        = true;
 
   const leadingOpts = totalVotes > 0
     ? (poll.options || []).filter((o) => (o.votes?.length || 0) === maxVotes)
@@ -626,10 +626,10 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
   const maxVotes        = Math.max(...(poll.options || []).map((o) => o.votes?.length || 0), 0);
   const eligible        = poll.eligibleMemberCount ?? 0;
   const uniqueResponded = poll.uniqueVoterCount ?? 0;
-  const showBars        = hasVoted || isClosed;
 
   const leadingOpts   = totalVotes > 0 ? (poll.options || []).filter((o) => (o.votes?.length || 0) === maxVotes) : [];
   const leadingLabels = leadingOpts.map((o) => o.label).join(", ");
+  const canVoteOnPoll = !hasVoted && !isClosed;
 
   const TYPE_BADGE = {
     general: "bg-blue-600/20 text-blue-300 border border-blue-700/40",
@@ -721,7 +721,7 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
         </p>
 
         {/* ── Leading / Winner banner ── */}
-        {leadingOpts.length > 0 && showBars && (
+        {leadingOpts.length > 0 && (
           <p className="poll-highlight-line font-semibold leading-snug">
             {isClosed && poll.pollStatus === "completed" ? (
               <>
@@ -758,6 +758,7 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
             const isLeading   = count === maxVotes && totalVotes > 0;
             const isVoted     = i === userVotedIndex;
             const isWinner    = isLeading && isClosed && poll.pollStatus === "completed";
+            const canVote     = canVoteOnPoll;
 
             const barColor = isWinner
               ? "bg-amber-500"
@@ -767,82 +768,64 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
               ? "bg-emerald-700"
               : "bg-slate-600";
 
+            const optionInner = (
+              <div className="px-3 py-3" style={pollOptionHeaderStyle(i)}>
+                <div className="flex items-center gap-2.5 mb-2">
+                  <span
+                    className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${
+                      isVoted ? "bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "text-slate-900"
+                    }`}
+                    style={isVoted ? {} : {
+                      background: `linear-gradient(135deg, ${OPT_COLORS[i % 8]}, ${OPT_COLORS[i % 8]}88)`,
+                      boxShadow: `0 0 8px ${OPT_COLORS[i % 8]}50`,
+                    }}
+                  >
+                    {isVoted ? "✓" : i + 1}
+                  </span>
+                  <span className="text-sm font-bold leading-snug min-w-0 break-words flex-1 tracking-wide">
+                    {isWinner ? (
+                      <><span>🏆 </span><span className="poll-winner-gradient">{opt.label}</span></>
+                    ) : isLeading && totalVotes > 0 && !isClosed ? (
+                      <><span>⚡ </span><span className="poll-leading-gradient">{opt.label}</span></>
+                    ) : (
+                      <span style={pollOptionLabelStyle(i)}>{opt.label}</span>
+                    )}
+                  </span>
+                  <span className={`shrink-0 text-xs whitespace-nowrap tabular-nums font-semibold ${
+                    isWinner ? "text-amber-300" : isLeading && !isClosed ? "text-emerald-400" : "text-slate-400"
+                  }`}>
+                    {count} · {barPct}%
+                  </span>
+                  {canVote && <TapVoteIcon />}
+                </div>
+                <div className="ml-8 h-2 bg-black/30 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+                    style={{
+                      width: `${barPct}%`,
+                      minWidth: barPct > 0 ? "0.25rem" : 0,
+                      boxShadow: isWinner ? "0 0 8px rgba(245,158,11,0.5)" : isLeading && !isClosed ? "0 0 8px rgba(16,185,129,0.5)" : "none",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+
             return (
               <div
                 key={i}
                 className={`rounded-xl overflow-hidden transition-all ${pollOptionGlowClass(i)}`}
                 style={{ animation: "pollOptIn 0.35s ease both", animationDelay: `${index * 80 + i * 55}ms` }}
               >
-                {showBars ? (
-                  /* ── Result view (after voting / closed) — animated header ── */
-                  <div className="px-3 py-3" style={pollOptionHeaderStyle(i)}>
-                    <div className="flex items-center gap-2.5 mb-2">
-                      {/* Colored circle */}
-                      <span
-                        className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${
-                          isVoted ? "bg-emerald-500 text-white shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "text-slate-900"
-                        }`}
-                        style={isVoted ? {} : {
-                          background: `linear-gradient(135deg, ${OPT_COLORS[i % 8]}, ${OPT_COLORS[i % 8]}88)`,
-                          boxShadow: `0 0 8px ${OPT_COLORS[i % 8]}50`,
-                        }}
-                      >
-                        {isVoted ? "✓" : i + 1}
-                      </span>
-                      {/* Gradient label */}
-                      <span className="text-sm font-bold leading-snug min-w-0 break-words flex-1 tracking-wide">
-                        {isVoted && !isLeading && <span className="text-emerald-400 mr-1 text-xs">✓</span>}
-                        {isWinner ? (
-                          <><span>🏆 </span><span className="poll-winner-gradient">{opt.label}</span></>
-                        ) : isLeading && totalVotes > 0 && !isClosed ? (
-                          <><span>⚡ </span><span className="poll-leading-gradient">{opt.label}</span></>
-                        ) : (
-                          <span style={pollOptionLabelStyle(i)}>{opt.label}</span>
-                        )}
-                      </span>
-                      <span className={`shrink-0 text-xs whitespace-nowrap tabular-nums font-semibold ${
-                        isWinner ? "text-amber-300" : isLeading && !isClosed ? "text-emerald-400" : "text-slate-400"
-                      }`}>
-                        {count} · {barPct}%
-                      </span>
-                    </div>
-                    <div className="ml-8 h-2 bg-black/30 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-                        style={{
-                          width: `${barPct}%`,
-                          minWidth: barPct > 0 ? "0.25rem" : 0,
-                          boxShadow: isWinner ? "0 0 8px rgba(245,158,11,0.5)" : isLeading && !isClosed ? "0 0 8px rgba(16,185,129,0.5)" : "none",
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  /* ── Vote mode (before voting on live poll) ── */
+                {canVote ? (
                   <button
                     type="button"
                     onClick={() => onVoteConfirm(poll, i)}
-                    className="w-full text-left transition-colors cursor-pointer hover:brightness-110"
-                    style={pollOptionHeaderStyle(i)}
+                    className="w-full text-left hover:brightness-110 transition-all"
                   >
-                    <div className="flex items-center gap-2.5 px-3 py-3">
-                      <span
-                        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black text-slate-900"
-                        style={{
-                          background: `linear-gradient(135deg, ${OPT_COLORS[i % 8]}, ${OPT_COLORS[i % 8]}88)`,
-                          boxShadow: `0 0 8px ${OPT_COLORS[i % 8]}50`,
-                        }}
-                      >
-                        {i + 1}
-                      </span>
-                      <span className="text-sm font-bold leading-snug break-words min-w-0 flex-1 tracking-wide"
-                        style={pollOptionLabelStyle(i)}>
-                        {opt.label}
-                      </span>
-                      <TapVoteIcon />
-                    </div>
+                    {optionInner}
                   </button>
-                )}
+                ) : optionInner}
               </div>
             );
           })}

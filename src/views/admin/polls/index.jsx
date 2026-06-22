@@ -202,110 +202,191 @@ function AnalyticsModal({ pollId, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const isCompleted = data?.poll?.pollStatus === "completed";
-  const leadingLabels = data?.analytics?.filter((opt) => opt.isLeading).map((opt) => opt.label) || [];
-  const leadersText = leadingLabels.join(", ");
+  const isCompleted      = data?.poll?.pollStatus === "completed";
+  const leadingLabels    = data?.analytics?.filter((opt) => opt.isLeading).map((opt) => opt.label) || [];
+  const leadersText      = leadingLabels.join(", ");
+  const participationPct = data?.eligibleMemberCount > 0
+    ? Math.round((data.uniqueVoterCount / data.eligibleMemberCount) * 100)
+    : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4 py-8" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-800">
-          <div>
-            <h3 className="font-semibold text-emerald-400">Poll Analytics</h3>
-            {data?.poll && (
-              <StatusBadge status={data.poll.pollStatus} className="mt-1" />
-            )}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 py-8" onClick={onClose}>
+      <div
+        className="bg-slate-900 border border-slate-700/60 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        style={{ boxShadow: "0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(148,163,184,0.08)" }}
+      >
+        {/* ── Header ── */}
+        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 px-5 pt-5 pb-4 rounded-t-2xl z-10">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-lg text-white tracking-tight">Poll Analytics</h3>
+              {data?.poll && <StatusBadge status={data.poll.pollStatus} className="mt-1.5" />}
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400 shrink-0 mt-0.5 transition-colors">
+              <IconX />
+            </button>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400"><IconX /></button>
         </div>
 
         {loading ? (
           <SyncetraLoader className="py-16" />
         ) : !data ? (
-          <p className="text-red-400 p-6 text-center">Failed to load analytics</p>
+          <p className="text-red-400 p-6 text-center text-sm">Failed to load analytics</p>
         ) : (
-          <div className="p-5 space-y-4">
-            <div>
-              <p className="text-xs text-slate-400">{data.poll.question}</p>
-              <p className="text-lg font-bold mt-0.5">{data.poll.title}</p>
-              <div className="text-xs text-slate-500 mt-2 space-y-1">
-                {data.eligibleMemberCount > 0 && (
-                  <p>
-                    Responded:{" "}
-                    <strong className="text-white">{data.uniqueVoterCount}</strong>
-                    {" / "}
-                    {data.eligibleMemberCount} eligible members
-                  </p>
-                )}
-                <p>
-                  Total votes: <strong className="text-white">{data.totalVotes}</strong>
-                  {data.eligibleMemberCount > 0 && (
-                    <span className="text-slate-600 ml-2">(percentages below are share of eligible members)</span>
-                  )}
-                </p>
-                {leadersText && !isCompleted && (
-                  <p className="poll-highlight-line font-semibold">
-                    <span className="poll-leading-gradient font-bold">⚡ Leading: {leadersText}</span>
-                  </p>
-                )}
-                {leadersText && isCompleted && (
-                  <p className="poll-highlight-line font-semibold">
-                    <span className="poll-winner-gradient font-bold">
-                      🏆 Winner{leadingLabels.length > 1 ? "s" : ""}: {leadersText}
-                    </span>
-                  </p>
-                )}
-              </div>
+          <>
+            {/* ── Poll info ── */}
+            <div className="px-5 pt-4 pb-4 border-b border-slate-800/60">
+              <p className="text-xs text-slate-400 leading-relaxed mb-1.5">{data.poll.question}</p>
+              <p className="text-base font-bold text-white leading-snug">{data.poll.title}</p>
             </div>
 
-            <div className="space-y-3">
-              {data.analytics.map((opt) => (
-                <div
-                  key={opt.index}
-                  className={`rounded-xl p-3 border ${opt.isLeading && data.totalVotes > 0 ? (isCompleted ? "border-amber-500/50 bg-amber-950/15 ring-1 ring-amber-500/20" : "border-emerald-600/50 bg-emerald-950/20") : "border-slate-800 bg-slate-800/40"}`}
-                >
+            {/* ── Stats summary ── */}
+            <div className="px-5 py-4 border-b border-slate-800/60">
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-slate-800/60 rounded-xl p-4 text-center border border-slate-700/40">
+                  <p className="text-3xl font-black text-slate-300 tabular-nums leading-none mb-1.5">{data.eligibleMemberCount}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider">Eligible Members</p>
+                </div>
+                <div className="rounded-xl p-4 text-center border border-emerald-700/30" style={{ background: "rgba(16,185,129,0.06)" }}>
+                  <p className="text-3xl font-black text-emerald-400 tabular-nums leading-none mb-1.5">{data.totalVotes}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider">Total Votes</p>
+                </div>
+              </div>
+              {data.eligibleMemberCount > 0 && (
+                <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-medium flex items-center gap-2">
-                      {opt.isLeading && data.totalVotes > 0 && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${isCompleted ? "bg-amber-600/25 text-amber-300" : "bg-emerald-600/30 text-emerald-400"}`}>
-                          {isCompleted ? "Winner" : "Leading"}
-                        </span>
-                      )}
-                      {opt.label}
-                    </span>
-                    <span className="text-sm font-bold text-white">
-                      {opt.voteCount}{" "}
-                      <span className="text-slate-400 font-normal">
-                        ({opt.percentage}% of members
-                        {data.totalVotes > 0 ? (
-                          <span className="text-slate-500"> · {opt.voteSharePercent}% of votes</span>
-                        ) : null}
-                        )
-                      </span>
-                    </span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-wider">Participation Rate</span>
+                    <span className="text-xs font-bold text-slate-300">{participationPct}%</span>
                   </div>
-                  <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-700/60 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${opt.isLeading && data.totalVotes > 0 ? (isCompleted ? "bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-500" : "bg-emerald-500") : "bg-slate-500"}`}
-                      style={{ width: `${opt.percentage}%` }}
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-700 to-emerald-400 transition-all duration-700"
+                      style={{ width: `${participationPct}%`, boxShadow: "0 0 8px rgba(16,185,129,0.4)" }}
                     />
                   </div>
-                  {opt.voters.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {opt.voters.map((v, vi) => (
-                        <span key={vi} className="flex items-center gap-1 text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded-full">
-                          <span className="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-[9px] font-bold shrink-0">
-                            {(v.name || "?")[0].toUpperCase()}
-                          </span>
-                          {v.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
+
+            {/* ── Leading / Winner banner ── */}
+            {leadersText && (
+              <div className="px-5 py-3 border-b border-slate-800/60">
+                <p className="font-semibold text-sm leading-snug">
+                  {isCompleted ? (
+                    <><span className="text-base">🏆 </span><span className="poll-winner-gradient font-bold">Winner{leadingLabels.length > 1 ? "s" : ""}: {leadersText}</span></>
+                  ) : (
+                    <><span className="text-base">⚡ </span><span className="poll-leading-gradient font-bold">Leading: {leadersText}</span></>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* ── Options ── */}
+            <div className="p-5 space-y-3">
+              {data.analytics.map((opt) => {
+                const isLeadingOpt = opt.isLeading && data.totalVotes > 0;
+                const barGradient  = isLeadingOpt
+                  ? isCompleted
+                    ? "linear-gradient(90deg,#92400e,#f59e0b,#fde047,#f59e0b)"
+                    : "linear-gradient(90deg,#065f46,#10b981,#34d399)"
+                  : "linear-gradient(90deg,#334155,#475569)";
+
+                return (
+                  <div
+                    key={opt.index}
+                    className={`rounded-2xl border overflow-hidden ${
+                      isLeadingOpt
+                        ? isCompleted
+                          ? "border-amber-500/40"
+                          : "border-emerald-600/40"
+                        : "border-slate-700/50"
+                    }`}
+                    style={{
+                      background: isLeadingOpt
+                        ? isCompleted
+                          ? "linear-gradient(135deg,rgba(120,53,15,0.15) 0%,rgba(15,23,42,0.9) 100%)"
+                          : "linear-gradient(135deg,rgba(6,78,59,0.15) 0%,rgba(15,23,42,0.9) 100%)"
+                        : "rgba(30,41,59,0.4)",
+                    }}
+                  >
+                    <div className="p-4">
+                      {/* Label + vote count row */}
+                      <div className="flex items-start gap-3 mb-3">
+                        {isLeadingOpt && (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 border ${
+                            isCompleted
+                              ? "bg-amber-600/20 text-amber-300 border-amber-500/30"
+                              : "bg-emerald-600/20 text-emerald-300 border-emerald-500/30"
+                          }`}>
+                            {isCompleted ? "Winner" : "Leading"}
+                          </span>
+                        )}
+                        <span className="text-sm font-semibold text-white flex-1 leading-snug min-w-0 break-words">{opt.label}</span>
+                        <span className={`text-2xl font-black tabular-nums shrink-0 leading-none ${
+                          isLeadingOpt ? (isCompleted ? "text-amber-300" : "text-emerald-400") : "text-slate-400"
+                        }`}>
+                          {opt.voteCount}
+                        </span>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden mb-3">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${opt.percentage}%`,
+                            minWidth: opt.percentage > 0 ? "0.5rem" : 0,
+                            background: barGradient,
+                            boxShadow: isLeadingOpt
+                              ? isCompleted ? "0 0 10px rgba(245,158,11,0.5)" : "0 0 10px rgba(16,185,129,0.45)"
+                              : "none",
+                          }}
+                        />
+                      </div>
+
+                      {/* Stats row */}
+                      <div className="flex items-center gap-2 text-xs flex-wrap">
+                        <span className={`font-bold tabular-nums ${
+                          isLeadingOpt ? (isCompleted ? "text-amber-300" : "text-emerald-400") : "text-slate-300"
+                        }`}>
+                          {opt.percentage}%
+                        </span>
+                        <span className="text-slate-600">of members</span>
+                        {data.totalVotes > 0 && (
+                          <>
+                            <span className="text-slate-700 select-none">·</span>
+                            <span className="font-bold tabular-nums text-slate-300">{opt.voteSharePercent}%</span>
+                            <span className="text-slate-600">of votes</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Voter chips */}
+                      {opt.voters.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-700/40 flex flex-wrap gap-1.5">
+                          {opt.voters.map((v, vi) => (
+                            <span key={vi} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-700/50 border border-slate-600/40 text-slate-300 text-xs font-medium">
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                isLeadingOpt && !isCompleted
+                                  ? "bg-emerald-800/70 text-emerald-300"
+                                  : isLeadingOpt && isCompleted
+                                  ? "bg-amber-800/70 text-amber-300"
+                                  : "bg-slate-600 text-slate-300"
+                              }`}>
+                                {(v.name || "?")[0].toUpperCase()}
+                              </span>
+                              {v.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -500,7 +581,7 @@ function EditPollModal({ poll, trips, onClose, onSaved, isSuperAdmin }) {
     try {
       const payload = { title: form.title, question: form.question };
       if (canEditOptions) payload.options = filled;
-      if (isSuperAdmin && canEditOptions) {
+      if (isSuperAdmin) {
         payload.pollType = form.pollType;
         payload.tripId   = form.pollType === "trip" ? form.tripId || null : null;
       }
@@ -529,8 +610,8 @@ function EditPollModal({ poll, trips, onClose, onSaved, isSuperAdmin }) {
           <input placeholder="Poll title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputCls} required />
           <textarea placeholder="Question *" value={form.question} onChange={(e) => setForm({ ...form, question: e.target.value })} className={`${inputCls} resize-none`} rows={2} required />
 
-          {isSuperAdmin && canEditOptions ? (
-            /* Super admin + no votes yet: can change poll type */
+          {isSuperAdmin ? (
+            /* Super admin: poll type/trip always editable (options locked only if votes exist) */
             <div className="flex gap-3 flex-wrap sm:flex-nowrap">
               <div className="flex-1 min-w-[160px]">
                 <label className="text-xs text-slate-400 block mb-1">Poll Type</label>
@@ -562,15 +643,15 @@ function EditPollModal({ poll, trips, onClose, onSaved, isSuperAdmin }) {
               )}
             </div>
           ) : (
-            /* Read-only type display (admin, or super admin after votes cast) */
+            /* Read-only type display for non-super-admin */
             <div className="rounded-lg bg-slate-800/40 border border-slate-700/60 px-3 py-2 text-xs text-slate-400">
               <span className="text-slate-300">Type:</span>{" "}
               {poll.pollType === "trip" ? `Trip poll${trip ? ` · ${trip.tripName}` : ""}` : "General (all members)"}
-              {!canEditOptions && (
-                <span className="block mt-1 text-amber-400/90">
-                  ⚠ Options and poll type are locked because votes have been recorded. You can still edit the title and question.
-                </span>
-              )}
+            </div>
+          )}
+          {!canEditOptions && (
+            <div className="rounded-lg bg-amber-950/20 border border-amber-700/30 px-3 py-2 text-xs text-amber-400/90">
+              ⚠ Option labels are locked because votes have been recorded. You can still edit the title, question, and poll type/trip assignment.
             </div>
           )}
 
