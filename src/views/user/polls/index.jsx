@@ -587,7 +587,7 @@ function PollViewModal({ poll, userId, trips, onClose }) {
   );
   const eligible = poll.eligibleMemberCount ?? 0;
   const uniqueResponded = poll.uniqueVoterCount ?? 0;
-  const showBars = true;
+  const showBars = false;
 
   const leadingOpts =
     totalVotes > 0
@@ -1219,34 +1219,7 @@ function PollCard({ poll, userId, trips, onVoteConfirm, onView, index }) {
                       <span style={pollOptionLabelStyle(i)}>{opt.label}</span>
                     )}
                   </span>
-                  <span
-                    className="shrink-0 text-xs whitespace-nowrap tabular-nums font-semibold"
-                    style={{
-                      color: isWinner
-                        ? "#fcd34d"
-                        : isLeading && !isClosed
-                        ? "#34d399"
-                        : "#94a3b8",
-                    }}
-                  >
-                    {count} · {barPct}%
-                  </span>
                   {canVote && <TapVoteIcon />}
-                </div>
-                {/* Progress bar — inline styles so they can't be purged or overridden */}
-                <div
-                  className="ml-8 rounded-full overflow-hidden"
-                  style={{ height: "6px", background: "rgba(255,255,255,0.08)" }}
-                >
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${barPct}%`,
-                      minWidth: barPct > 0 ? "4px" : 0,
-                      background: barFill,
-                      boxShadow: barGlow,
-                    }}
-                  />
                 </div>
               </div>
             );

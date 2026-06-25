@@ -254,6 +254,19 @@ function pctOfEligible(voteCount, eligible) {
   return Math.min(100, Math.round((v / e) * 100));
 }
 
+/** Largest-remainder rounding so all option percentages sum to exactly 100 */
+function largestRemainderPct(counts, total) {
+  if (!total) return counts.map(() => 0);
+  const raw = counts.map((c) => (c / total) * 100);
+  const floored = raw.map(Math.floor);
+  let rem = 100 - floored.reduce((a, b) => a + b, 0);
+  const order = raw
+    .map((v, i) => ({ i, frac: v - Math.floor(v) }))
+    .sort((a, b) => b.frac - a.frac || a.i - b.i);
+  for (let k = 0; k < rem; k++) floored[order[k].i]++;
+  return floored;
+}
+
 // ─── Status: custom dropdown (icons + live dot; native <select> cannot show them) ─
 function PollStatusSelect({ status, pollId, onStatusChange }) {
   const [open, setOpen] = useState(false);
@@ -1583,13 +1596,13 @@ function PollCard({
               </p>
             )}
             <div className="space-y-2">
-              {(poll.options || []).map((o, i) => {
-                const count = o.votes?.length || 0;
+              {(() => {
+                const optCounts = (poll.options || []).map((o) => o.votes?.length || 0);
+                const optPcts = largestRemainderPct(optCounts, totalVotes);
+                return (poll.options || []).map((o, i) => {
+                const count = optCounts[i];
                 const isLeading = count === maxVotes && totalVotes > 0;
-                const eligiblePct = pctOfEligible(count, eligible);
-                const shareOfCast =
-                  totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
-                const barPct = eligiblePct != null ? eligiblePct : shareOfCast;
+                const barPct = optPcts[i];
                 const barColor =
                   isLeading && status === "completed"
                     ? "bg-amber-500"
@@ -1670,7 +1683,8 @@ function PollCard({
                     </div>
                   </div>
                 );
-              })}
+              });
+              })()}
             </div>
           </div>
 
