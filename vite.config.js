@@ -68,6 +68,7 @@ export default defineConfig(({ mode }) => {
         ],
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,mp3}"],
         // Do not let Workbox touch the FCM service worker
         globIgnores: ["firebase-messaging-sw.js"],
@@ -130,7 +131,7 @@ export default defineConfig(({ mode }) => {
     include: ["react", "react-dom", "react-redux", "react-quill", "quill"],
   },
   server: {
-    port: 5173,
+    port: 2003,
     host: true,
     https: true,
     proxy: {

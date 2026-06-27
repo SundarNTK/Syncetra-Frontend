@@ -6,6 +6,7 @@ import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import {
   getGroupById,
   addGroupMember,
+  addGroupMembers,
   updateGroupMember,
   removeGroupMember,
 } from "../../../services/groups";
@@ -67,13 +68,47 @@ const INPUT_CLS =
   "w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-600 " +
   "focus:border-red-500 focus:ring-2 focus:ring-red-500/30 transition-all text-sm outline-none";
 
-// ─── Searchable User Picker ───────────────────────────────────────────────────
-function UserPicker({ users, selected, onSelect }) {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  ["#7c3aed","#a78bfa"], ["#0369a1","#38bdf8"], ["#065f46","#34d399"],
+  ["#92400e","#fbbf24"], ["#9d174d","#f472b6"], ["#1e3a5f","#60a5fa"],
+  ["#3b0764","#c084fc"], ["#7f1d1d","#f87171"],
+];
+function avatarColor(name = "") {
+  const i = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[i];
+}
+function initials(name = "") {
+  const parts = name.trim().split(/\s+/);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+}
+
+// ─── Avatar circle ─────────────────────────────────────────────────────────────
+function Avatar({ name, size = 28 }) {
+  const [from, to] = avatarColor(name);
+  return (
+    <span
+      className="shrink-0 rounded-full flex items-center justify-center font-bold text-white"
+      style={{
+        width: size, height: size, fontSize: size * 0.36,
+        background: `linear-gradient(135deg,${from},${to})`,
+        boxShadow: `0 0 8px ${to}55`,
+      }}
+    >
+      {initials(name)}
+    </span>
+  );
+}
+
+// ─── Multi-select Searchable User Picker ─────────────────────────────────────
+function UserPicker({ users, selectedUsers, onAdd, onRemove }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const inputRef = useRef(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
@@ -82,7 +117,10 @@ function UserPicker({ users, selected, onSelect }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const selectedIds = new Set(selectedUsers.map((u) => String(u.id)));
+
   const filtered = users.filter((u) => {
+    if (selectedIds.has(String(u.id))) return false;
     const q = query.toLowerCase();
     return (
       u.name?.toLowerCase().includes(q) ||
@@ -92,68 +130,103 @@ function UserPicker({ users, selected, onSelect }) {
   });
 
   const handleSelect = (user) => {
-    onSelect(user);
-    setQuery(user.name);
-    setOpen(false);
-  };
-
-  const handleClear = () => {
-    onSelect(null);
+    onAdd(user);
     setQuery("");
-    setOpen(false);
+    setOpen(true);
+    inputRef.current?.focus();
   };
 
   return (
-    <div ref={wrapRef} className="relative">
-      <label className="block text-xs font-medium text-slate-400 mb-1">
-        Search &amp; Select User
-      </label>
+    <div ref={wrapRef} className="relative space-y-3">
+      {/* Selected chips */}
+      {selectedUsers.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selectedUsers.map((u) => {
+            const [from, to] = avatarColor(u.name);
+            return (
+              <span
+                key={u.id}
+                className="inline-flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full text-xs font-semibold text-white transition-all"
+                style={{
+                  background: `linear-gradient(135deg,${from}33,${to}22)`,
+                  border: `1px solid ${to}55`,
+                  boxShadow: `0 0 10px ${to}22`,
+                }}
+              >
+                <Avatar name={u.name} size={20} />
+                <span className="tracking-wide">{u.name}</span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(u)}
+                  className="ml-0.5 w-4 h-4 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors text-[11px] leading-none"
+                  title="Remove"
+                >
+                  ✕
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Search input */}
       <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </span>
         <input
+          ref={inputRef}
           type="text"
-          value={selected ? selected.name : query}
-          onChange={(e) => {
-            if (selected) return; // locked when selected
-            setQuery(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => { if (!selected) setOpen(true); }}
-          placeholder="Type name, email or username…"
-          className={`${INPUT_CLS} pr-8`}
-          readOnly={!!selected}
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Search by name, email or username…"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition-all text-sm outline-none text-slate-100 placeholder-slate-500"
         />
-        {selected && (
+        {query && (
           <button
             type="button"
-            onClick={handleClear}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-lg leading-none"
-            title="Clear selection"
+            onMouseDown={() => { setQuery(""); inputRef.current?.focus(); }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors text-lg leading-none"
           >
             ×
           </button>
         )}
       </div>
 
-      {/* Dropdown list */}
-      {open && !selected && (
-        <ul className="absolute z-30 mt-1 w-full max-h-52 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl shadow-xl">
+      {/* Dropdown */}
+      {open && (
+        <ul className="absolute z-40 left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/40 divide-y divide-slate-800/60">
           {filtered.length === 0 ? (
-            <li className="px-4 py-3 text-slate-500 text-sm">No users found.</li>
+            <li className="flex items-center gap-3 px-4 py-4 text-slate-500 text-sm">
+              <span className="text-xl">🔍</span>
+              {query ? "No matching users found." : "Start typing to search members…"}
+            </li>
           ) : (
             filtered.map((u) => (
               <li key={u.id}>
                 <button
                   type="button"
                   onMouseDown={() => handleSelect(u)}
-                  className="w-full text-left px-4 py-2.5 hover:bg-slate-800 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800/70 transition-colors text-left group"
                 >
-                  <p className="text-sm font-medium text-white">{u.name}</p>
-                  <p className="text-xs text-slate-400">
-                    {u.email}
-                    {u.username && (
-                      <span className="ml-2 text-slate-500 font-mono">@{u.username}</span>
-                    )}
-                  </p>
+                  <Avatar name={u.name} size={34} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors truncate">
+                      {u.name}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {u.email}
+                      {u.username && (
+                        <span className="ml-2 font-mono text-slate-600">@{u.username}</span>
+                      )}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-cyan-500 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                    + Add
+                  </span>
                 </button>
               </li>
             ))
@@ -169,9 +242,9 @@ export default function GroupDetail() {
   const { id } = useParams();
   const { trips } = useTrip();
 
-  const [group,       setGroup]       = useState(null);
-  const [allUsers,    setAllUsers]    = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [group,         setGroup]         = useState(null);
+  const [allUsers,      setAllUsers]      = useState([]);
+  const [selectedUsers, setSelectedUsers] = useState([]);
 
   const [error, setError]       = useState("");
   const [addLoading, setAddLoading] = useState(false);
@@ -180,7 +253,7 @@ export default function GroupDetail() {
   const [editName, setEditName]     = useState("");
   const [editMobile, setEditMobile] = useState("");
   const { confirmDelete, deleteModal } = useDeleteConfirm();
-  const { popup, showSuccess } = useActionPopup("groups");
+  const { popup, showSuccess } = useActionPopup("members");
 
   const load = async () => {
     const res = await getGroupById(id);
@@ -200,17 +273,26 @@ export default function GroupDetail() {
   );
   const availableUsers = allUsers.filter((u) => !existingMemberIds.has(String(u.id)));
 
-  // ── Add member ──────────────────────────────────────────────────────────────
+  // ── Add members (multi) ─────────────────────────────────────────────────────
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!selectedUser) { setError("Please select a user."); return; }
+    if (!selectedUsers.length) { setError("Please select at least one user."); return; }
     setError("");
     setAddLoading(true);
     try {
-      await addGroupMember(id, { userId: selectedUser.id });
-      setSelectedUser(null);
+      const userIds = selectedUsers.map((u) => u.id);
+      if (userIds.length === 1) {
+        await addGroupMember(id, { userId: userIds[0] });
+      } else {
+        await addGroupMembers(id, userIds);
+      }
+      setSelectedUsers([]);
       load();
-      showSuccess("Member added to group successfully.");
+      showSuccess(
+        userIds.length === 1
+          ? "Member added to group successfully."
+          : `${userIds.length} members added to group successfully.`
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -368,58 +450,91 @@ export default function GroupDetail() {
       </div>
 
       {/* ── Add member ── */}
-      <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-4 sm:p-5">
-        <h3 className="font-semibold mb-1">Add member</h3>
-        <p className="text-xs text-slate-500 mb-4">
-          Select a registered member user. Their email and mobile are filled automatically.
-        </p>
+      <div className="relative rounded-2xl overflow-hidden border border-slate-700/80"
+        style={{ background: "linear-gradient(135deg,#0f172a 60%,#0c1a2e 100%)" }}>
+        {/* Accent top bar */}
+        <div className="h-0.5 w-full" style={{ background: "linear-gradient(90deg,#06b6d4,#818cf8,#ec4899)" }} />
 
-        <form onSubmit={handleAdd} className="space-y-4">
-          {/* User picker */}
-          <UserPicker
-            users={availableUsers}
-            selected={selectedUser}
-            onSelect={setSelectedUser}
-          />
-
-          {/* Auto-filled read-only fields */}
-          {selectedUser && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-slide-up">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={selectedUser.email}
-                  readOnly
-                  className={`${INPUT_CLS} bg-slate-900 text-slate-400 cursor-not-allowed`}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Mobile Number</label>
-                <input
-                  type="tel"
-                  value={selectedUser.mobileNumber}
-                  readOnly
-                  className={`${INPUT_CLS} bg-slate-900 text-slate-400 cursor-not-allowed`}
-                />
-              </div>
+        <div className="p-5 sm:p-6">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "linear-gradient(135deg,#164e63,#0e7490)", boxShadow: "0 0 16px rgba(6,182,212,0.3)" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+              </svg>
             </div>
-          )}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-white text-base leading-tight">Add Members</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Select one or more registered users to add to this group</p>
+            </div>
+            {selectedUsers.length > 0 && (
+              <span className="shrink-0 inline-flex items-center justify-center min-w-[1.6rem] h-6 px-2 rounded-full text-[11px] font-bold text-white"
+                style={{ background: "linear-gradient(135deg,#0891b2,#6366f1)" }}>
+                {selectedUsers.length}
+              </span>
+            )}
+          </div>
 
-          {error && (
-            <p className="text-red-400 text-sm bg-red-950/50 border border-red-800/40 px-3 py-2 rounded-lg">
-              {error}
-            </p>
-          )}
+          <form onSubmit={handleAdd} className="space-y-4">
+            <UserPicker
+              users={availableUsers}
+              selectedUsers={selectedUsers}
+              onAdd={(u) => setSelectedUsers((prev) => [...prev, u])}
+              onRemove={(u) => setSelectedUsers((prev) => prev.filter((x) => x.id !== u.id))}
+            />
 
-          <button
-            type="submit"
-            disabled={!selectedUser || addLoading}
-            className="w-full sm:w-auto px-5 py-2 bg-gradient-to-r from-red-600 to-orange-500 rounded-xl font-medium text-white hover:opacity-90 disabled:opacity-40 transition-opacity text-sm"
-          >
-            {addLoading ? "Adding…" : "+ Add to Group"}
-          </button>
-        </form>
+            {error && (
+              <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-950/40 border border-red-800/50 text-red-300 text-sm">
+                <span className="mt-0.5 shrink-0">⚠️</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={!selectedUsers.length || addLoading}
+                className="relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden"
+                style={{
+                  background: selectedUsers.length
+                    ? "linear-gradient(135deg,#0891b2,#6366f1)"
+                    : "linear-gradient(135deg,#334155,#475569)",
+                  boxShadow: selectedUsers.length ? "0 0 20px rgba(6,182,212,0.35)" : "none",
+                }}
+              >
+                {addLoading ? (
+                  <>
+                    <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M21 12a9 9 0 1 1-6.22-8.56"/>
+                    </svg>
+                    Adding…
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    {selectedUsers.length > 1
+                      ? `Add ${selectedUsers.length} Members`
+                      : "Add to Group"}
+                  </>
+                )}
+              </button>
+
+              {selectedUsers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedUsers([])}
+                  className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-2 py-1"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
       {deleteModal}
     </div>

@@ -6,6 +6,7 @@ import SidebarLayout from "../components/layout/SidebarLayout";
 import Login from "../views/login";
 import LoginIntro from "../views/login-intro";
 import IntroStylePreview from "../views/login-intro/styles";
+import TripIntro from "../views/trip-intro";
 import CreatePassword from "../views/create-password";
 import CopyLink from "../views/copy-link";
 import SampleTestPage from "../views/test-alarm/SampleTestPage";
@@ -126,6 +127,7 @@ export default function AppRoutes() {
     { path: "/intro",           element: <LoginIntro /> },
     { path: "/intro-styles",    element: <Navigate to="/intro-styles/cinematic" replace /> },
     { path: "/intro-styles/:styleId", element: <IntroStylePreview /> },
+    { path: "/trip-intro",      element: <TripIntro /> },
     { path: "/create-password", element: <CreatePassword /> },
     { path: "/copy-link",       element: <CopyLink /> },
     { path: "/test-alarm",      element: <SampleTestPage /> },

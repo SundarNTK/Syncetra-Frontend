@@ -11,6 +11,9 @@ export const deleteGroup = (id) => apiDelete(API_SCOPE.ADMIN, `${EndPoints.GROUP
 export const addGroupMember = (id, data) =>
   apiPost(API_SCOPE.ADMIN, EndPoints.GROUP_MEMBERS(id), data);
 
+export const addGroupMembers = (id, userIds) =>
+  apiPost(API_SCOPE.ADMIN, `${EndPoints.GROUP_MEMBERS(id)}/bulk`, { userIds });
+
 export const updateGroupMember = (groupId, memberId, data) =>
   apiPut(API_SCOPE.ADMIN, EndPoints.GROUP_MEMBER(groupId, memberId), data);
 

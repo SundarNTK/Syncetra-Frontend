@@ -1,6 +1,28 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { LOGO_FULL } from "../../components/brand/SyncetraLogo";
+
+function getActiveTripFromStorage() {
+  try {
+    const raw  = localStorage.getItem("GROUP_ALARM_USER");
+    const user = raw ? JSON.parse(raw) : null;
+    const uid  = user?.user?._id ?? user?.user?.id;
+    if (!uid) return null;
+    const cached = localStorage.getItem(`syncetra_trips_${uid}`);
+    const trips  = cached ? JSON.parse(cached) : [];
+    if (!trips.length) return null;
+    const selId = localStorage.getItem("syncetra_selected_trip");
+    if (selId) { const f = trips.find((t) => t._id === selId); if (f) return f; }
+    const now = Date.now();
+    return (
+      trips.find((t) => {
+        const s = t.startDate ? new Date(t.startDate).getTime() : 0;
+        const e = t.endDate   ? new Date(t.endDate).getTime()   : Infinity;
+        return now >= s && now <= e;
+      }) || trips[0] || null
+    );
+  } catch { return null; }
+}
 
 const STYLES = {
   cinematic: { name: "Cinematic Ember" },
@@ -52,7 +74,10 @@ function SharedLinks({ active }) {
         Preview links:{" "}
         {styleOrder.map((k, i) => (
           <span key={k}>
-            <a className="text-cyan-300 hover:underline" href={`#/intro-styles/${k}`}>
+            <a
+              className="text-cyan-300 hover:underline"
+              href={`#/intro-styles/${k}`}
+            >
               {`#/intro-styles/${k}`}
             </a>
             {i < styleOrder.length - 1 ? " · " : ""}
@@ -106,14 +131,22 @@ function BaseScene({ bg, halo, logoFx = "", children }) {
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
         <div
           className="mb-10 text-center"
-          style={{ animation: "si-textReveal 0.9s cubic-bezier(0.25,0.46,0.45,0.94) both, si-float 5s ease-in-out 1.1s infinite" }}
+          style={{
+            animation:
+              "si-textReveal 0.9s cubic-bezier(0.25,0.46,0.45,0.94) both, si-float 5s ease-in-out 1.1s infinite",
+          }}
         >
           <GoldText className="inline-block uppercase font-extrabold tracking-[0.45em] pl-[0.45em] text-[clamp(14px,2.3vw,20px)]">
             Welcome To
           </GoldText>
         </div>
 
-        <div style={{ animation: "si-logoReveal 1.1s cubic-bezier(0.25,0.46,0.45,0.94) 0.15s both" }}>
+        <div
+          style={{
+            animation:
+              "si-logoReveal 1.1s cubic-bezier(0.25,0.46,0.45,0.94) 0.15s both",
+          }}
+        >
           <img
             src={LOGO_FULL}
             alt="Syncetra"
@@ -225,8 +258,17 @@ function GlitchScene() {
           Welcome To
         </GoldText>
         <div className="relative">
-          <img src={LOGO_FULL} alt="Syncetra" className="h-[clamp(170px,24vw,250px)] w-auto object-contain animate-[si-float_4s_ease-in-out_infinite]" />
-          <img src={LOGO_FULL} alt="" className="absolute inset-0 h-[clamp(170px,24vw,250px)] w-auto object-contain opacity-45 mix-blend-screen animate-[si-glitch_0.22s_steps(2,end)_infinite]" style={{ filter: "hue-rotate(180deg)" }} />
+          <img
+            src={LOGO_FULL}
+            alt="Syncetra"
+            className="h-[clamp(170px,24vw,250px)] w-auto object-contain animate-[si-float_4s_ease-in-out_infinite]"
+          />
+          <img
+            src={LOGO_FULL}
+            alt=""
+            className="absolute inset-0 h-[clamp(170px,24vw,250px)] w-auto object-contain opacity-45 mix-blend-screen animate-[si-glitch_0.22s_steps(2,end)_infinite]"
+            style={{ filter: "hue-rotate(180deg)" }}
+          />
         </div>
       </div>
     </div>
@@ -238,10 +280,18 @@ function WireframeScene() {
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#020304] via-[#080d13] to-[#111827]">
       <div className="absolute inset-0 opacity-30 pointer-events-none">
         {Array.from({ length: 18 }).map((_, i) => (
-          <div key={i} className="absolute left-0 right-0 h-px bg-cyan-300/40" style={{ top: `${i * 6}%` }} />
+          <div
+            key={i}
+            className="absolute left-0 right-0 h-px bg-cyan-300/40"
+            style={{ top: `${i * 6}%` }}
+          />
         ))}
         {Array.from({ length: 18 }).map((_, i) => (
-          <div key={`v-${i}`} className="absolute top-0 bottom-0 w-px bg-cyan-300/30" style={{ left: `${i * 6}%` }} />
+          <div
+            key={`v-${i}`}
+            className="absolute top-0 bottom-0 w-px bg-cyan-300/30"
+            style={{ left: `${i * 6}%` }}
+          />
         ))}
       </div>
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
@@ -249,7 +299,11 @@ function WireframeScene() {
           Welcome To
         </GoldText>
         <div className="relative p-6 border border-cyan-300/30 rounded-2xl backdrop-blur-sm bg-cyan-400/5 animate-[si-breathe_4.2s_ease-in-out_infinite]">
-          <img src={LOGO_FULL} alt="Syncetra" className="h-[clamp(170px,24vw,250px)] w-auto object-contain" />
+          <img
+            src={LOGO_FULL}
+            alt="Syncetra"
+            className="h-[clamp(170px,24vw,250px)] w-auto object-contain"
+          />
         </div>
       </div>
     </div>
@@ -268,7 +322,11 @@ function LiquidScene() {
         <GoldText className="uppercase font-extrabold tracking-[0.48em] pl-[0.45em] text-[clamp(12px,2vw,18px)] mb-10">
           Welcome To
         </GoldText>
-        <img src={LOGO_FULL} alt="Syncetra" className="h-[clamp(170px,24vw,250px)] w-auto object-contain animate-[si-float_4.4s_ease-in-out_infinite]" />
+        <img
+          src={LOGO_FULL}
+          alt="Syncetra"
+          className="h-[clamp(170px,24vw,250px)] w-auto object-contain animate-[si-float_4.4s_ease-in-out_infinite]"
+        />
       </div>
     </div>
   );
@@ -285,7 +343,11 @@ function CapsuleScene() {
         <GoldText className="uppercase font-extrabold tracking-[0.48em] pl-[0.45em] text-[clamp(12px,2vw,18px)] mb-10">
           Welcome To
         </GoldText>
-        <img src={LOGO_FULL} alt="Syncetra" className="h-[clamp(170px,24vw,250px)] w-auto object-contain animate-[si-float_3.8s_ease-in-out_infinite]" />
+        <img
+          src={LOGO_FULL}
+          alt="Syncetra"
+          className="h-[clamp(170px,24vw,250px)] w-auto object-contain animate-[si-float_3.8s_ease-in-out_infinite]"
+        />
       </div>
     </div>
   );
@@ -296,19 +358,33 @@ export default function IntroStylePreview() {
   const navigate = useNavigate();
   const params = useParams();
   const introFlow = Boolean(location.state?.introFlow);
-  const id = introFlow ? "cinematic" : STYLES[params.styleId] ? params.styleId : "cinematic";
+  const destination = location.state?.destination;
+  const id = introFlow
+    ? "cinematic"
+    : STYLES[params.styleId]
+      ? params.styleId
+      : "cinematic";
   const exitTimerRef = useRef(null);
 
+  // Read trip once — only used in introFlow
+  const hasActiveTrip = useMemo(
+    () => introFlow && Boolean(getActiveTripFromStorage()),
+    [introFlow],
+  );
+
   useEffect(() => {
-    if (!introFlow || !location.state?.destination) return undefined;
-    exitTimerRef.current = setTimeout(
-      () => navigate(location.state.destination, { replace: true }),
-      2000
-    );
+    if (!introFlow || !destination) return undefined;
+    exitTimerRef.current = setTimeout(() => {
+      if (hasActiveTrip) {
+        navigate("/trip-intro", { replace: true, state: { destination } });
+      } else {
+        navigate(destination, { replace: true });
+      }
+    }, 3500);
     return () => {
       if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     };
-  }, [introFlow, location.state?.destination, navigate]);
+  }, [introFlow, destination, hasActiveTrip, navigate]);
 
   return (
     <>
@@ -328,4 +404,3 @@ export default function IntroStylePreview() {
     </>
   );
 }
-
