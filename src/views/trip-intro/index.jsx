@@ -46,7 +46,7 @@ const pad = (n) => String(n).padStart(2, "0");
 /* ─── Keyframes ──────────────────────────────────────────────── */
 const KF = `
 @keyframes ti-shimmer{0%{background-position:220% center}100%{background-position:-220% center}}
-@keyframes ti-scanmove{0%{background-position:0 0}100%{background-position:0 8px}}
+@keyframes ti-scanmove{0%{opacity:.7}100%{opacity:.7}}
 @keyframes ti-sparkle{0%{opacity:0;transform:scale(0) rotate(0deg)}20%{opacity:1;transform:scale(1.5) rotate(40deg)}65%{opacity:.7;transform:scale(.9) rotate(90deg)}100%{opacity:0;transform:scale(0) rotate(200deg)}}
 
 /* ══ TEXT STAMP — fly in from each screen edge, slam+bounce ════ */
@@ -136,7 +136,8 @@ const KF = `
    Parent div is rotated to set direction. translateY in that space
    = forward motion. The arc back (gravity) is the return positive Y. ══ */
 @keyframes ti-spark-shoot{
-  0%  {opacity:1;transform:translateY(0) scaleY(1.4) scaleX(1)}
+  0%  {opacity:0;transform:translateY(0) scaleY(1.4) scaleX(1)}
+  8%  {opacity:1;transform:translateY(-18px) scaleY(1.2) scaleX(.9)}
   22% {opacity:1;transform:translateY(-58px) scaleY(0.85) scaleX(.8)}
   55% {opacity:.8;transform:translateY(-28px) scaleY(.55) scaleX(.6)}
   82% {opacity:.4;transform:translateY(32px) scaleY(.32) scaleX(.4)}
@@ -164,18 +165,18 @@ const KF = `
   100%{opacity:0;transform:translate(-2px,102px) rotate(22deg) scaleY(.1)}
 }
 
-/* ══ SECS glow burst per tick ══ */
+/* ══ SECS glow — opacity-only so GPU composites, no repaint ══ */
 @keyframes ti-sec-glow{
-  0%  {box-shadow:0 0 36px rgba(245,158,11,.28),0 0 10px rgba(245,158,11,.14);border-color:rgba(245,158,11,.45)}
-  14% {box-shadow:0 0 88px 28px rgba(245,158,11,.95),0 0 140px 52px rgba(255,190,40,.58);border-color:rgba(255,240,90,1)}
-  52% {box-shadow:0 0 50px 10px rgba(245,158,11,.45)}
-  100%{box-shadow:0 0 36px rgba(245,158,11,.28),0 0 10px rgba(245,158,11,.14);border-color:rgba(245,158,11,.45)}
+  0%  {opacity:0}
+  14% {opacity:1}
+  52% {opacity:.45}
+  100%{opacity:0}
 }
 @keyframes ti-sec-grand{
-  0%  {box-shadow:0 0 36px rgba(245,158,11,.3)}
-  30% {box-shadow:0 0 130px 44px rgba(245,158,11,1),0 0 200px 78px rgba(255,200,50,.62)}
-  70% {box-shadow:0 0 65px 16px rgba(245,158,11,.5)}
-  100%{box-shadow:0 0 36px rgba(245,158,11,.28),0 0 10px rgba(245,158,11,.14)}
+  0%  {opacity:0}
+  30% {opacity:1}
+  70% {opacity:.5}
+  100%{opacity:0}
 }
 @keyframes ti-digit-tick{
   0%  {transform:scaleY(.42);opacity:.28}
@@ -205,19 +206,20 @@ function TripBg({ img }) {
 /* ── Ambient sparkles — appear after curtain opens ───────────── */
 function Sparkles() {
   const C = ["#f59e0b","#fbbf24","#fde68a","#fffbeb","#fff"];
-  return <>{[...Array(38)].map((_,i)=>{
-    const c=C[i%C.length],sz=2+(i%5);
+  return <>{[...Array(20)].map((_,i)=>{
+    const c=C[i%C.length],sz=2+(i%4);
     return <div key={i} className="absolute pointer-events-none rounded-full" style={{
-      width:sz,height:sz,left:`${(i*3.11+4)%93}%`,top:`${(i*4.57+6)%88}%`,
-      background:c,boxShadow:`0 0 ${sz*3.5}px ${c}`,
-      animation:`ti-sparkle ${1.3+(i%8)*.28}s ease-in-out ${3.2+(i%14)*.18}s infinite`,zIndex:6,
+      width:sz,height:sz,left:`${(i*4.7+5)%92}%`,top:`${(i*6.3+7)%86}%`,
+      background:c,boxShadow:`0 0 ${sz*3}px ${c}`,
+      willChange:"transform, opacity",
+      animation:`ti-sparkle ${1.4+(i%6)*.3}s ease-in-out ${3.2+(i%12)*.22}s infinite`,zIndex:6,
     }}/>;
   })}</>;
 }
 
 /* ── Curtains (stay closed during label phase, open at 2s) ──── */
 function Curtains() {
-  const s={position:"absolute",left:0,right:0,background:"#000",zIndex:9};
+  const s={position:"absolute",left:0,right:0,background:"#000",zIndex:9,willChange:"transform"};
   return <>
     <div style={{...s,top:0,height:"52%",transformOrigin:"top",animation:"ti-curtain-t 1.15s cubic-bezier(.76,0,.24,1) 2.0s both"}}/>
     <div style={{...s,bottom:0,height:"52%",transformOrigin:"bottom",animation:"ti-curtain-b 1.15s cubic-bezier(.76,0,.24,1) 2.0s both"}}/>
@@ -271,13 +273,11 @@ function CdUnit({ val, label, delay=0, dir="L", isGrand=false, sparkTick=0 }) {
             <div style={{
               position:"absolute",
               width:sw, height:sh,
-              borderRadius:"50% 50% 30% 30%",   /* tapered tip at bottom */
+              borderRadius:"50% 50% 30% 30%",
               left:-(sw/2), top:-58-(sh/2),
-              /* Hot white tip → orange → transparent tail */
               background:`linear-gradient(to bottom,${sc} 0%,rgba(255,150,0,.85) 35%,rgba(255,80,0,.5) 65%,transparent 100%)`,
               boxShadow:`0 0 ${sw*4}px ${sc},0 0 ${sw*8}px rgba(255,150,0,.7)`,
-              animationDelay:`${stg}s`,
-              animation:`ti-spark-shoot ${dur}s ease-out ${impactAt}s both`,
+              animation:`ti-spark-shoot ${dur}s ease-out ${impactAt + stg}s both`,
             }}/>
           </div>
         );
@@ -287,21 +287,31 @@ function CdUnit({ val, label, delay=0, dir="L", isGrand=false, sparkTick=0 }) {
       <div style={{
         position:"relative",overflow:"visible",
         width:"clamp(76px,11vw,116px)",height:"clamp(84px,12vw,126px)",
-        background:"linear-gradient(160deg,rgba(22,18,8,.94) 0%,rgba(8,6,2,.98) 100%)",
+        background:"linear-gradient(160deg,rgba(22,18,8,.97) 0%,rgba(6,4,1,.99) 100%)",
         border:`1.5px solid ${C}50`,borderRadius:16,
         boxShadow:`0 0 36px ${C}28,0 0 10px ${C}14,inset 0 1px 0 rgba(255,255,255,.09)`,
-        backdropFilter:"blur(20px)",
-        animation:isGrand ? `ti-sec-grand 1.2s ease ${delay+0.76}s both` : "none",
+        willChange:"transform, opacity",
       }}>
         {/* Top / bottom highlight lines */}
         <div style={{position:"absolute",inset:"0 18px auto",height:1,background:`linear-gradient(90deg,transparent,${C}65,transparent)`}}/>
         <div style={{position:"absolute",inset:"auto 18px 0",height:1,background:`linear-gradient(90deg,transparent,${C}28,transparent)`}}/>
 
-        {/* Per-tick glow ring (SECS only) */}
+        {/* Spin-in grand glow (SECS only) — opacity-only animation, no repaint */}
+        {isGrand && (
+          <div style={{
+            position:"absolute",inset:-8,borderRadius:24,pointerEvents:"none",
+            boxShadow:"0 0 130px 44px rgba(245,158,11,1),0 0 200px 78px rgba(255,200,50,.62)",
+            opacity:0, animation:`ti-sec-grand 1.2s ease ${delay+0.76}s both`,
+          }}/>
+        )}
+
+        {/* Per-tick glow burst (SECS only) — opacity-only animation, no repaint */}
         {isGrand && (
           <div key={`glow-${sparkTick}`} style={{
-            position:"absolute",inset:0,borderRadius:16,pointerEvents:"none",
-            animation:"ti-sec-glow .68s ease-out forwards",
+            position:"absolute",inset:-3,borderRadius:19,pointerEvents:"none",
+            boxShadow:"0 0 88px 28px rgba(245,158,11,.95),0 0 140px 52px rgba(255,190,40,.58)",
+            border:"1.5px solid rgba(255,240,90,.9)",
+            opacity:0, animation:"ti-sec-glow .68s ease-out forwards",
           }}/>
         )}
 
@@ -456,7 +466,7 @@ function TripIntroScene({ trip, cd, sparkTick }) {
 
       <div className="absolute inset-0 pointer-events-none" style={{
         background:"repeating-linear-gradient(to bottom,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px)",
-        animation:"ti-scanmove 1s linear infinite",zIndex:2,
+        zIndex:2,
       }}/>
 
       {/* Ghost watermark — z-index 8, under curtain, reveals as it opens */}
@@ -476,13 +486,12 @@ function TripIntroScene({ trip, cd, sparkTick }) {
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
         style={{gap:"clamp(10px,2.2vh,22px)",paddingBottom:"3vh"}}>
 
-        {/* Warm aura on black background during label phase */}
+        {/* Warm aura — soft gradient, no blur filter (expensive on mobile) */}
         <div style={{
-          position:"absolute",width:"55vw",height:"30vh",
-          background:"radial-gradient(ellipse,rgba(245,158,11,.13) 0%,rgba(190,90,0,.07) 50%,transparent 78%)",
-          filter:"blur(18px)",
+          position:"absolute",width:"70vw",height:"38vh",
+          background:"radial-gradient(ellipse,rgba(245,158,11,.18) 0%,rgba(190,90,0,.10) 38%,rgba(120,50,0,.04) 65%,transparent 100%)",
           animation:"ti-aura-pulse 1.8s ease-in-out .4s infinite, ti-fadein .8s ease .4s both",
-          pointerEvents:"none",
+          pointerEvents:"none", willChange:"opacity, transform",
         }}/>
 
         {/* ── PHASE 1: "Upcoming Trip Is" — flies in from TOP, stamps on black ── */}
