@@ -53,7 +53,7 @@ function FlyToFocus({ defaultCenter, defaultZoom, selectedTripId, selectedCenter
 
 function phaseMarkerColors(phase) {
   if (phase === "active") {
-    return { mc: "#f97316", rgb: "249,115,22", dark: "#7c2d12" };
+    return { mc: "#22c55e", rgb: "34,197,94", dark: "#14532d" };
   }
   if (phase === "upcoming") {
     return { mc: "#38bdf8", rgb: "56,189,248", dark: "#0c4a6e" };
@@ -63,6 +63,36 @@ function phaseMarkerColors(phase) {
   }
   return { mc: "#94a3b8", rgb: "148,163,184", dark: "#334155" };
 }
+
+const ACTIVE_SPARKLE_CSS = `
+@keyframes tm-sp1{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(-18px,-26px)scale(0)}}
+@keyframes tm-sp2{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(2px,-32px)scale(0)}}
+@keyframes tm-sp3{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(20px,-24px)scale(0)}}
+@keyframes tm-sp4{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(26px,-4px)scale(0)}}
+@keyframes tm-sp5{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(22px,16px)scale(0)}}
+@keyframes tm-sp6{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(-24px,12px)scale(0)}}
+@keyframes tm-sp7{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(-20px,-18px)scale(0)}}
+@keyframes tm-sp8{0%{opacity:0;transform:translate(0,0)scale(.4)}15%{opacity:1}100%{opacity:0;transform:translate(10px,-36px)scale(0)}}
+`;
+
+function injectActiveSparkleCSS() {
+  if (document.getElementById("tm-sparkle-style")) return;
+  const el = document.createElement("style");
+  el.id = "tm-sparkle-style";
+  el.textContent = ACTIVE_SPARKLE_CSS;
+  document.head.appendChild(el);
+}
+
+const SPARK_DEFS = [
+  { anim: "tm-sp1", dur: 1.9, delay: 0,    color: "#86efac", size: 4 },
+  { anim: "tm-sp2", dur: 2.0, delay: 0.28, color: "#fde047", size: 3 },
+  { anim: "tm-sp3", dur: 1.8, delay: 0.55, color: "#4ade80", size: 4 },
+  { anim: "tm-sp4", dur: 2.1, delay: 0.82, color: "#a3e635", size: 3 },
+  { anim: "tm-sp5", dur: 1.9, delay: 1.10, color: "#86efac", size: 5 },
+  { anim: "tm-sp6", dur: 2.0, delay: 1.38, color: "#fde047", size: 3 },
+  { anim: "tm-sp7", dur: 1.8, delay: 1.65, color: "#4ade80", size: 4 },
+  { anim: "tm-sp8", dur: 2.2, delay: 0.42, color: "#a3e635", size: 3 },
+];
 
 function createTripMarker(trip, phase, isSelected = false) {
   const isActive = phase === "active";
@@ -83,7 +113,18 @@ function createTripMarker(trip, phase, isSelected = false) {
     ? makeRing(90, 0.2, 0) + makeRing(64, 0.34, 0.6) + makeRing(42, 0.5, 1.2) + makeRing(26, 0.62, 1.8)
     : makeRing(50, 0.18, 0);
 
+  const sparkles = isActive
+    ? SPARK_DEFS.map(({ anim, dur, delay, color, size }) => {
+        const off = (22 - size) / 2;
+        return `<div style="position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color};top:${off}px;left:${off}px;animation:${anim} ${dur}s ease-out ${delay}s infinite;opacity:0;pointer-events:none;z-index:6;"></div>`;
+      }).join("")
+    : "";
+
   const name = trip.tripName.length > 15 ? trip.tripName.slice(0, 14) + "…" : trip.tripName;
+
+  const labelBorder = isActive
+    ? `2px solid ${mc};box-shadow:0 0 8px 2px rgba(${rgb},0.55)`
+    : `2px solid ${mc}`;
 
   return L.divIcon({
     className: "",
@@ -91,11 +132,12 @@ function createTripMarker(trip, phase, isSelected = false) {
 <div style="width:180px;position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:none;">
   <div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;">
     ${rings}
+    ${sparkles}
     <div style="position:absolute;width:90px;height:90px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(${rgb},0.16) 0%,transparent 65%);"></div>
-    <div style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,#fff9f4 0%,${mc} 48%,${dark} 100%);box-shadow:0 0 0 2.5px rgba(255,255,255,0.22),0 0 8px 3px ${mc},0 0 20px 6px rgba(${rgb},0.6);position:relative;z-index:5;"></div>
+    <div style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,#f0fff4 0%,${mc} 48%,${dark} 100%);box-shadow:0 0 0 2.5px rgba(255,255,255,0.22),0 0 8px 3px ${mc},0 0 20px 6px rgba(${rgb},0.6);position:relative;z-index:5;"></div>
   </div>
   <div style="width:1px;height:9px;background:linear-gradient(rgba(${rgb},0.75),rgba(${rgb},0.05));"></div>
-  <div style="background:rgba(255,255,255,0.96);color:#0f172a;font-size:10.5px;font-weight:700;font-family:system-ui,sans-serif;padding:3px 10px;border-radius:6px;border:2px solid ${mc};white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;pointer-events:auto;">${name}</div>
+  <div style="background:rgba(255,255,255,0.96);color:#0f172a;font-size:10.5px;font-weight:700;font-family:system-ui,sans-serif;padding:3px 10px;border-radius:6px;border:${labelBorder};white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;pointer-events:auto;">${name}</div>
 </div>`,
     iconSize: [180, 65],
     iconAnchor: [90, 11],
@@ -170,6 +212,8 @@ function TripPopup({ trip, phase }) {
 }
 
 export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/admin/trips", canEdit = true }) {
+  useEffect(() => { injectActiveSparkleCSS(); }, []);
+
   const tripsWithLoc = trips.filter((t) => t.location?.lat && t.location?.lng);
   const activeCount = tripsWithLoc.filter((t) => tripPhase(t) === "active").length;
   const upcomingCount = tripsWithLoc.filter((t) => tripPhase(t) === "upcoming").length;
@@ -205,7 +249,7 @@ export default function TripsMapSection({ trips, selectedTripId, tripsLink = "/a
         </span>
         <div className="flex items-center gap-3 ml-2">
           {[
-            { color: "#f97316", label: "Active", count: activeCount },
+            { color: "#22c55e", label: "Active", count: activeCount },
             { color: "#38bdf8", label: "Upcoming", count: upcomingCount },
             { color: "#fbbf24", label: "Done", count: tripsWithLoc.filter((t) => tripPhase(t) === "completed").length },
           ]

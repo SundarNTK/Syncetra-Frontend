@@ -29,6 +29,7 @@ const EndPoints = Object.freeze({
   TRIP_ATTENDANCE_RECORD: (tripId, id) => `/trips/${tripId}/attendance/${id}`,
   TRIP_MEDIA: (id) => `/trips/${id}/media`,
   TRIP_MEDIA_ITEM: (tripId, id) => `/trips/${tripId}/media/${id}`,
+  TRIP_MEDIA_SIGN: (id) => `/trips/${id}/media/sign`,
   TRIP_POLLS: (id) => `/trips/${id}/polls`,
   TRIP_POLL_VOTE: (tripId, id) => `/trips/${tripId}/polls/${id}/vote`,
   TRIP_MEMBERS: (id) => `/trips/${id}/members`,

@@ -61,10 +61,12 @@ export const getMedia = (tripId, params, isAdmin = true) =>
   apiGet(scope(isAdmin), EndPoints.TRIP_MEDIA(tripId), { params });
 export const getMediaItem = (tripId, id, isAdmin = true) =>
   apiGet(scope(isAdmin), EndPoints.TRIP_MEDIA_ITEM(tripId, id));
+export const signMediaUpload = (tripId, isAdmin = true) =>
+  apiPost(scope(isAdmin), EndPoints.TRIP_MEDIA_SIGN(tripId));
 export const addMedia = (tripId, data, isAdmin = true) =>
   apiPost(scope(isAdmin), EndPoints.TRIP_MEDIA(tripId), data);
-export const deleteMedia = (tripId, id) =>
-  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_MEDIA_ITEM(tripId, id));
+export const deleteMedia = (tripId, id, isAdmin = true) =>
+  apiDelete(scope(isAdmin), EndPoints.TRIP_MEDIA_ITEM(tripId, id));
 
 export const getPolls = (tripId, isAdmin = true) =>
   apiGet(scope(isAdmin), EndPoints.TRIP_POLLS(tripId));
