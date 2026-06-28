@@ -15,16 +15,35 @@ function getActiveTripFromStorage() {
     const cached = localStorage.getItem(`syncetra_trips_${uid}`);
     const trips  = cached ? JSON.parse(cached) : [];
     if (!trips.length) return null;
-    const selId = localStorage.getItem("syncetra_selected_trip");
-    if (selId) { const f = trips.find((t) => t._id === selId); if (f) return f; }
+
     const now = Date.now();
-    return (
-      trips.find((t) => {
-        const s = t.startDate ? new Date(t.startDate).getTime() : 0;
-        const e = t.endDate   ? new Date(t.endDate).getTime()   : Infinity;
-        return now >= s && now <= e;
-      }) || trips[0] || null
+
+    // 1. Explicit "active" status (highest priority)
+    const byStatus = trips.find((t) => t.status === "active");
+    if (byStatus) return byStatus;
+
+    // 2. Currently within date range (live by date)
+    const liveByDate = trips.find((t) => {
+      const s = t.startDate ? new Date(t.startDate).getTime() : 0;
+      const e = t.endDate   ? new Date(t.endDate).getTime()   : Infinity;
+      return now >= s && now <= e;
+    });
+    if (liveByDate) return liveByDate;
+
+    // 3. Nearest upcoming trip (starts in the future)
+    const upcoming = trips
+      .filter((t) => t.startDate && new Date(t.startDate).getTime() > now)
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    if (upcoming.length) return upcoming[0];
+
+    // 4. Any non-completed trip
+    const nonCompleted = trips.find(
+      (t) => t.status !== "completed" && t.status !== "done"
     );
+    if (nonCompleted) return nonCompleted;
+
+    // 5. Last resort — whatever is first (still better than nothing)
+    return trips[0] || null;
   } catch { return null; }
 }
 
@@ -459,6 +478,7 @@ const TextStamp = memo(function TextStamp({ children, dir="T", delay=0, numSpark
 function TripIntroScene({ trip, cd, sparkTick }) {
   const name  = trip?.tripName || "Adventure Awaits";
   const hasCd = cd?.status === "countdown";
+  const topLabel = cd?.status === "live" ? "Active Trip" : "Upcoming Trip";
 
   /* ── Memoize every TextStamp so they NEVER re-render on per-second ticks.
      useMemo returns the same ReactElement reference each render; React.memo
@@ -474,11 +494,11 @@ function TripIntroScene({ trip, cd, sparkTick }) {
           backgroundSize:"200% auto",WebkitBackgroundClip:"text",
           backgroundClip:"text",WebkitTextFillColor:"transparent",
           filter:"drop-shadow(0 0 22px rgba(245,158,11,.65)) drop-shadow(0 2px 10px rgba(0,0,0,.9))",
-        }}>Upcoming Trip Is</p>
+        }}>{topLabel}</p>
         <GoldLine/>
       </div>
     </TextStamp>
-  ), []);
+  ), [topLabel]);
 
   const nameStamp = useMemo(() => (
     <TextStamp dir="B" delay={3.4} numSparks={18} spread={38}>
