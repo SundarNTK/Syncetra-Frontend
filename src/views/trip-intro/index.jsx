@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LOGO_FULL } from "../../components/brand/SyncetraLogo";
+
+const GOLD      = "#f59e0b";
+const TS_SHADOW = "0 0 0 3px rgba(0,0,0,.5),0 2px 10px rgba(0,0,0,1),0 0 50px rgba(0,0,0,1),0 0 100px rgba(0,0,0,.95)";
 
 /* ─── Storage ────────────────────────────────────────────────── */
 function getActiveTripFromStorage() {
@@ -186,7 +189,7 @@ const KF = `
 `;
 
 /* ── Background ──────────────────────────────────────────────── */
-function TripBg({ img }) {
+const TripBg = memo(function TripBg({ img }) {
   return (
     <>
       {img ? (
@@ -201,10 +204,10 @@ function TripBg({ img }) {
       <div className="absolute inset-0" style={{background:"radial-gradient(ellipse 75% 62% at 50% 48%,rgba(0,0,0,.82) 0%,rgba(0,0,0,.56) 44%,rgba(0,0,0,.18) 70%,transparent 100%)"}}/>
     </>
   );
-}
+});
 
 /* ── Ambient sparkles — appear after curtain opens ───────────── */
-function Sparkles() {
+const Sparkles = memo(function Sparkles() {
   const C = ["#f59e0b","#fbbf24","#fde68a","#fffbeb","#fff"];
   return <>{[...Array(20)].map((_,i)=>{
     const c=C[i%C.length],sz=2+(i%4);
@@ -215,16 +218,16 @@ function Sparkles() {
       animation:`ti-sparkle ${1.4+(i%6)*.3}s ease-in-out ${3.2+(i%12)*.22}s infinite`,zIndex:6,
     }}/>;
   })}</>;
-}
+});
 
 /* ── Curtains (stay closed during label phase, open at 2s) ──── */
-function Curtains() {
+const Curtains = memo(function Curtains() {
   const s={position:"absolute",left:0,right:0,background:"#000",zIndex:9,willChange:"transform"};
   return <>
     <div style={{...s,top:0,height:"52%",transformOrigin:"top",animation:"ti-curtain-t 1.15s cubic-bezier(.76,0,.24,1) 2.0s both"}}/>
     <div style={{...s,bottom:0,height:"52%",transformOrigin:"bottom",animation:"ti-curtain-b 1.15s cubic-bezier(.76,0,.24,1) 2.0s both"}}/>
   </>;
-}
+});
 
 /* ────────────────────────────────────────────────────────────────
    COUNTDOWN BOX
@@ -237,7 +240,7 @@ const SPARK_HOT  = ["#ffffff","#fffde0","#ffee44","#ffaa00","#ff6600","#ff3300"]
 /* Ember fall colors — typical wood-fire ember palette */
 const EMBER_HOT  = ["#ffffff","#ffe066","#ff9900","#ff6600","#ff3300","#cc2200"];
 
-function CdUnit({ val, label, delay=0, dir="L", isGrand=false, sparkTick=0 }) {
+const CdUnit = memo(function CdUnit({ val, label, delay=0, dir="L", isGrand=false, sparkTick=0 }) {
   const C = "#f59e0b";
   /* Impact sparks fire at ~52% of .98s anim = 0.51s after delay starts */
   const impactAt = delay + 0.51;
@@ -376,7 +379,7 @@ function CdUnit({ val, label, delay=0, dir="L", isGrand=false, sparkTick=0 }) {
       }}>{label}</span>
     </div>
   );
-}
+});
 
 /* ── Countdown display ───────────────────────────────────────── */
 function CdDisplay({ cd, sparkTick }) {
@@ -412,7 +415,7 @@ function GoldLine({ flip=false }) {
 ──────────────────────────────────────────────────────────────── */
 const TS_SPARK_C = ["#ffffff","#fde68a","#f59e0b","#ffcc00","#ff9a00","#fffbeb"];
 
-function TextStamp({ children, dir="T", delay=0, numSparks=10, spread=28 }) {
+const TextStamp = memo(function TextStamp({ children, dir="T", delay=0, numSparks=10, spread=28 }) {
   /* Impact fires at ~54% of the 0.82s animation = 0.44s after delay */
   const hitAt = delay + 0.44;
 
@@ -448,15 +451,62 @@ function TextStamp({ children, dir="T", delay=0, numSparks=10, spread=28 }) {
       </div>
     </div>
   );
-}
+});
 
 /* ══════════════════════════════════════════════════════════════
    SCENE
 ══════════════════════════════════════════════════════════════ */
 function TripIntroScene({ trip, cd, sparkTick }) {
-  const name = trip?.tripName || "Adventure Awaits";
-  const C  = "#f59e0b";
-  const TS = "0 0 0 3px rgba(0,0,0,.5),0 2px 10px rgba(0,0,0,1),0 0 50px rgba(0,0,0,1),0 0 100px rgba(0,0,0,.95)";
+  const name  = trip?.tripName || "Adventure Awaits";
+  const hasCd = cd?.status === "countdown";
+
+  /* ── Memoize every TextStamp so they NEVER re-render on per-second ticks.
+     useMemo returns the same ReactElement reference each render; React.memo
+     on TextStamp sees identical prop references → bails out immediately.    */
+  const labelStamp = useMemo(() => (
+    <TextStamp dir="T" delay={0.7} numSparks={12} spread={26}>
+      <div className="flex items-center" style={{gap:14}}>
+        <GoldLine flip/>
+        <p style={{
+          fontSize:"clamp(12px,1.4vw,16px)",fontWeight:800,
+          letterSpacing:".62em",paddingLeft:".62em",textTransform:"uppercase",
+          backgroundImage:`linear-gradient(90deg,${GOLD} 0%,#fde68a 50%,${GOLD} 100%)`,
+          backgroundSize:"200% auto",WebkitBackgroundClip:"text",
+          backgroundClip:"text",WebkitTextFillColor:"transparent",
+          filter:"drop-shadow(0 0 22px rgba(245,158,11,.65)) drop-shadow(0 2px 10px rgba(0,0,0,.9))",
+        }}>Upcoming Trip Is</p>
+        <GoldLine/>
+      </div>
+    </TextStamp>
+  ), []);
+
+  const nameStamp = useMemo(() => (
+    <TextStamp dir="B" delay={3.4} numSparks={18} spread={38}>
+      <h1 className="text-center font-black uppercase leading-none px-6" style={{
+        fontSize:"clamp(28px,5.8vw,82px)",
+        backgroundImage:"linear-gradient(90deg,#7c4800,#f59e0b 24%,#fde68a 48%,#fffbeb 54%,#fde68a 60%,#f59e0b 76%,#7c4800)",
+        backgroundSize:"240% auto",WebkitBackgroundClip:"text",
+        backgroundClip:"text",WebkitTextFillColor:"transparent",
+        filter:"drop-shadow(0 0 55px rgba(245,158,11,.78)) drop-shadow(0 4px 28px rgba(0,0,0,1)) drop-shadow(0 0 90px rgba(0,0,0,.95))",
+      }}>{name}</h1>
+    </TextStamp>
+  ), [name]);
+
+  const startsInStamp = useMemo(() => !hasCd ? null : (
+    <TextStamp dir="R" delay={4.4} numSparks={10} spread={22}>
+      <div className="flex items-center" style={{gap:12}}>
+        <div style={{width:6,height:6,borderRadius:1,background:GOLD,transform:"rotate(45deg)",boxShadow:`0 0 10px ${GOLD}`}}/>
+        <p style={{fontSize:"clamp(11px,1.3vw,15px)",fontWeight:700,letterSpacing:".5em",paddingLeft:".5em",textTransform:"uppercase",color:"rgba(255,255,255,.96)",textShadow:TS_SHADOW}}>Trip Starts In</p>
+        <div style={{width:6,height:6,borderRadius:1,background:GOLD,transform:"rotate(45deg)",boxShadow:`0 0 10px ${GOLD}`}}/>
+      </div>
+    </TextStamp>
+  ), [hasCd]);
+
+  const logoStamp = useMemo(() => (
+    <TextStamp dir="B" delay={7.8} numSparks={6} spread={18}>
+      <img src={LOGO_FULL} alt="Syncetra" style={{height:22,opacity:.4}}/>
+    </TextStamp>
+  ), []);
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-black">
@@ -486,7 +536,6 @@ function TripIntroScene({ trip, cd, sparkTick }) {
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
         style={{gap:"clamp(10px,2.2vh,22px)",paddingBottom:"3vh"}}>
 
-        {/* Warm aura — soft gradient, no blur filter (expensive on mobile) */}
         <div style={{
           position:"absolute",width:"70vw",height:"38vh",
           background:"radial-gradient(ellipse,rgba(245,158,11,.18) 0%,rgba(190,90,0,.10) 38%,rgba(120,50,0,.04) 65%,transparent 100%)",
@@ -494,55 +543,15 @@ function TripIntroScene({ trip, cd, sparkTick }) {
           pointerEvents:"none", willChange:"opacity, transform",
         }}/>
 
-        {/* ── PHASE 1: "Upcoming Trip Is" — flies in from TOP, stamps on black ── */}
-        <TextStamp dir="T" delay={0.7} numSparks={12} spread={26}>
-          <div className="flex items-center" style={{gap:14}}>
-            <GoldLine flip/>
-            <p style={{
-              fontSize:"clamp(12px,1.4vw,16px)",fontWeight:800,
-              letterSpacing:".62em",paddingLeft:".62em",textTransform:"uppercase",
-              backgroundImage:`linear-gradient(90deg,${C} 0%,#fde68a 50%,${C} 100%)`,
-              backgroundSize:"200% auto",WebkitBackgroundClip:"text",
-              backgroundClip:"text",WebkitTextFillColor:"transparent",
-              animation:"ti-shimmer 2.8s linear 1.2s infinite",
-              filter:"drop-shadow(0 0 22px rgba(245,158,11,.65)) drop-shadow(0 2px 10px rgba(0,0,0,.9))",
-            }}>Upcoming Trip Is</p>
-            <GoldLine/>
-          </div>
-        </TextStamp>
-
-        {/* ── PHASE 3: Gold trip name — flies in from BOTTOM after curtain opens ── */}
-        <TextStamp dir="B" delay={3.4} numSparks={18} spread={38}>
-          <h1 className="text-center font-black uppercase leading-none px-6" style={{
-            fontSize:"clamp(28px,5.8vw,82px)",
-            backgroundImage:"linear-gradient(90deg,#7c4800,#f59e0b 24%,#fde68a 48%,#fffbeb 54%,#fde68a 60%,#f59e0b 76%,#7c4800)",
-            backgroundSize:"240% auto",WebkitBackgroundClip:"text",
-            backgroundClip:"text",WebkitTextFillColor:"transparent",
-            filter:`drop-shadow(0 0 55px rgba(245,158,11,.78)) drop-shadow(0 4px 28px rgba(0,0,0,1)) drop-shadow(0 0 90px rgba(0,0,0,.95))`,
-            animation:"ti-shimmer 4.4s linear 4.2s infinite",
-          }}>{name}</h1>
-        </TextStamp>
-
-        {/* ── "Trip Starts In" — flies in from RIGHT ── */}
-        {cd?.status==="countdown" && (
-          <TextStamp dir="R" delay={4.4} numSparks={10} spread={22}>
-            <div className="flex items-center" style={{gap:12}}>
-              <div style={{width:6,height:6,borderRadius:1,background:C,transform:"rotate(45deg)",boxShadow:`0 0 10px ${C}`}}/>
-              <p style={{fontSize:"clamp(11px,1.3vw,15px)",fontWeight:700,letterSpacing:".5em",paddingLeft:".5em",textTransform:"uppercase",color:"rgba(255,255,255,.96)",textShadow:TS}}>Trip Starts In</p>
-              <div style={{width:6,height:6,borderRadius:1,background:C,transform:"rotate(45deg)",boxShadow:`0 0 10px ${C}`}}/>
-            </div>
-          </TextStamp>
-        )}
-
-        {/* Spinning countdown boxes */}
+        {labelStamp}
+        {nameStamp}
+        {startsInStamp}
         <CdDisplay cd={cd} sparkTick={sparkTick}/>
       </div>
 
-      {/* Logo footer — flies in from bottom */}
+      {/* Logo footer */}
       <div className="absolute inset-x-0 bottom-5 flex justify-center pointer-events-none z-10">
-        <TextStamp dir="B" delay={7.8} numSparks={6} spread={18}>
-          <img src={LOGO_FULL} alt="Syncetra" style={{height:22,opacity:.4}}/>
-        </TextStamp>
+        {logoStamp}
       </div>
     </div>
   );
