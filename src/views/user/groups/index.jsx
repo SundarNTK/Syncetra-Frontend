@@ -288,7 +288,7 @@ function GroupCard({ group, trip, onView }) {
 export default function UserGroups() {
   const [groups, setGroups] = useState([]);
   const [viewGroup, setViewGroup] = useState(null);
-  const { trips } = useTrip();
+  const { trips, loadTrips } = useTrip();
 
   useEffect(() => {
     requestNotificationPermission();
@@ -297,6 +297,9 @@ export default function UserGroups() {
       setGroups(list);
       joinGroupRooms(list.map((g) => g._id));
     });
+    // Trips are cached across the whole session — re-fetch on every visit to this page so a
+    // trip renamed elsewhere (by an admin, possibly in a different session) shows up here too.
+    loadTrips();
   }, []);
 
   const getTripForGroup = (g) =>

@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
-import { getAdminGroups, deleteGroup } from "../../../services/groups";
+import { useActionPopup } from "../../../hooks/useActionPopup";
+import { getAdminGroups, deleteGroup, updateGroup } from "../../../services/groups";
 import { useTrip } from "../../../context/TripContext";
+import { useAppSelector } from "../../../hooks";
+import { ROLES } from "../../../constants/enum";
 import MasterPageShell, { MasterList, MasterListItem } from "../../../components/layout/MasterPageShell";
 import SyncetraLoader from "../../../components/ui/SyncetraLoader";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
+import SearchableSelect from "../../../components/ui/SearchableSelect";
 
 const STATUS_COVER_GLOW = {
   planned: "trip-cover-glow--planned",
@@ -57,11 +62,119 @@ function GroupCoverThumb({ trip }) {
 const actionBtn =
   "flex items-center justify-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium transition-colors w-full sm:w-auto";
 
+const inputCls =
+  "w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all text-sm text-white placeholder-slate-500";
+
+/* ─── EditGroupModal ───────────────────────────────────────────────────────── */
+function EditGroupModal({ group, trips, linkedTripIds, onClose, onSaved }) {
+  const [groupName, setGroupName] = useState(group.groupName || "");
+  const [tripId, setTripId] = useState(group.tripId ? String(group.tripId) : "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const availableTrips = trips.filter(
+    (t) => t._id === tripId || !linkedTripIds.includes(t._id)
+  );
+
+  const handleSave = async () => {
+    if (!groupName.trim()) { setError("Group name is required."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      await updateGroup(group._id, {
+        groupName: groupName.trim(),
+        tripId: tripId || null,
+      });
+      onSaved();
+    } catch (err) {
+      setError(err.message || "Failed to update group.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-start justify-center bg-black/70 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-auto">
+        <div className="h-1 bg-gradient-to-r from-red-600 to-orange-500" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <p className="font-bold text-white">Edit Group</p>
+          <button type="button" onClick={onClose}
+            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
+            ×
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          {error && (
+            <div className="px-4 py-3 rounded-xl bg-red-950/50 border border-red-800/50">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+              Group Name <span className="text-red-400">*</span>
+            </label>
+            <input
+              value={groupName}
+              onChange={(e) => { setGroupName(e.target.value); setError(""); }}
+              className={inputCls}
+              placeholder="Enter group name"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
+              Link to Trip <span className="text-slate-600 font-normal normal-case">(optional)</span>
+            </label>
+            {availableTrips.length === 0 ? (
+              <p className="text-xs text-slate-500 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3">
+                No trips available to link.
+              </p>
+            ) : (
+              <SearchableSelect
+                value={tripId}
+                onChange={setTripId}
+                options={[
+                  { value: "", label: "None" },
+                  ...availableTrips.map((t) => ({
+                    value: t._id,
+                    label: t.name || t.tripName,
+                  })),
+                ]}
+                placeholder="None"
+                searchPlaceholder="Search trips…"
+              />
+            )}
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors"
+            >
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+            <button type="button" onClick={onClose}
+              className="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-semibold text-sm transition-colors">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function AdminGroups() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { trips } = useTrip();
+  const [editingGroup, setEditingGroup] = useState(null);
+  const { trips, loadTrips } = useTrip();
   const { confirmDelete, deleteModal } = useDeleteConfirm();
+  const { popup, showSuccess } = useActionPopup("groups");
+  const { userInfo } = useAppSelector((s) => s.user);
+  const isSuperAdmin = userInfo?.user?.role === ROLES.SUPER_ADMIN;
 
   const load = async () => {
     setLoading(true);
@@ -73,7 +186,12 @@ export default function AdminGroups() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Trips are cached across the whole session — re-fetch on every visit to this page so a
+    // trip renamed elsewhere (possibly in a different session) is reflected immediately here.
+    loadTrips();
+  }, []);
 
   const handleDelete = (id) => {
     const group = groups.find((g) => g._id === id);
@@ -88,6 +206,11 @@ export default function AdminGroups() {
 
   const getTripForGroup = (g) =>
     g.tripId ? trips.find((t) => t._id === String(g.tripId)) : null;
+
+  const linkedTripIdsExcluding = (excludeGroupId) =>
+    groups
+      .filter((g) => g.tripId && g._id !== excludeGroupId)
+      .map((g) => String(g.tripId));
 
   return (
     <MasterPageShell
@@ -154,6 +277,18 @@ export default function AdminGroups() {
                       </svg>
                       View Members
                     </Link>
+                    {isSuperAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingGroup(g)}
+                        className={`${actionBtn} bg-blue-700/30 hover:bg-blue-700/50 text-blue-400 border border-blue-700/40`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleDelete(g._id)}
@@ -169,6 +304,20 @@ export default function AdminGroups() {
         </MasterList>
       )}
       {deleteModal}
+      {popup}
+      {editingGroup && (
+        <EditGroupModal
+          group={editingGroup}
+          trips={trips}
+          linkedTripIds={linkedTripIdsExcluding(editingGroup._id)}
+          onClose={() => setEditingGroup(null)}
+          onSaved={() => {
+            setEditingGroup(null);
+            load();
+            showSuccess("Group updated successfully.");
+          }}
+        />
+      )}
     </MasterPageShell>
   );
 }

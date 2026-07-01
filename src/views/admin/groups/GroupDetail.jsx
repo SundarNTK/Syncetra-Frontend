@@ -240,7 +240,7 @@ function UserPicker({ users, selectedUsers, onAdd, onRemove }) {
 // ─── Main view ────────────────────────────────────────────────────────────────
 export default function GroupDetail() {
   const { id } = useParams();
-  const { trips } = useTrip();
+  const { trips, loadTrips } = useTrip();
 
   const [group,         setGroup]         = useState(null);
   const [allUsers,      setAllUsers]      = useState([]);
@@ -265,6 +265,9 @@ export default function GroupDetail() {
     getMembers()
       .then((res) => setAllUsers(res?.data || []))
       .catch(() => {});
+    // Trips are cached across the whole session — re-fetch on every visit to this page so a
+    // trip renamed elsewhere (possibly in a different session) is reflected immediately here.
+    loadTrips();
   }, [id]);
 
   // Filter out users already in this group from the picker
