@@ -77,7 +77,7 @@ export default function SearchableSelect({
   emptyMessage = "No matches",
   disabled = false,
   required = false,
-  className = "",
+  className = "w-full",
   buttonClassName = "",
   searchable = true,
   searchThreshold = 1,
@@ -159,7 +159,7 @@ export default function SearchableSelect({
     .join(" ");
 
   return (
-    <div ref={ref} className={`relative w-full ${className}`}>
+    <div ref={ref} className={`relative ${className}`}>
       {name && (
         <input
           type="hidden"

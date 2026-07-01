@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
-import { getExpenses, addExpense, updateExpense, deleteExpense, getTripHub, getSponsors } from "../../../services/trips";
+import { getExpenses, addExpense, updateExpense, deleteExpense, getTripHub, getSponsors, getShareCollections } from "../../../services/trips";
 import { getAdminGroups } from "../../../services/groups";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
@@ -29,19 +29,29 @@ const CATEGORY_ICON = {
   fuel:          "⛽",
   toll:          "🛣️",
   stay:          "🏨",
+  van:           "🚐",
   entertainment: "🎭",
   shopping:      "🛍️",
   medical:       "💊",
   other:         "💸",
 };
 
-const CATEGORIES = ["Food", "Fuel", "Toll", "Stay", "Entertainment", "Shopping", "Medical", "Other"];
+const CATEGORIES = ["Food", "Fuel", "Toll", "Stay", "Van", "Entertainment", "Shopping", "Medical", "Other"];
 
 const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({
   value: c,
   label: c,
   icon: CATEGORY_ICON[c.toLowerCase()] || "💸",
 }));
+
+const FUND_SOURCE_OPTIONS = [
+  { value: "shareCollection", label: "Share Collection", icon: "💳" },
+  { value: "sponsor",         label: "Sponsor Fund",      icon: "🏢" },
+];
+const FUND_SOURCE_LABEL = {
+  shareCollection: "Share Collection",
+  sponsor: "Sponsor Fund",
+};
 
 const inputCls = "w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:border-emerald-600/60 focus:outline-none transition-colors";
 
@@ -151,6 +161,7 @@ function EditModal({ expense, tripId, onClose, onSaved, onPreview }) {
     amount:      expense.amount      || "",
     description: expense.description || "",
     imageUrl:    expense.imageUrl    || "",
+    fundSource:  expense.fundSource  || "shareCollection",
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState("");
@@ -222,6 +233,16 @@ function EditModal({ expense, tripId, onClose, onSaved, onPreview }) {
                 placeholder="0"
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Paid From <span className="text-red-400">*</span></label>
+            <SearchableSelect
+              value={form.fundSource}
+              onChange={(v) => set("fundSource", v)}
+              options={FUND_SOURCE_OPTIONS}
+              searchable={false}
+              searchThreshold={99}
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Note</label>
@@ -304,11 +325,12 @@ export default function AdminExpenses() {
   const [hub,              setHub]              = useState(null);
   const [items,            setItems]            = useState([]);
   const [sponsors,         setSponsors]         = useState([]);
+  const [shareRecords,     setShareRecords]     = useState([]);
   const [loading,          setLoading]          = useState(false);
   const [saving,           setSaving]           = useState(false);
   const [groupMemberCount, setGroupMemberCount] = useState(null);
   const [form,    setForm]    = useState({
-    category: "Food", amount: "", description: "", imageUrl: "",
+    category: "Food", amount: "", description: "", imageUrl: "", fundSource: "shareCollection",
   });
   const [editExp,    setEditExp]    = useState(null);
   const [previewImg, setPreviewImg] = useState(null);
@@ -317,17 +339,19 @@ export default function AdminExpenses() {
     if (!selectedTripId) return;
     setLoading(true);
     try {
-      const [h, e, g, sp] = await Promise.all([
+      const [h, e, g, sp, sc] = await Promise.all([
         getTripHub(selectedTripId),
         getExpenses(selectedTripId),
         getAdminGroups(),
         getSponsors(selectedTripId),
+        getShareCollections(selectedTripId),
       ]);
       // Only overwrite state when we got real data — null means offline+no cache,
       // so we keep whatever is currently in state (could be a pending item we just added).
       if (h !== null) setHub(h?.data);
       if (e !== null) setItems(e?.data || []);
       if (sp !== null) setSponsors(sp?.data || []);
+      if (sc !== null) setShareRecords(sc?.data || []);
       if (g !== null) {
         const linkedGroup = (g?.data || []).find(
           (grp) => String(grp.tripId) === String(selectedTripId)
@@ -351,12 +375,12 @@ export default function AdminExpenses() {
         amount:   Number(form.amount),
         imageUrl: form.imageUrl || undefined,
       });
-      setForm({ category: "Food", amount: "", description: "", imageUrl: "" });
+      setForm({ category: "Food", amount: "", description: "", imageUrl: "", fundSource: "shareCollection" });
       load();
       showSuccess("Expense added successfully.");
     } catch (err) {
       if (err.queued) {
-        setForm({ category: "Food", amount: "", description: "", imageUrl: "" });
+        setForm({ category: "Food", amount: "", description: "", imageUrl: "", fundSource: "shareCollection" });
         load(); // Re-reads from cache which now has the pending item
         showSuccess("Saved offline — will sync automatically when reconnected.");
       } else {
@@ -395,13 +419,24 @@ export default function AdminExpenses() {
 
   const s             = hub?.expenseSummary;
   const totalSponsor  = sponsors.reduce((acc, sp) => acc + (Number(sp.amount) || 0), 0);
-  const totalBudget   = s?.totalBudget   || 0;
-  const grandTotal    = totalBudget + totalSponsor;
+  const plannedBudget = s?.plannedBudget || 0;
   const totalSpent    = s?.totalSpent    || 0;
   const totalCollected = s?.totalCollected || 0;
-  const grandBalance  = grandTotal - totalSpent;
-  const pct           = grandTotal > 0 ? Math.min(100, Math.round((totalSpent / grandTotal) * 100)) : 0;
-  const collectionPct = totalBudget > 0 ? Math.min(100, Math.round((totalCollected / totalBudget) * 100)) : 0;
+
+  // Two independent real-money pools — no merged "grand total".
+  const shareCollectionSpent     = s?.shareCollectionSpent || 0;
+  const shareCollectionRemaining = s?.shareCollectionRemaining ?? (totalCollected - shareCollectionSpent);
+  const sharePct = totalCollected > 0 ? Math.min(100, Math.round((shareCollectionSpent / totalCollected) * 100)) : 0;
+
+  const sponsorSpent     = s?.sponsorSpent || 0;
+  const sponsorRemaining = s?.sponsorRemaining ?? (totalSponsor - sponsorSpent);
+  const sponsorPct = totalSponsor > 0 ? Math.min(100, Math.round((sponsorSpent / totalSponsor) * 100)) : 0;
+
+  // Members who haven't fully paid their Share Collection amount yet — distinct from
+  // "Pending Payments" above, which counts unpaid *expense* records, not members.
+  const totalMembers      = groupMemberCount != null ? groupMemberCount : (s?.memberCount ?? 0);
+  const membersPaidCount  = shareRecords.filter((r) => r.paymentStatus === "paid").length;
+  const membersPending    = Math.max(0, totalMembers - membersPaidCount);
 
   return (
     <TripModuleShell title="Expenses" description="Auto-calculated trip budget & splits" loading={loading && !!selectedTripId}>
@@ -426,170 +461,103 @@ export default function AdminExpenses() {
           {s && (
             <div className="space-y-3 mb-4">
 
-              {/* ── Fund glow box ── */}
-              {totalSponsor > 0 ? (
-                /* Expanded sponsor glow box with progress bars */
-                <div className="relative rounded-2xl overflow-hidden border border-violet-500/40 bg-slate-900/80 shadow-[0_0_28px_rgba(139,92,246,0.18)]">
-                  <div className="absolute inset-0 pointer-events-none rounded-2xl"
-                    style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.12) 0%, transparent 65%)" }} />
-
-                  {/* Header row */}
-                  <div className="px-5 pt-4 pb-3 flex items-center justify-between gap-4 relative">
-                    <div>
-                      <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest mb-0.5">🏢 Sponsor Fund</p>
-                      <p className="text-2xl font-black"
-                        style={{ background: "linear-gradient(90deg,#a78bfa,#c4b5fd,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                        {fmt(totalSponsor)}
-                      </p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{sponsors.length} sponsor{sponsors.length !== 1 ? "s" : ""}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">Grand Total</p>
-                      <p className="text-xl font-black text-emerald-400">{fmt(grandTotal)}</p>
-                      <p className="text-[10px] text-slate-600 mt-0.5">Budget + Sponsor</p>
-                    </div>
+              {/* ── Two independent real-money pools ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Share Collection pool */}
+                <div className="relative rounded-2xl overflow-hidden border border-blue-500/30 bg-slate-900/80 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-semibold text-blue-400 uppercase tracking-widest">💳 Share Collection</p>
+                    <span className={`text-[10px] font-black ${sharePct >= 90 ? "text-red-400" : "text-blue-400"}`}>{sharePct}%</span>
                   </div>
-
-                  {/* Progress bars */}
-                  <div className="px-5 pb-5 space-y-4 relative border-t border-white/[0.06] pt-4">
-
-                    {/* Bar 1 — Budget Collection from members */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
-                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Member Collection</p>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px]">
-                          <span className="font-bold text-blue-400">{fmt(totalCollected)}</span>
-                          <span className="text-slate-600">/</span>
-                          <span className="text-slate-400">{fmt(totalBudget)}</span>
-                          <span className="ml-1.5 font-black text-blue-400">{collectionPct}%</span>
-                        </div>
-                      </div>
-                      <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${collectionPct}%`,
-                            background: "linear-gradient(90deg,#2563eb,#3b82f6,#60a5fa)",
-                            boxShadow: collectionPct > 0 ? "0 0 10px rgba(59,130,246,0.55)" : "none",
-                          }} />
-                      </div>
-                      <div className="flex justify-between mt-1">
-                        <p className="text-[10px] text-slate-600">
-                          {fmt(Math.max(0, totalBudget - totalCollected))} pending from members
-                        </p>
-                        <p className="text-[10px] text-slate-600">
-                          {collectionPct >= 100 ? "✓ Fully collected" : `${100 - collectionPct}% remaining`}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Bar 2 — Fund Usage (Spent vs Grand Total) */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full"
-                            style={{ background: pct >= 90 ? "#ef4444" : pct >= 70 ? "#f59e0b" : "#10b981", boxShadow: `0 0 6px ${pct >= 90 ? "rgba(239,68,68,0.8)" : pct >= 70 ? "rgba(245,158,11,0.8)" : "rgba(16,185,129,0.8)"}` }} />
-                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Fund Usage</p>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px]">
-                          <span className={`font-bold ${pct >= 90 ? "text-red-400" : pct >= 70 ? "text-amber-400" : "text-emerald-400"}`}>{fmt(totalSpent)}</span>
-                          <span className="text-slate-600">/</span>
-                          <span className="text-slate-400">{fmt(grandTotal)}</span>
-                          <span className={`ml-1.5 font-black ${pct >= 90 ? "text-red-400" : pct >= 70 ? "text-amber-400" : "text-emerald-400"}`}>{pct}%</span>
-                        </div>
-                      </div>
-                      <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700"
-                          style={{
-                            width: `${pct}%`,
-                            background: pct >= 90
-                              ? "linear-gradient(90deg,#dc2626,#ef4444)"
-                              : pct >= 70
-                              ? "linear-gradient(90deg,#d97706,#f59e0b)"
-                              : "linear-gradient(90deg,#059669,#10b981)",
-                            boxShadow: pct > 0 ? `0 0 10px rgba(${pct >= 90 ? "239,68,68" : pct >= 70 ? "245,158,11" : "16,185,129"},0.45)` : "none",
-                          }} />
-                      </div>
-                      <div className="flex justify-between mt-1">
-                        <p className="text-[10px] text-slate-600">
-                          {grandBalance < 0 ? `${fmt(Math.abs(grandBalance))} over fund` : `${fmt(grandBalance)} left`}
-                        </p>
-                        {pct >= 90 && <p className="text-[10px] text-red-400 font-semibold">⚠ Near limit</p>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Simple fund usage card — no sponsors */
-                <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-xs font-medium text-slate-400">Fund Usage</p>
-                    <p className="text-xs font-bold text-slate-300">{pct}%</p>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-700 overflow-hidden mb-3">
-                    <div className="h-full rounded-full transition-all duration-500"
+                  <p className="text-xl font-black text-slate-100">{fmt(totalCollected)}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 mb-3">collected from members</p>
+                  <div className="h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-700"
                       style={{
-                        width: `${pct}%`,
-                        background: pct >= 90 ? "linear-gradient(90deg,#ef4444,#dc2626)" : pct >= 70 ? "linear-gradient(90deg,#f59e0b,#d97706)" : "linear-gradient(90deg,#10b981,#059669)",
+                        width: `${sharePct}%`,
+                        background: sharePct >= 90 ? "linear-gradient(90deg,#dc2626,#ef4444)" : "linear-gradient(90deg,#2563eb,#3b82f6,#60a5fa)",
                       }} />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="text-center">
-                      <p className="text-base font-bold text-slate-200">{fmt(grandTotal)}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Budget</p>
-                    </div>
-                    <div className="text-center border-x border-slate-700/50">
-                      <p className={`text-base font-bold ${pct >= 90 ? "text-red-400" : "text-amber-400"}`}>{fmt(totalSpent)}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Spent</p>
-                    </div>
-                    <div className="text-center">
-                      <p className={`text-base font-bold ${grandBalance < 0 ? "text-red-400" : "text-emerald-400"}`}>{fmt(Math.abs(grandBalance))}</p>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">{grandBalance < 0 ? "Over" : "Left"}</p>
-                    </div>
+                  <div className="flex justify-between mt-2 text-[10px] text-slate-500">
+                    <span>Spent: <span className="text-slate-300 font-semibold">{fmt(shareCollectionSpent)}</span></span>
+                    <span className={shareCollectionRemaining < 0 ? "text-red-400 font-semibold" : "text-emerald-400 font-semibold"}>
+                      {shareCollectionRemaining < 0 ? `${fmt(Math.abs(shareCollectionRemaining))} over` : `${fmt(shareCollectionRemaining)} left`}
+                    </span>
                   </div>
+                </div>
+
+                {/* Sponsor Fund pool */}
+                <div className="relative rounded-2xl overflow-hidden border border-violet-500/30 bg-slate-900/80 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest">🏢 Sponsor Fund</p>
+                    <span className={`text-[10px] font-black ${sponsorPct >= 90 ? "text-red-400" : "text-violet-400"}`}>{sponsorPct}%</span>
+                  </div>
+                  <p className="text-xl font-black text-slate-100">{fmt(totalSponsor)}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 mb-3">{sponsors.length} sponsor{sponsors.length !== 1 ? "s" : ""} contributing</p>
+                  <div className="h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${sponsorPct}%`,
+                        background: sponsorPct >= 90 ? "linear-gradient(90deg,#dc2626,#ef4444)" : "linear-gradient(90deg,#7c3aed,#a78bfa,#c4b5fd)",
+                      }} />
+                  </div>
+                  <div className="flex justify-between mt-2 text-[10px] text-slate-500">
+                    <span>Spent: <span className="text-slate-300 font-semibold">{fmt(sponsorSpent)}</span></span>
+                    <span className={sponsorRemaining < 0 ? "text-red-400 font-semibold" : "text-emerald-400 font-semibold"}>
+                      {sponsorRemaining < 0 ? `${fmt(Math.abs(sponsorRemaining))} over` : `${fmt(sponsorRemaining)} left`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Overdrawn alerts — shown only when a fund has been spent past what it holds ── */}
+              {(shareCollectionRemaining < 0 || sponsorRemaining < 0) && (
+                <div className="space-y-2">
+                  {shareCollectionRemaining < 0 && (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-950/40 border border-red-700/50">
+                      <span className="text-xl shrink-0">⚠️</span>
+                      <p className="text-sm text-red-300">
+                        <span className="font-bold">Share Collection is {fmt(Math.abs(shareCollectionRemaining))} over</span>
+                        <span className="text-red-400/80"> — spending exceeds what's been collected from members.</span>
+                      </p>
+                    </div>
+                  )}
+                  {sponsorRemaining < 0 && (
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-950/40 border border-red-700/50">
+                      <span className="text-xl shrink-0">⚠️</span>
+                      <p className="text-sm text-red-300">
+                        <span className="font-bold">Sponsor Fund is {fmt(Math.abs(sponsorRemaining))} over</span>
+                        <span className="text-red-400/80"> — spending exceeds total sponsor contributions.</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Stat cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Budget",     val: fmt(totalBudget),     cls: "text-slate-200" },
-                  { label: "Sponsor",    val: fmt(totalSponsor),    cls: "text-violet-400" },
-                  { label: "Collected",  val: fmt(totalCollected),  cls: "text-blue-400"  },
-                  { label: "Spent",      val: fmt(totalSpent),      cls: pct >= 90 ? "text-red-400" : "text-amber-400" },
-                  { label: "Balance",    val: fmt(Math.abs(grandBalance)), cls: grandBalance < 0 ? "text-red-400" : "text-emerald-400" },
-                  { label: "Members",    val: groupMemberCount != null ? groupMemberCount : (s.memberCount ?? "—"), cls: "text-slate-200" },
+                  { label: "Planned Budget (estimate)", val: fmt(plannedBudget), cls: "text-slate-400" },
+                  { label: "Total Spent",  val: fmt(totalSpent), cls: "text-amber-400" },
+                  { label: "Members",      val: totalMembers || "—", cls: "text-slate-200" },
+                  { label: "Members Pending", val: membersPending, cls: membersPending > 0 ? "text-amber-400" : "text-emerald-400" },
                 ].map(({ label, val, cls }) => (
-                  <div key={label}
-                    className={`bg-slate-900/80 border rounded-xl p-3 ${label === "Sponsor" && totalSponsor > 0 ? "border-violet-700/40 shadow-[0_0_12px_rgba(139,92,246,0.12)]" : "border-slate-800"}`}>
+                  <div key={label} className="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
                     <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-0.5">{label}</p>
                     <p className={`text-lg font-bold ${cls}`}>{val}</p>
                   </div>
                 ))}
               </div>
-
-              {/* Budget breakdown detail */}
-              {totalSponsor > 0 && (
-                <div className="bg-slate-900/40 border border-slate-800/60 rounded-xl px-4 py-3">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2">Fund Breakdown</p>
-                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-400">
-                    <span>Budget (members share): <span className="text-slate-200 font-semibold">{fmt(totalBudget)}</span></span>
-                    <span className="text-slate-600">+</span>
-                    <span>Sponsor contributions: <span className="text-violet-400 font-semibold">{fmt(totalSponsor)}</span></span>
-                    <span className="text-slate-600">=</span>
-                    <span>Grand Total: <span className="text-emerald-400 font-semibold">{fmt(grandTotal)}</span></span>
-                  </div>
-                </div>
-              )}
+              <p className="text-[10px] text-slate-600 px-1">
+                Planned Budget is a planning estimate only — it is not spendable. Every expense actually draws from either Share Collection or Sponsor Fund above.
+              </p>
             </div>
           )}
 
           {/* ── Add expense form ── */}
           <form onSubmit={handleAdd} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 mb-4">
             <p className="text-xs text-slate-400 font-medium">Add Expense</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <SearchableSelect
                 value={form.category}
                 onChange={(v) => setForm({ ...form, category: v })}
@@ -597,12 +565,21 @@ export default function AdminExpenses() {
                 searchable={false}
                 searchThreshold={99}
               />
+              <SearchableSelect
+                value={form.fundSource}
+                onChange={(v) => setForm({ ...form, fundSource: v })}
+                options={FUND_SOURCE_OPTIONS}
+                searchable={false}
+                searchThreshold={99}
+              />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <input
                 type="number"
                 placeholder="Amount"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                className={inputCls}
+                className={`${inputCls} col-span-2`}
                 required
               />
               <input
@@ -657,6 +634,13 @@ export default function AdminExpenses() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-medium text-slate-200 capitalize">{x.category || "Other"}</p>
+                          <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide ${
+                            x.fundSource === "sponsor"
+                              ? "bg-violet-500/15 text-violet-300 border border-violet-700/40"
+                              : "bg-blue-500/15 text-blue-300 border border-blue-700/40"
+                          }`}>
+                            {FUND_SOURCE_LABEL[x.fundSource] || FUND_SOURCE_LABEL.shareCollection}
+                          </span>
                           {x._pending && <PendingBadge />}
                         </div>
                         {x.description && (

@@ -154,7 +154,6 @@ export default function UserDashboard() {
 
   const tripBudget = Number(selectedTrip?.budget || 0);
   const tripSpent = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-  const tripBalance = tripBudget - tripSpent;
 
   const selectedTripStats = [
     {
@@ -164,7 +163,7 @@ export default function UserDashboard() {
       accent: "indigo",
     },
     {
-      label: "Budget",
+      label: "Planned Budget",
       value: `₹${tripBudget.toLocaleString()}`,
       icon: "💰",
       accent: "amber",
@@ -176,9 +175,9 @@ export default function UserDashboard() {
       accent: "slate",
     },
     {
-      label: "Balance",
-      value: selectedTripId ? `₹${tripBalance.toLocaleString()}` : "—",
-      icon: "💳",
+      label: "Trip Status",
+      value: selectedTrip ? tripPhase(selectedTrip).replace(/^./, (c) => c.toUpperCase()) : "—",
+      icon: "📌",
       accent: "emerald",
     },
   ];

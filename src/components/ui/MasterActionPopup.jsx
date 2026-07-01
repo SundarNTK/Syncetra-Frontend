@@ -520,6 +520,49 @@ function BellSVG() {
   );
 }
 
+function HotelSVG() {
+  return (
+    <svg width="86" height="92" viewBox="0 0 86 92">
+      <defs>
+        <linearGradient id="mpHotelBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f472b6"/><stop offset="55%" stopColor="#db2777"/><stop offset="100%" stopColor="#9d174d"/>
+        </linearGradient>
+        <linearGradient id="mpHotelRoof" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fbbf24"/><stop offset="100%" stopColor="#d97706"/>
+        </linearGradient>
+        <radialGradient id="mpHotelWin" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#fef3c7"/><stop offset="100%" stopColor="#fbbf24"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="43" cy="89" rx="34" ry="3" fill="rgba(0,0,0,.3)"/>
+      {/* Building body */}
+      <rect x="10" y="24" width="66" height="62" rx="6" fill="url(#mpHotelBody)" style={{ filter:"drop-shadow(0 4px 14px rgba(219,39,119,.4))" }}/>
+      {/* Roof / canopy */}
+      <rect x="6" y="16" width="74" height="12" rx="4" fill="url(#mpHotelRoof)"/>
+      <rect x="34" y="6" width="18" height="12" rx="3" fill="#92400e"/>
+      <circle cx="43" cy="8" r="3" fill="#fde68a" style={{ filter:"drop-shadow(0 0 6px rgba(253,230,138,.8))" }}/>
+      {/* Window grid */}
+      {[0, 1, 2].map((row) =>
+        [0, 1, 2].map((col) => (
+          <rect key={`${row}-${col}`} x={18 + col * 20} y={34 + row * 14} width="12" height="10" rx="2"
+            fill="url(#mpHotelWin)" opacity={0.9 - (row + col) * 0.06}
+            style={{ animation: `mapKfFadeUp .4s ease ${0.3 + (row * 3 + col) * 0.04}s both` }} />
+        ))
+      )}
+      {/* Door */}
+      <rect x="34" y="70" width="18" height="16" rx="2" fill="#4c0519"/>
+      <circle cx="48" cy="78" r="1.3" fill="#fbbf24"/>
+      {/* Reception bell badge */}
+      <g style={{ animation: "mapKfBounceIn .55s cubic-bezier(.34,1.4,.64,1) .55s both", opacity: 0 }}>
+        <circle cx="70" cy="18" r="13" fill="#f59e0b" stroke="#fff" strokeWidth="2"/>
+        <path d="M63.5 18.5a6.5 6.5 0 1113 0" fill="none" stroke="#fff" strokeWidth="1.6"/>
+        <rect x="62.5" y="18.5" width="15" height="6.5" rx="1.8" fill="#fff"/>
+        <circle cx="70" cy="21.8" r="1.3" fill="#d97706"/>
+      </g>
+    </svg>
+  );
+}
+
 /* ─── Shared card wrapper ─────────────────────────────────── */
 function PopCard({ bar, bg, border, shadow, glow, delay, children }) {
   return (
@@ -1226,7 +1269,21 @@ function PollsPopup({ action, onClose }) {
 }
 
 function SharePopup({ action, onClose }) {
-  const add = action !== "edit";
+  // "target" = a share amount was set/updated (no money moved yet).
+  // "edit"   = an existing payment record was edited.
+  // default  = a payment was actually collected.
+  const isTarget = action === "target";
+  const isEdit = action === "edit";
+
+  const kicker  = isTarget ? "Share Target" : isEdit ? "Share Updated" : "Share Collected";
+  const heading = isTarget ? "Share Amount Set!" : isEdit ? "Share Updated!" : "Payment Confirmed!";
+  const body    = isTarget
+    ? "The member's share amount has been assigned successfully."
+    : isEdit
+    ? "Share collection has been updated."
+    : "Share collection has been recorded successfully.";
+  const btnLabel = isTarget ? "🎯 Got it!" : "💳 Collected!";
+
   return createPortal(
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
       style={{ background:"rgba(2,8,12,.93)" }} onClick={onClose}>
@@ -1241,10 +1298,36 @@ function SharePopup({ action, onClose }) {
             style={{ height:80,animation:"mapKfBounceIn .6s ease .1s both",opacity:0 }}>
             <PaymentSVG/>
           </div>
-          <FU delay={0.55} size={10} color="#22d3ee" weight={700} lsp="0.3em" upper>Share {add?"Collected":"Updated"}</FU>
-          <FU delay={0.7} size={18} color="#fff" weight={800} mt={6} mb={4}>{add?"Payment Confirmed!":"Share Updated!"}</FU>
-          <FU delay={0.85} color="rgba(103,232,249,.7)" mb={22}>Share collection has been {add?"recorded successfully.":"updated."}</FU>
-          <Btn delay={1.0} label="💳 Collected!" bg="linear-gradient(90deg,#0891b2,#0e7490)" shadow="0 8px 24px rgba(8,145,178,.44)" onClose={onClose}/>
+          <FU delay={0.55} size={10} color="#22d3ee" weight={700} lsp="0.3em" upper>{kicker}</FU>
+          <FU delay={0.7} size={18} color="#fff" weight={800} mt={6} mb={4}>{heading}</FU>
+          <FU delay={0.85} color="rgba(103,232,249,.7)" mb={22}>{body}</FU>
+          <Btn delay={1.0} label={btnLabel} bg="linear-gradient(90deg,#0891b2,#0e7490)" shadow="0 8px 24px rgba(8,145,178,.44)" onClose={onClose}/>
+        </div>
+      </div>
+    </div>, document.body
+  );
+}
+
+function HotelsPopup({ action, onClose }) {
+  const add = action !== "edit";
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+      style={{ background:"rgba(10,4,8,.93)" }} onClick={onClose}>
+      <div className="relative w-full max-w-[338px] rounded-2xl overflow-hidden"
+        style={{ background:"linear-gradient(145deg,#1c0a14,#24101a)",border:"1px solid rgba(236,72,153,.32)",
+          boxShadow:"0 28px 70px rgba(0,0,0,.88),0 0 40px rgba(219,39,119,.14)",
+          animation:"mapKfCardLand .75s cubic-bezier(.3,1.4,.6,1) both" }}
+        onClick={e=>e.stopPropagation()}>
+        <div style={{ height:3,background:"linear-gradient(90deg,#db2777,#ec4899,#f472b6)" }}/>
+        <div className="px-7 py-8 text-center">
+          <div className="mx-auto mb-5 flex items-center justify-center"
+            style={{ height:92,animation:"mapKfBounceIn .6s ease .1s both",opacity:0 }}>
+            <HotelSVG/>
+          </div>
+          <FU delay={0.55} size={10} color="#f472b6" weight={700} lsp="0.3em" upper>Hotel {add?"Booked":"Updated"}</FU>
+          <FU delay={0.7} size={18} color="#fff" weight={800} mt={6} mb={4}>{add?"Hotel Added!":"Hotel Updated!"}</FU>
+          <FU delay={0.85} color="rgba(244,114,182,.75)" mb={22}>{add?"Your hotel booking has been saved successfully.":"Hotel details have been updated."}</FU>
+          <Btn delay={1.0} label="🏨 Great!" bg="linear-gradient(90deg,#db2777,#be185d)" shadow="0 8px 24px rgba(219,39,119,.44)" onClose={onClose}/>
         </div>
       </div>
     </div>, document.body
@@ -1364,6 +1447,7 @@ const POPUP_MAP = {
   polls:      PollsPopup,
   share:      SharePopup,
   alarms:     AlarmsPopup,
+  hotels:     HotelsPopup,
 };
 
 /* ─── Public component ────────────────────────────────────── */

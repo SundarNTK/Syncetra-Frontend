@@ -15,8 +15,9 @@ export function useActionPopup(master) {
 
   const showSuccess = useCallback((message, options) => {
     const title = typeof options === "string" ? options : options?.title;
+    const actionOverride = typeof options === "object" ? options?.action : undefined;
     onDismissRef.current = typeof options === "object" ? options?.onDismiss : null;
-    setState({ message, type: "success", title, action: detectAction(message) });
+    setState({ message, type: "success", title, action: actionOverride || detectAction(message) });
   }, []);
 
   const showError = useCallback((message, options) => {

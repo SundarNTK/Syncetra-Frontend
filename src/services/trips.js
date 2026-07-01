@@ -46,6 +46,19 @@ export const deleteVehicle = (tripId, id) =>
 export const getUserVehicles = (tripId) =>
   apiGet(API_SCOPE.USER, EndPoints.TRIP_VEHICLES(tripId));
 
+export const getHotels = (tripId) =>
+  apiGet(API_SCOPE.ADMIN, EndPoints.TRIP_HOTELS(tripId));
+export const addHotel = (tripId, data) =>
+  apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_HOTELS(tripId), data);
+export const updateHotel = (tripId, id, data) =>
+  apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_HOTEL(tripId, id), data);
+export const deleteHotel = (tripId, id) =>
+  apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_HOTEL(tripId, id));
+export const getUserHotels = (tripId) =>
+  apiGet(API_SCOPE.USER, EndPoints.TRIP_HOTELS(tripId));
+export const resolveMapLink = (url) =>
+  apiPost(API_SCOPE.ADMIN, EndPoints.RESOLVE_MAP_LINK, { url });
+
 export const getAttendance = (tripId, params) =>
   apiGet(API_SCOPE.ADMIN, EndPoints.TRIP_ATTENDANCE(tripId), params ? { params } : undefined);
 export const getAttendanceCheckpoints = (tripId) =>
@@ -120,6 +133,8 @@ export const deleteShareCollection = (tripId, id) =>
   apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION(tripId, id));
 export const addSharePayment = (tripId, id, data) =>
   apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION_PAYMENT(tripId, id), data);
+export const updateSharePayment = (tripId, id, paymentId, data) =>
+  apiPut(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION_PAYMENT_DEL(tripId, id, paymentId), data);
 export const deleteSharePayment = (tripId, id, paymentId) =>
   apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP_SHARE_COLLECTION_PAYMENT_DEL(tripId, id, paymentId));
 export const getMyShareCollection = (tripId) =>

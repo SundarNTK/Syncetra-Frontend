@@ -117,9 +117,11 @@ export default function AdminDashboard() {
   );
 
   const expenseSummary = hub?.expenseSummary;
-  const tripBudget = Number(expenseSummary?.totalBudget ?? selectedTrip?.budget ?? 0);
+  const tripBudget = Number(expenseSummary?.plannedBudget ?? selectedTrip?.budget ?? 0);
   const tripSpent = Number(expenseSummary?.totalSpent ?? 0);
-  const tripBalance = Number(expenseSummary?.remainingBalance ?? tripBudget - tripSpent);
+  const tripBalance = Number(
+    (expenseSummary?.shareCollectionRemaining ?? 0) + (expenseSummary?.sponsorRemaining ?? 0)
+  );
 
   const selectedTripStats = [
     {
@@ -129,7 +131,7 @@ export default function AdminDashboard() {
       accent: "indigo",
     },
     {
-      label: "Budget",
+      label: "Planned Budget",
       value: `₹${tripBudget.toLocaleString()}`,
       icon: "💰",
       accent: "amber",
@@ -141,7 +143,7 @@ export default function AdminDashboard() {
       accent: "slate",
     },
     {
-      label: "Balance",
+      label: "Funds Left",
       value: hub ? `₹${tripBalance.toLocaleString()}` : "—",
       icon: "💳",
       accent: "emerald",

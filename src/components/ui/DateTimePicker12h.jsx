@@ -20,20 +20,22 @@ export default function DateTimePicker12h({
   };
 
   return (
-    <div className="space-y-3">
-      <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1">Date</label>
-        <DatePickerField
-          value={date}
-          onChange={updateDate}
-          min={dateMin}
-          max={dateMax}
-          showHint={false}
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1">Time (12-hour)</label>
-        <TimePicker12h value={time} onChange={updateTime} />
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-3 items-start">
+        <div className="flex-1 min-w-[160px]">
+          <label className="block text-xs font-medium text-slate-400 mb-1">Date</label>
+          <DatePickerField
+            value={date}
+            onChange={updateDate}
+            min={dateMin}
+            max={dateMax}
+            showHint={false}
+          />
+        </div>
+        <div className="shrink-0">
+          <label className="block text-xs font-medium text-slate-400 mb-1">Time</label>
+          <TimePicker12h value={time} onChange={updateTime} />
+        </div>
       </div>
       {showHint && (
         <p className="text-xs text-slate-500">Pick date from calendar and time in 12-hour format</p>

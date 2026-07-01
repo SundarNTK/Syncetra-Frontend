@@ -220,48 +220,50 @@ export default function UserSponsors() {
               {items.map((sp) => (
                 <li key={sp._id}
                   className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden hover:border-violet-700/40 transition-colors">
-                  <div className="px-4 py-3 flex items-center gap-3">
-                    {/* Logo / icon */}
-                    {sp.imageUrl ? (
-                      <button type="button" onClick={() => setPreviewImg(sp.imageUrl)}
-                        className="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 hover:border-violet-500/60 transition-colors relative group flex items-center justify-center">
-                        <ZoomableImage src={sp.imageUrl} alt={sp.sponsorName}
-                          className="max-w-full max-h-full object-contain p-0.5" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                          </svg>
-                        </div>
-                      </button>
-                    ) : (
-                      <div className="shrink-0 w-12 h-12 rounded-xl border border-slate-700 bg-slate-800 flex items-center justify-center text-xl">
-                        🏢
+                  <div className="px-4 pt-3 pb-2">
+                    {/* Row 1 — name/notes + amount */}
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-200 truncate">{sp.sponsorName}</p>
+                        {sp.notes && (
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">{sp.notes}</p>
+                        )}
                       </div>
-                    )}
-
-                    {/* Name + notes */}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-200">{sp.sponsorName}</p>
-                      {sp.notes && (
-                        <p className="text-xs text-slate-500 mt-0.5 truncate">{sp.notes}</p>
-                      )}
+                      <p className="font-bold text-violet-400 font-mono shrink-0 text-sm">
+                        {fmt(sp.amount)}
+                      </p>
                     </div>
 
-                    {/* Amount */}
-                    <p className="font-bold text-violet-400 font-mono shrink-0 text-sm">
-                      {fmt(sp.amount)}
-                    </p>
+                    {/* Row 2 — logo/icon (left) + View button (right) */}
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {sp.imageUrl ? (
+                        <button type="button" onClick={() => setPreviewImg(sp.imageUrl)}
+                          className="shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-slate-700 bg-slate-950 hover:border-violet-500/60 transition-colors relative group flex items-center justify-center">
+                          <ZoomableImage src={sp.imageUrl} alt={sp.sponsorName}
+                            className="max-w-full max-h-full object-contain p-0.5" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                          </div>
+                        </button>
+                      ) : (
+                        <div className="shrink-0 w-10 h-10 rounded-lg border border-slate-700 bg-slate-800 flex items-center justify-center text-lg">
+                          🏢
+                        </div>
+                      )}
 
-                    {/* View button */}
-                    <button type="button" onClick={() => setViewSp(sp)}
-                      className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-violet-300 hover:border-violet-700/50 text-xs font-medium transition-colors">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                      </svg>
-                      View
-                    </button>
+                      {/* View button */}
+                      <button type="button" onClick={() => setViewSp(sp)}
+                        className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-violet-300 hover:border-violet-700/50 text-xs font-medium transition-colors ml-auto">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        View
+                      </button>
+                    </div>
                   </div>
                 </li>
               ))}

@@ -28,6 +28,7 @@ import AlarmList from "../views/admin/alarms/AlarmList";
 import AdminExpenses from "../views/admin/expenses";
 import AdminSponsors from "../views/admin/sponsors";
 import AdminVehicles from "../views/admin/vehicles";
+import AdminHotels from "../views/admin/hotels";
 import AdminAttendance from "../views/admin/attendance";
 import AdminTasks from "../views/admin/tasks";
 import AdminGallery from "../views/admin/gallery";
@@ -50,6 +51,7 @@ import UserItinerary from "../views/user/itinerary";
 import UserShareCollection from "../views/user/share-collection";
 import UserAlarmHistory from "../views/user/history";
 import UserVehicles from "../views/user/vehicles";
+import UserHotels from "../views/user/hotels";
 import UserSponsors from "../views/user/sponsors";
 import { ROLES } from "../constants/enum";
 import UserProfile from "../views/profile";
@@ -63,6 +65,7 @@ const BASE_ADMIN_MENU = [
   { path: "/alarms",        label: "Alarms",        icon: "⏰" },
   { path: "/alarms/active", label: "Active Alarms", icon: "🚨" },
   { path: "/vehicles",      label: "Vehicles",      icon: "🚌" },
+  { path: "/hotels",        label: "Hotels",        icon: "🏨" },
   { path: "/attendance",    label: "Attendance",    icon: "✅" },
   { path: "/tasks",            label: "Tasks",            icon: "📋" },
   { path: "/itinerary",        label: "Itinerary",        icon: "📅" },
@@ -83,6 +86,7 @@ const userMenu = [
   { path: "/itinerary",        label: "Itinerary",        icon: "📅" },
   { path: "/share-collection", label: "My Share",          icon: "💳" },
   { path: "/vehicles",         label: "Vehicles",         icon: "🚌" },
+  { path: "/hotels",           label: "Hotels",           icon: "🏨" },
   { path: "/expenses",   label: "Expenses",      icon: "💰" },
   { path: "/sponsors",   label: "Sponsors",      icon: "🏢" },
   { path: "/gallery",    label: "Gallery",       icon: "📷" },
@@ -155,6 +159,7 @@ export default function AppRoutes() {
         { path: "alarms/schedule", element: <ScheduleAlarm /> },
         { path: "alarms/active",   element: <ActiveAlarms /> },
         { path: "vehicles",        element: <AdminVehicles /> },
+        { path: "hotels",          element: <AdminHotels /> },
         { path: "attendance",      element: <AdminAttendance /> },
         { path: "tasks",            element: <AdminTasks /> },
         { path: "itinerary",        element: <AdminItinerary /> },
@@ -185,6 +190,7 @@ export default function AppRoutes() {
         { path: "itinerary",        element: <UserItinerary /> },
         { path: "share-collection", element: <UserShareCollection /> },
         { path: "vehicles",         element: <UserVehicles /> },
+        { path: "hotels",           element: <UserHotels /> },
         { path: "expenses",   element: <UserExpenses /> },
         { path: "sponsors",   element: <UserSponsors /> },
         { path: "gallery",    element: <UserGallery /> },
