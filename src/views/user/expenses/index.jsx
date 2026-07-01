@@ -4,6 +4,7 @@ import { useTrip } from "../../../context/TripContext";
 import { TripModuleShell } from "../../../components/trip/TripSelector";
 import { getExpenses, getSponsors } from "../../../services/trips";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
+import SponsorWall from "../../../components/trip/SponsorWall";
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 
@@ -128,6 +129,7 @@ export default function UserExpenses() {
                   {sponsorRemaining < 0 ? `${fmt(Math.abs(sponsorRemaining))} over` : `${fmt(sponsorRemaining)} left`}
                 </span>
               </div>
+              <SponsorWall sponsors={sponsors} onPreview={setPreviewImg} />
             </div>
           )}
 

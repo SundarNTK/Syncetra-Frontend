@@ -6,6 +6,7 @@ import { getExpenses, addExpense, updateExpense, deleteExpense, getTripHub, getS
 import { getAdminGroups } from "../../../services/groups";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import SearchableSelect from "../../../components/ui/SearchableSelect";
+import SponsorWall from "../../../components/trip/SponsorWall";
 import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useAppSelector } from "../../../hooks";
@@ -507,6 +508,7 @@ export default function AdminExpenses() {
                       {sponsorRemaining < 0 ? `${fmt(Math.abs(sponsorRemaining))} over` : `${fmt(sponsorRemaining)} left`}
                     </span>
                   </div>
+                  <SponsorWall sponsors={sponsors} onPreview={setPreviewImg} />
                 </div>
               </div>
 
