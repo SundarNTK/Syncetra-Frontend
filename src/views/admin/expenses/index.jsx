@@ -646,7 +646,7 @@ export default function AdminExpenses() {
                           {x._pending && <PendingBadge />}
                         </div>
                         {x.description && (
-                          <p className="text-xs text-slate-500 mt-0.5 leading-snug truncate">{x.description}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 leading-snug break-words">{x.description}</p>
                         )}
                       </div>
                       <p className="font-bold text-slate-200 font-mono shrink-0 text-sm">{fmt(x.amount)}</p>
