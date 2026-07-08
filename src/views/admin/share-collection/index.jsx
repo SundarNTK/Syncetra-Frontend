@@ -472,7 +472,7 @@ function MemberCard({
                 </div>
                 <div className={`text-center rounded-xl py-2.5 border ${maxPayable > 0 ? "bg-amber-900/20 border-amber-700/30" : "bg-slate-800/50 border-slate-700/50"}`}>
                   <p className={`text-sm font-bold ${maxPayable > 0 ? "text-amber-400" : "text-slate-400"}`}>
-                    {fmt(record.pendingAmount)}
+                    {fmt(maxPayable)}
                   </p>
                   <p className="text-[10px] text-slate-500 uppercase mt-0.5">Pending</p>
                 </div>
@@ -748,11 +748,12 @@ export default function AdminShareCollection() {
   );
 
   /* ── summary stats ── */
-  const totalCollected  = records.reduce((s, r) => s + (r.paidAmount       || 0), 0);
-  const totalPending    = records.reduce((s, r) => s + (r.pendingAmount     || 0), 0);
-  const totalShareSum   = records.reduce((s, r) => s + (r.totalShareAmount  || 0), 0);
+  const totalCollected  = records.reduce((s, r) => s + (r.paidAmount || 0), 0);
+  const totalShareSum   = records.reduce((s, r) => s + (r.totalShareAmount || 0), 0);
+  const totalPending    = records.reduce((s, r) => s + Math.max(0, (r.totalShareAmount || 0) - (r.paidAmount || 0)), 0);
   const paidCount       = records.filter((r) => r.paymentStatus === "paid").length;
   const unsetCount      = members.filter((m) => !recordByUserId[String(m._id || m.id)]).length;
+  const pendingMembersCount = members.length - paidCount;
 
   return (
     <TripModuleShell
@@ -773,12 +774,14 @@ export default function AdminShareCollection() {
       {selectedTripId && members.length > 0 && (
         <div className="space-y-4">
           {/* ── Summary bar ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: "Members",   icon: "👥", val: members.length,      sub: `${paidCount} fully paid`, cls: "text-slate-200",   glow: "rgba(148,163,184,0.12)" },
-              { label: "Total",     icon: "🎯", val: fmt(totalShareSum),  sub: `${unsetCount} not set`,   cls: "text-slate-200",   glow: "rgba(148,163,184,0.12)" },
-              { label: "Collected", icon: "✅", val: fmt(totalCollected), sub: null,                      cls: "text-emerald-400", glow: "rgba(16,185,129,0.14)" },
-              { label: "Pending",   icon: "⏳", val: fmt(totalPending),   sub: null,                      cls: totalPending > 0 ? "text-amber-400" : "text-emerald-400", glow: totalPending > 0 ? "rgba(245,158,11,0.14)" : "rgba(16,185,129,0.14)" },
+              { label: "Members",        icon: "👥", val: members.length,          sub: `${unsetCount} not set`, cls: "text-slate-200",   glow: "rgba(148,163,184,0.12)" },
+              { label: "Total",          icon: "🎯", val: fmt(totalShareSum),      sub: null,                     cls: "text-slate-200",   glow: "rgba(148,163,184,0.12)" },
+              { label: "Collected",      icon: "✅", val: fmt(totalCollected),     sub: null,                     cls: "text-emerald-400", glow: "rgba(16,185,129,0.14)" },
+              { label: "Pending",        icon: "⏳", val: fmt(totalPending),       sub: null,                     cls: totalPending > 0 ? "text-amber-400" : "text-emerald-400", glow: totalPending > 0 ? "rgba(245,158,11,0.14)" : "rgba(16,185,129,0.14)" },
+              { label: "Paid Members",   icon: "🙌", val: paidCount,               sub: `of ${members.length}`,  cls: "text-emerald-400", glow: "rgba(16,185,129,0.14)" },
+              { label: "Due Members",    icon: "⌛", val: pendingMembersCount,     sub: `of ${members.length}`,  cls: pendingMembersCount > 0 ? "text-amber-400" : "text-emerald-400", glow: pendingMembersCount > 0 ? "rgba(245,158,11,0.14)" : "rgba(16,185,129,0.14)" },
             ].map(({ label, icon, val, sub, cls, glow }) => (
               <div key={label} className="relative overflow-hidden bg-slate-900/80 border border-slate-800 rounded-xl p-3"
                 style={{ boxShadow: `0 0 18px ${glow}` }}>

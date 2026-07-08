@@ -71,6 +71,9 @@ export default function UserShareCollection() {
   const pct = record?.totalShareAmount > 0
     ? Math.min(100, Math.round((record.paidAmount / record.totalShareAmount) * 100))
     : 0;
+  const pendingAmount = record
+    ? Math.max(0, (record.totalShareAmount || 0) - (record.paidAmount || 0))
+    : 0;
   const status = STATUS_STYLE[record?.paymentStatus] || STATUS_STYLE.pending;
 
   return (
@@ -127,8 +130,8 @@ export default function UserShareCollection() {
                   <p className="text-lg font-black text-emerald-400">{fmt(record.paidAmount)}</p>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Paid</p>
                 </div>
-                <div className={`rounded-xl p-3 border ${record.pendingAmount > 0 ? "bg-amber-900/20 border-amber-700/30" : "bg-slate-800/60 border-slate-700/50"}`}>
-                  <p className={`text-lg font-black ${record.pendingAmount > 0 ? "text-amber-400" : "text-slate-400"}`}>{fmt(record.pendingAmount)}</p>
+                <div className={`rounded-xl p-3 border ${pendingAmount > 0 ? "bg-amber-900/20 border-amber-700/30" : "bg-slate-800/60 border-slate-700/50"}`}>
+                  <p className={`text-lg font-black ${pendingAmount > 0 ? "text-amber-400" : "text-slate-400"}`}>{fmt(pendingAmount)}</p>
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Pending</p>
                 </div>
               </div>
