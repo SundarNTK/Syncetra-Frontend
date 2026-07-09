@@ -10,6 +10,7 @@ export const createTrip = (data) => apiPost(API_SCOPE.ADMIN, EndPoints.TRIPS, da
 export const updateTrip = (id, data) => apiPut(API_SCOPE.ADMIN, EndPoints.TRIP(id), data);
 export const deleteTrip = (id) => apiDelete(API_SCOPE.ADMIN, EndPoints.TRIP(id));
 export const getTripHub = (id) => apiGet(API_SCOPE.ADMIN, EndPoints.TRIP_HUB(id));
+export const signEpassUpload = () => apiPost(API_SCOPE.ADMIN, EndPoints.TRIP_EPASS_SIGN);
 
 export const getExpenses = (tripId, isAdmin = true) =>
   apiGet(scope(isAdmin), EndPoints.TRIP_EXPENSES(tripId));

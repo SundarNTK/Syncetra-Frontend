@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
 import { useActionPopup } from "../../../hooks/useActionPopup";
 import { useTrip } from "../../../context/TripContext";
-import { createTrip, deleteTrip, updateTrip } from "../../../services/trips";
+import { createTrip, deleteTrip, updateTrip, signEpassUpload } from "../../../services/trips";
+import { validateFile, uploadToCloudinary } from "../../../utils/uploadToCloudinary";
 import useTripMemberCount from "../../../hooks/useTripMemberCount";
 import ZoomableImage from "../../../components/ui/ZoomableImage";
 import TripLocationMap from "../../../components/trip/TripLocationMap";
@@ -90,6 +91,8 @@ const EMPTY_FORM = {
   status: "planned",
   tripType: "group",
   location: null,
+  isEpassTaken: false,
+  epassDocuments: [],
 };
 
 
@@ -551,6 +554,145 @@ function CoverImagePicker({ preview, onPreview, onChange, onError, error }) {
   );
 }
 
+// ─── ToggleSwitch ─────────────────────────────────────────────────────────────
+function ToggleSwitch({ checked, onChange, label, description }) {
+  return (
+    <div className="flex items-center justify-between gap-3 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2.5">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-slate-200">{label}</p>
+        {description && <p className="text-[11px] text-slate-500 mt-0.5">{description}</p>}
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative w-11 h-6 rounded-full shrink-0 transition-colors duration-200 ${checked ? "bg-emerald-600" : "bg-slate-700"}`}
+      >
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${checked ? "translate-x-5" : "translate-x-0"}`} />
+      </button>
+    </div>
+  );
+}
+
+const EPASS_ACCEPT = "image/jpeg,image/png,image/gif,image/webp,application/pdf";
+
+// Cloudinary renders page 1 of a PDF (uploaded via the "image" endpoint) as a JPG thumbnail
+// when a transformation + format flag is applied — no separate thumbnail field needed.
+function epassPreviewUrl(url) {
+  if (!url || !url.includes("/image/upload/")) return url;
+  if (!/\.pdf($|\?)/i.test(url)) return url;
+  return url.replace("/image/upload/", "/image/upload/pg_1,w_200,h_260,c_fill,f_jpg,q_auto/");
+}
+
+// ─── EpassThumb ───────────────────────────────────────────────────────────────
+function EpassThumb({ src, size = "sm" }) {
+  const [failed, setFailed] = useState(false);
+  const dims = size === "lg" ? "w-32 h-40" : "w-16 h-20";
+  const iconSize = size === "lg" ? "text-4xl" : "text-2xl";
+  if (!src || failed) {
+    return (
+      <div className={`${dims} rounded-xl bg-red-950/40 border border-red-800/50 flex items-center justify-center ${iconSize} shrink-0`}>
+        📄
+      </div>
+    );
+  }
+  return (
+    <div className={`${dims} rounded-xl overflow-hidden border border-slate-700 bg-slate-950 shrink-0 shadow-lg transition-transform duration-200 ${size === "lg" ? "hover:scale-[1.04] hover:border-amber-600/50" : ""}`}>
+      <ZoomableImage
+        src={src}
+        alt="Epass preview"
+        className="w-full h-full object-cover"
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
+// ─── EpassPicker ──────────────────────────────────────────────────────────────
+function EpassPicker({ isEpassTaken, documents, onToggle, onAdd, onRemove, onError, error }) {
+  const ref = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    onError?.("");
+    setBusy(true);
+    for (const file of files) {
+      const isImage = file.type.startsWith("image/");
+      const isPdf = file.type === "application/pdf";
+      if (!isImage && !isPdf) {
+        onError?.(`${file.name}: use JPG, PNG, GIF, WebP, or PDF`);
+        continue;
+      }
+      try {
+        validateFile(file);
+        const signRes = await signEpassUpload();
+        const signData = signRes?.data;
+        if (!signData?.signature) throw new Error("Could not get upload token");
+        const uploaded = await uploadToCloudinary(file, signData);
+        onAdd(uploaded.url);
+      } catch (err) {
+        onError?.(err.message || `Failed to upload ${file.name}`);
+      }
+    }
+    setBusy(false);
+    e.target.value = "";
+  };
+
+  return (
+    <div className="space-y-2.5">
+      <ToggleSwitch
+        checked={isEpassTaken}
+        onChange={onToggle}
+        label="Is Epass Taken?"
+        description="Turn on if an entry ePass/permit has been obtained for this trip"
+      />
+      {isEpassTaken && (
+        <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-3.5">
+          <label className="block text-xs text-slate-400 mb-1.5">Epass documents (images or PDF)</label>
+          <div className="flex flex-wrap gap-3">
+            {documents.map((url) => (
+              <div key={url} className="relative group">
+                <a href={url} target="_blank" rel="noreferrer">
+                  <EpassThumb src={epassPreviewUrl(url)} />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => onRemove(url)}
+                  title="Remove"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs flex items-center justify-center shadow"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <label
+              title="Add Epass document"
+              className={`w-16 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-0.5 transition-colors bg-slate-950 shrink-0 ${busy ? "border-slate-800 cursor-wait" : "border-slate-700 hover:border-emerald-600 cursor-pointer"}`}
+            >
+              <span className="text-lg">{busy ? "…" : "+"}</span>
+              <span className="text-[9px] text-slate-500 text-center px-1">{busy ? "Uploading" : "Add"}</span>
+              <input
+                ref={ref}
+                type="file"
+                accept={EPASS_ACCEPT}
+                multiple
+                className="hidden"
+                disabled={busy}
+                onChange={handleFiles}
+              />
+            </label>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-2">JPG, PNG, GIF, WebP, or PDF · max 10 MB each</p>
+          {error && <p className="text-red-400 text-xs mt-1.5">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TripForm ─────────────────────────────────────────────────────────────────
 function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
   const [form, setForm] = useState(() => ({
@@ -574,12 +716,17 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
                   url: initialTrip.mapLink || `https://maps.google.com/?q=${initialTrip.latitude},${initialTrip.longitude}`,
                 }
               : null),
+          isEpassTaken: Boolean(initialTrip.isEpassTaken),
+          epassDocuments: Array.isArray(initialTrip.epassDocuments)
+            ? initialTrip.epassDocuments
+            : (initialTrip.epassDocument ? [initialTrip.epassDocument] : []),
         }
       : {}),
   }));
   const [preview, setPreview] = useState(initialTrip?.coverImage || "");
   const [error, setError] = useState("");
   const [imgError, setImgError] = useState("");
+  const [epassError, setEpassError] = useState("");
   const f = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
 
   const handleSubmit = async (e) => {
@@ -719,6 +866,16 @@ function TripForm({ initialTrip, onSubmit, onCancel, saving }) {
         onChange={(v) => setForm((p) => ({ ...p, coverImage: v }))}
         onError={setImgError}
         error={imgError}
+      />
+
+      <EpassPicker
+        isEpassTaken={form.isEpassTaken}
+        documents={form.epassDocuments}
+        onToggle={(v) => setForm((p) => ({ ...p, isEpassTaken: v }))}
+        onAdd={(url) => setForm((p) => ({ ...p, epassDocuments: [...p.epassDocuments, url] }))}
+        onRemove={(url) => setForm((p) => ({ ...p, epassDocuments: p.epassDocuments.filter((u) => u !== url) }))}
+        onError={setEpassError}
+        error={epassError}
       />
 
       {/* Location picker */}
@@ -1311,6 +1468,27 @@ function TripViewModal({ trip, onClose, onEdit }) {
               value={<span className="capitalize">{trip.status}</span>}
             />
           </div>
+
+          {trip.isEpassTaken && (
+            <div className="bg-slate-800/60 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">📄</span>
+                <div>
+                  <p className="text-sm font-medium text-slate-200">Epass Taken</p>
+                  <p className="text-[11px] text-slate-500">Entry permit document(s) uploaded</p>
+                </div>
+              </div>
+              {trip.epassDocuments?.length > 0 && (
+                <div className="flex flex-wrap gap-2.5">
+                  {trip.epassDocuments.map((url) => (
+                    <a key={url} href={url} target="_blank" rel="noreferrer">
+                      <EpassThumb src={epassPreviewUrl(url)} />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="px-5 pb-5 flex gap-3">
@@ -1381,8 +1559,128 @@ function TripEditModal({ trip, onClose, onSaved, saving }) {
   );
 }
 
+// ─── EpassViewModal ───────────────────────────────────────────────────────────
+const EPASS_GLOW = "245,158,11"; // amber, matching the 📄 Epass action button
+
+function EpassViewModal({ trip, onClose }) {
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(onClose, 300);
+  }, [closing, onClose]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleClose]);
+
+  if (!trip) return null;
+  const documents = trip.epassDocuments || [];
+
+  return (
+    <>
+      <style>{KEYFRAMES}</style>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
+        style={{
+          background: "rgba(0,0,0,0.82)",
+          backdropFilter: "blur(10px)",
+          animation: "backdropIn 0.35s ease forwards",
+          opacity: closing ? 0 : 1,
+          transition: "opacity 0.3s ease",
+        }}
+        onClick={handleClose}
+      >
+        <div
+          className="card-enter relative w-full max-w-lg rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
+          style={{
+            background: "linear-gradient(150deg, #0b1120, #171008, #0f172a)",
+            border: `1px solid rgba(${EPASS_GLOW}, 0.4)`,
+            boxShadow: `0 0 70px rgba(${EPASS_GLOW}, 0.22), 0 40px 100px rgba(0,0,0,0.7)`,
+            opacity: closing ? 0 : 1,
+            transform: closing ? "scale(0.9)" : undefined,
+            transition: "opacity 0.3s ease, transform 0.3s ease",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Radial glow wash */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: `radial-gradient(ellipse at 50% 0%, rgba(${EPASS_GLOW}, 0.18) 0%, transparent 60%)` }}
+          />
+          {/* Top accent line */}
+          <div
+            className="h-1 w-full shrink-0"
+            style={{ background: `linear-gradient(90deg, transparent, rgba(${EPASS_GLOW}, 1), transparent)` }}
+          />
+
+          <div className="px-6 pt-5 pb-4 flex items-center justify-between gap-3 shrink-0 relative">
+            <div className="flex items-center gap-3 min-w-0">
+              <span
+                className="spin-in text-3xl inline-block shrink-0"
+                style={{ filter: `drop-shadow(0 0 14px rgba(${EPASS_GLOW}, 0.7))` }}
+              >
+                📄
+              </span>
+              <div className="min-w-0">
+                <h2
+                  className="text-lg font-bold truncate"
+                  style={{
+                    background: "linear-gradient(90deg,#f59e0b,#fde68a,#f59e0b)",
+                    backgroundSize: "200% auto",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    animation: "shimmerText 3s linear infinite",
+                  }}
+                >
+                  Epass Documents
+                </h2>
+                <p className="text-xs text-slate-500 truncate">{trip.tripName}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-1.5 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors shrink-0"
+            >
+              <IconClose />
+            </button>
+          </div>
+
+          <div className="px-6 pb-6 overflow-y-auto min-h-0 flex-1 relative">
+            {documents.length > 0 ? (
+              <div className="flex flex-wrap gap-3.5">
+                {documents.map((url, i) => (
+                  <a
+                    key={url}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ animation: `tilePop 0.5s cubic-bezier(0.34,1.4,0.64,1) ${0.15 + i * 0.08}s both` }}
+                  >
+                    <EpassThumb src={epassPreviewUrl(url)} size="lg" />
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 text-center py-6">
+                No Epass documents uploaded for this trip yet.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── TripCard ─────────────────────────────────────────────────────────────────
-function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
+function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks, onEpass }) {
   const tripType = tripTypeMap[trip.tripType] || tripTypeMap.group;
   const coverGlowClass = STATUS_COVER_GLOW[trip.status] || STATUS_COVER_GLOW.planned;
 
@@ -1489,6 +1787,14 @@ function TripCard({ trip, onView, onEdit, onDelete, onCoverChange, onTasks }) {
           >
             <IconClipboard /> Tasks
           </button>
+          {trip.isEpassTaken && (
+            <button
+              onClick={() => onEpass(trip)}
+              className={`${actionBtn} bg-amber-900/30 hover:bg-amber-900/50 text-amber-400`}
+            >
+              📄 Epass
+            </button>
+          )}
           <button
             onClick={() => onDelete(trip._id)}
             className={`${actionBtn} bg-red-900/30 hover:bg-red-900/50 text-red-400`}
@@ -1508,6 +1814,7 @@ export default function AdminTrips() {
   const [editTrip, setEditTrip] = useState(null);
   const [viewTrip, setViewTrip] = useState(null);
   const [tasksTrip, setTasksTrip] = useState(null);
+  const [epassTrip, setEpassTrip] = useState(null);
   const [saving, setSaving] = useState(false);
   const [successData, setSuccessData] = useState(null);
   const { confirmDelete, deleteModal } = useDeleteConfirm();
@@ -1644,6 +1951,7 @@ export default function AdminTrips() {
               onDelete={handleDelete}
               onCoverChange={handleCoverChange}
               onTasks={setTasksTrip}
+              onEpass={setEpassTrip}
             />
           ))}
         </MasterList>
@@ -1687,6 +1995,11 @@ export default function AdminTrips() {
       {/* Task manager modal */}
       {tasksTrip && (
         <AdminTaskManager trip={tasksTrip} onClose={() => setTasksTrip(null)} />
+      )}
+
+      {/* Epass documents modal */}
+      {epassTrip && (
+        <EpassViewModal trip={epassTrip} onClose={() => setEpassTrip(null)} />
       )}
 
       {deleteModal}

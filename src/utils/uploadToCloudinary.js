@@ -1,23 +1,32 @@
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const DOC_TYPES   = ["application/pdf"];
 
 const CHUNK_SIZE        = 6 * 1024 * 1024;   // 6 MB per chunk (Cloudinary min is 5 MB)
 const CHUNKED_THRESHOLD = 90 * 1024 * 1024;  // use chunked upload for files > 90 MB
 
 export const MAX_IMAGE_MB = 10;
 export const MAX_VIDEO_MB = 100;
+export const MAX_DOC_MB   = 10;
 
 const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 const MAX_VIDEO_BYTES = MAX_VIDEO_MB * 1024 * 1024;
+const MAX_DOC_BYTES   = MAX_DOC_MB * 1024 * 1024;
 
 export function validateFile(file) {
   const isImage = IMAGE_TYPES.includes(file.type);
   const isVideo = VIDEO_TYPES.includes(file.type);
-  if (!isImage && !isVideo) throw new Error("Use JPG, PNG, GIF, WebP, MP4, or WebM");
+  const isDoc   = DOC_TYPES.includes(file.type);
+  if (!isImage && !isVideo && !isDoc) throw new Error("Use JPG, PNG, GIF, WebP, MP4, WebM, or PDF");
   if (isImage && file.size > MAX_IMAGE_BYTES)
     throw new Error(`Image too large — max ${MAX_IMAGE_MB} MB (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB)`);
   if (isVideo && file.size > MAX_VIDEO_BYTES)
     throw new Error(`Video too large — max ${MAX_VIDEO_MB} MB (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+  if (isDoc && file.size > MAX_DOC_BYTES)
+    throw new Error(`PDF too large — max ${MAX_DOC_MB} MB (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+  // PDFs are uploaded via Cloudinary's "image" endpoint (it treats PDF as a manipulable
+  // image format) rather than "raw" — raw delivery is blocked by default on most Cloudinary
+  // accounts as an abuse-prevention setting, which serves an error page instead of the file.
   return isVideo ? "video" : "image";
 }
 

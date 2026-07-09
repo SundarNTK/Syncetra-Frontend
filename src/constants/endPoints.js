@@ -14,6 +14,7 @@ const EndPoints = Object.freeze({
   GROUP_MEMBER: (groupId, memberId) => `/groups/${groupId}/members/${memberId}`,
   TRIPS: "/trips",
   TRIP: (id) => `/trips/${id}`,
+  TRIP_EPASS_SIGN: "/trips/epass/sign",
   TRIP_HUB: (id) => `/trips/${id}/hub`,
   TRIP_BUDGET: (id) => `/trips/${id}/budget`,
   TRIP_EXPENSES: (id) => `/trips/${id}/expenses`,
