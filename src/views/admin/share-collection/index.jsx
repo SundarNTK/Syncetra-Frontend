@@ -147,7 +147,7 @@ function PaymentProofUploader({ tripId, value, onChange }) {
 /* ─── MemberCard ───────────────────────────────────────────────────────────── */
 function MemberCard({
   member, record, tripId, isSuperAdmin, onRefresh,
-  onShareSuccess, onShareError, onPaymentSuccess, onPaymentError, ask,
+  onShareSuccess, onShareError, onPaymentSuccess, onPaymentError, confirmDelete,
 }) {
   const memberId    = String(member._id || member.id);
   const displayName = member.name || member.email || "Unknown";
@@ -292,21 +292,25 @@ function MemberCard({
   };
 
   /* ── delete payment ── */
-  const handleDeletePayment = async (txId) => {
-    const ok = await ask("Delete this payment entry?");
-    if (!ok) return;
-    try {
-      await deleteSharePayment(tripId, record._id, txId);
-      onPaymentSuccess("Payment deleted.");
-      onRefresh();
-    } catch (err) {
-      if (err.queued) {
-        onPaymentSuccess("Delete queued offline — will sync when reconnected.");
-        onRefresh();
-      } else {
-        onPaymentError(err.message || "Failed.");
-      }
-    }
+  const handleDeletePayment = (tx) => {
+    confirmDelete({
+      title: "Delete Payment",
+      recordLabel: `${fmt(tx.paymentAmount)} · ${tx.paymentMode === "online" ? "Online" : "Cash"}`,
+      onConfirm: async () => {
+        try {
+          await deleteSharePayment(tripId, record._id, tx._id);
+          onPaymentSuccess("Payment deleted.");
+          onRefresh();
+        } catch (err) {
+          if (err.queued) {
+            onPaymentSuccess("Delete queued offline — will sync when reconnected.");
+            onRefresh();
+          } else {
+            onPaymentError(err.message || "Failed.");
+          }
+        }
+      },
+    });
   };
 
   /* ── mode toggle ── */
@@ -679,7 +683,7 @@ function MemberCard({
                                   )}
                                   <button
                                     type="button"
-                                    onClick={() => handleDeletePayment(tx._id)}
+                                    onClick={() => handleDeletePayment(tx)}
                                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-950/40 border border-red-800/50 text-red-400 hover:bg-red-900/60 hover:text-red-300 text-xs font-medium transition-colors"
                                     title="Delete payment"
                                   >× Delete</button>
@@ -714,7 +718,7 @@ export default function AdminShareCollection() {
   const showShareError     = showError;
   const showPaymentSuccess = showSuccess;
   const showPaymentError   = showError;
-  const { confirmModal, ask } = useDeleteConfirm();
+  const { confirmDelete, deleteModal } = useDeleteConfirm();
 
   const [members, setMembers] = useState([]);
   const [records, setRecords] = useState([]);
@@ -762,7 +766,7 @@ export default function AdminShareCollection() {
       loading={loading && !!selectedTripId}
     >
       {popup}
-      {confirmModal}
+      {deleteModal}
 
       {selectedTripId && members.length === 0 && !loading && (
         <div className="text-center py-14 text-slate-500">
@@ -812,7 +816,7 @@ export default function AdminShareCollection() {
                   onShareError={showShareError}
                   onPaymentSuccess={showPaymentSuccess}
                   onPaymentError={showPaymentError}
-                  ask={ask}
+                  confirmDelete={confirmDelete}
                 />
               );
             })}
