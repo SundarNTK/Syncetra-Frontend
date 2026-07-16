@@ -751,11 +751,16 @@ export default function AdminShareCollection() {
     records.map((r) => [String(r.userId?._id || r.userId), r])
   );
 
-  /* ── summary stats ── */
-  const totalCollected  = records.reduce((s, r) => s + (r.paidAmount || 0), 0);
-  const totalShareSum   = records.reduce((s, r) => s + (r.totalShareAmount || 0), 0);
-  const totalPending    = records.reduce((s, r) => s + Math.max(0, (r.totalShareAmount || 0) - (r.paidAmount || 0)), 0);
-  const paidCount       = records.filter((r) => r.paymentStatus === "paid").length;
+  /* ── summary stats — derive from current member roster, not raw records (avoids
+     counting share-collection docs left over from members no longer on the trip) ── */
+  const recordsForCurrentMembers = members
+    .map((m) => recordByUserId[String(m._id || m.id)])
+    .filter(Boolean);
+
+  const totalCollected  = recordsForCurrentMembers.reduce((s, r) => s + (r.paidAmount || 0), 0);
+  const totalShareSum   = recordsForCurrentMembers.reduce((s, r) => s + (r.totalShareAmount || 0), 0);
+  const totalPending    = recordsForCurrentMembers.reduce((s, r) => s + Math.max(0, (r.totalShareAmount || 0) - (r.paidAmount || 0)), 0);
+  const paidCount       = recordsForCurrentMembers.filter((r) => r.paymentStatus === "paid").length;
   const unsetCount      = members.filter((m) => !recordByUserId[String(m._id || m.id)]).length;
   const pendingMembersCount = members.length - paidCount;
 
